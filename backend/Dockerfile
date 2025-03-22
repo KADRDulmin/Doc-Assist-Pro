@@ -1,7 +1,22 @@
 FROM node:18-alpine
-WORKDIR /backend
+
+# Install curl for healthcheck
+RUN apk --no-cache add curl
+
+# Create app directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
 COPY package*.json ./
-RUN npm ci
+
+# Install dependencies
+RUN npm install
+
+# Copy app source
 COPY . .
+
+# Expose API port
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+
+# Define startup command
+CMD ["node", "app.js"]

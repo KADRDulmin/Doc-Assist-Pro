@@ -1,33 +1,106 @@
 version: "3.9"
 services:
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      PGHOST: db
+      NODE_ENV: production
+      PORT: 3000
+      PGHOST: db  # Use service name for hostname in Docker network
       PGUSER: postgres
       PGPASSWORD: postgres
       PGPORT: 5432
       PGDATABASE: doc_assist
+      JWT_SECRET: e986e318da69965dd9a29479aa7c71f36aad01cd30c5d743c18773bdd7f650c12efc3cf2d3b5b7c7058bbd79d82c84473721e033bd9dcb575f0d5f9a12b622b4
+      API_URL: http://backend:3000  # Internal network URL
+      PUBLIC_API_URL: http://localhost:3000  # External URL for the host machine
+      FRONTEND_URL: http://localhost:19006  # Public frontend URL
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - doc-assist-network
+
   db:
-    image: postgres:14
+    image: postgres:14-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: doc_assist
     ports:
       - "5432:5432"
     volumes:
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - db_data:/var/lib/postgresql/data
-  frontend:
-    build: ./frontend
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - doc-assist-network
+    # Make PostgreSQL listen on all interfaces
+    command: ["postgres", "-c", "listen_addresses=*"]
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - doc-assist-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "19006:19006"
       - "19000:19000"
       - "19001:19001"
     environment:
-      REACT_APP_API_URL: http://backend:3000
+      NODE_ENV: production
+      CI: 1
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      REACT_NATIVE_PACKAGER_HOSTNAME: 0.0.0.0
+      EXPO_PUBLIC_API_URL: http://localhost:3000  # For host browser access - important for web
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19006"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - doc-assist-network
+
 volumes:
-  db_data:
+  pg_data:
+  pgadmin_data:
+
+networks:
+  doc-assist-network:
+    driver: bridge
