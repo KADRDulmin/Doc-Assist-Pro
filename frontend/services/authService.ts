@@ -55,6 +55,16 @@ const logout = async (): Promise<void> => {
     // Clear token from storage
     await tokenService.clearToken();
     console.log('Token cleared successfully');
+    
+    // Additional verification step
+    const tokenAfterClear = await tokenService.getToken();
+    if (tokenAfterClear) {
+      console.warn('Token still exists after clearing!');
+      // Force another clear attempt
+      await tokenService.clearToken();
+    } else {
+      console.log('Token verification: successfully cleared');
+    }
   } catch (error) {
     console.error('Error during logout:', error);
     throw error;

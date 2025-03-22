@@ -13,6 +13,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [errors, setErrors] = useState({ email: '', password: '', confirmPassword: '' });
   // Store API URL in state to avoid SSR issues
   const [apiUrl, setApiUrl] = useState('');
 
@@ -34,15 +35,44 @@ export default function RegisterScreen() {
     checkServerStatus();
   }, []);
 
-  const handleRegister = async () => {
-    // Validate inputs
-    if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = { email: '', password: '', confirmPassword: '' };
+
+    // Email validation
+    if (!email) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    // Password validation
+    if (!password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      isValid = false;
+    }
+
+    // Confirm password validation
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+      isValid = false;
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleRegister = async () => {
+    // Validate inputs
+    if (!validateForm()) {
       return;
     }
 
@@ -97,27 +127,41 @@ export default function RegisterScreen() {
       <ThemedText style={styles.subtitle}>Create a new account</ThemedText>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, errors.email ? styles.inputError : null]}
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (errors.email) setErrors({...errors, email: ''});
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
       />
+      {errors.email ? <ThemedText style={styles.errorText}>{errors.email}</ThemedText> : null}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, errors.password ? styles.inputError : null]}
         placeholder="Password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (errors.password) setErrors({...errors, password: ''});
+        }}
         secureTextEntry
       />
+      {errors.password ? <ThemedText style={styles.errorText}>{errors.password}</ThemedText> : null}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, errors.confirmPassword ? styles.inputError : null]}
         placeholder="Confirm Password"
         value={confirmPassword}
-        onChangeText={setConfirmPassword}
+        onChangeText={(text) => {
+          setConfirmPassword(text);
+          if (errors.confirmPassword) setErrors({...errors, confirmPassword: ''});
+        }}
         secureTextEntry
       />
+      {errors.confirmPassword ? <ThemedText style={styles.errorText}>{errors.confirmPassword}</ThemedText> : null}
 
       <TouchableOpacity
         style={[styles.button, serverStatus === 'offline' && styles.disabledButton]}
@@ -201,5 +245,16 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: '#cccccc',
+  },
+  inputError: {
+    borderColor: '#ff3b30',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: '#ff3b30',
+    fontSize: 14,
+    marginTop: -15,
+    marginBottom: 15,
+    marginLeft: 5,
   },
 });

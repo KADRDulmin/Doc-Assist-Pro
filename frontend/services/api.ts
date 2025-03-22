@@ -19,6 +19,12 @@ const getApiUrl = () => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
+  // For Docker environment, always use the host machine's IP
+  if (Platform.OS === 'web' && isBrowser && window.location.hostname === 'localhost') {
+    console.log('Running in Docker environment, using fixed API URL');
+    return 'http://localhost:3000';
+  }
+
   // Expo config extra also takes precedence if available
   if (Constants.expoConfig?.extra?.apiUrl) {
     console.log('Using Expo config API URL:', Constants.expoConfig.extra.apiUrl);
@@ -103,6 +109,9 @@ export const apiRequest = async <T>(
   const options: RequestInit = {
     method,
     headers: await getHeaders(requiresAuth),
+    mode: 'cors', // Explicitly set CORS mode
+    // Don't include credentials for all requests, only when needed
+    credentials: requiresAuth ? 'include' : 'same-origin',
   };
 
   if (data && (method === HTTP_METHODS.POST || method === HTTP_METHODS.PUT)) {
@@ -135,9 +144,10 @@ export const apiRequest = async <T>(
   } catch (error) {
     console.error(`API request failed: ${endpoint}`, error);
     
-    // More specific error messages for network issues
+    // Better CORS error handling
     if (error instanceof TypeError && error.message.includes('Network')) {
-      throw new Error(`Network error: Check if the server is running and accessible. Original error: ${error.message}`);
+      console.error('This appears to be a CORS or network issue. Check backend CORS configuration.');
+      throw new Error(`CORS or Network error: Check if the server is running and CORS is properly configured. Original error: ${error.message}`);
     }
     
     throw error;

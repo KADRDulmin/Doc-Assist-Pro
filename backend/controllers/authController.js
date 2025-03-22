@@ -1,8 +1,6 @@
-const bcrypt = require('bcryptjs'); // Changed from bcrypt to bcryptjs
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const authService = require('../services/authService');
 
-// Make email service optional
+// Optional email service
 let emailService;
 try {
     emailService = require('../services/emailService');
@@ -11,54 +9,66 @@ try {
     emailService = { sendVerificationEmail: () => console.log('Email sending skipped') };
 }
 
-const registerController = async (req, res) => {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-    }
-    
+/**
+ * Handle user registration
+ */
+const register = async (req, res, next) => {
     try {
-        console.log(`Attempting to register user with email: ${email}`);
-        await User.registerUser(email, password);
+        const { email, password } = req.body;
         
-        // Optional: Send verification email 
+        // Attempt to register user
+        const user = await authService.register(email, password);
+        
+        // Send verification email
         emailService.sendVerificationEmail && emailService.sendVerificationEmail(email);
         
         console.log(`User registered successfully: ${email}`);
-        res.status(201).json({ message: 'User registered successfully' });
+        res.status(201).json({ 
+            success: true,
+            message: 'User registered successfully' 
+        });
     } catch (error) {
-        console.error('Registration error:', error.message);
-        
-        // Check for specific database errors
-        if (error.code === '23505') { // PostgreSQL unique constraint violation
-            return res.status(409).json({ error: 'Email already exists' });
-        }
-        
-        res.status(500).json({ error: 'Failed to register user. ' + error.message });
+        next(error);
     }
 };
 
-const loginController = async (req, res) => {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-    }
-    
+/**
+ * Handle user login
+ */
+const login = async (req, res, next) => {
     try {
-        const user = await User.getUserByEmail(email);
-        if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+        const { email, password } = req.body;
         
-        const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
-
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        // Attempt to login user
+        const { token, user } = await authService.login(email, password);
+        
+        res.json({ 
+            success: true,
+            token,
+            user
+        });
     } catch (error) {
-        console.error('Login error:', error.message);
-        res.status(500).json({ error: 'Login failed. ' + error.message });
+        next(error);
     }
 };
 
-module.exports = { registerController, loginController };
+/**
+ * Get current user information
+ */
+const getCurrentUser = async (req, res, next) => {
+    try {
+        // User is already attached to request in auth middleware
+        res.json({
+            success: true,
+            user: req.user
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    register,
+    login,
+    getCurrentUser
+};

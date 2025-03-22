@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { authService } from '@/services/authService';
+import { tokenService } from '@/services/tokenService';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -22,13 +23,43 @@ export default function HomeScreen() {
           onPress: async () => {
             try {
               console.log('Logout button pressed, logging out user...');
-              // Clear token first
-              await authService.logout();
-              // Then navigate to login screen
-              console.log('Navigating to login screen...');
-              router.replace('/(auth)/login');
+              
+              // For web platform, use direct approach
+              if (Platform.OS === 'web') {
+                // Force direct token clearing (bypass potential AsyncStorage issues)
+                try {
+                  console.log('Using web-specific logout approach');
+                  // Clear token directly from both AsyncStorage and memory
+                  await tokenService.clearToken();
+                  
+                  // Force a small delay and then navigate
+                  console.log('Preparing to navigate to login screen...');
+                  setTimeout(() => {
+                    console.log('Navigating now...');
+                    // Use router.push instead of replace for web
+                    router.push('/(auth)/login');
+                    
+                    // Force reload as last resort if needed
+                    if (typeof window !== 'undefined') {
+                      setTimeout(() => {
+                        if (window.location.pathname !== '/(auth)/login') {
+                          console.log('Forcing page reload');
+                          window.location.href = '/(auth)/login';
+                        }
+                      }, 300);
+                    }
+                  }, 200);
+                } catch (e) {
+                  console.error('Web-specific logout error:', e);
+                  throw e;
+                }
+              } else {
+                // Standard approach for native platforms
+                await authService.logout();
+                router.replace('/(auth)/login');
+              }
             } catch (error) {
-              console.error('Error during logout:', error);
+              console.error('Error during logout process:', error);
               Alert.alert('Logout Error', 'Failed to logout properly. Please try again.');
             }
           },

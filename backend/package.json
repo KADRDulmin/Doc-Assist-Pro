@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "db:init": "node database/init.js",
     "docker:build": "docker-compose build",
     "docker:start": "docker-compose up",
     "db:check": "node scripts/check-postgres.js",

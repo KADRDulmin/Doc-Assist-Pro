@@ -11,15 +11,17 @@ RUN npm install
 COPY . .
 
 # Set environment variables
-ENV NODE_ENV=production
+ENV NODE_ENV=development
+ENV CI=false
 ENV EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
 ENV REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
-ENV CI=1
 
 # Expose ports
 EXPOSE 19000
 EXPOSE 19001
+EXPOSE 19002
 EXPOSE 19006
+EXPOSE 8081
 
-# Start the Expo web server
-CMD ["npx", "expo", "start", "--web", "--no-dev"]
+# Start the Expo web server with explicit CI disabled
+CMD ["npm", "run", "docker-start"]
