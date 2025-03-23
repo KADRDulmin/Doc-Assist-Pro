@@ -22,7 +22,13 @@ const getAllowedOrigins = () => {
         'http://frontend:19006',  // Docker service name
         'http://127.0.0.1:19006',
         'http://172.17.0.1:19006', // Docker default bridge network
-        'http://192.168.0.1:19006', // Local network
+        'http://192.168.1.4:19006', // Local network IP
+        'http://192.168.1.4:19000', // Local network IP for Expo
+        'exp://192.168.1.4:19000', // Expo Go URL format
+        // Wildcard entries for development
+        'http://192.168.*.*:19000',
+        'http://192.168.*.*:19006',
+        'exp://192.168.*.*:19000',
         'http://0.0.0.0:19006'
     ];
     
@@ -33,6 +39,12 @@ const getAllowedOrigins = () => {
 // CORS middleware with precise configuration
 app.use(cors({
     origin: function(origin, callback) {
+        // Allow all origins during development for mobile testing
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`CORS: Development mode - allowing origin: ${origin}`);
+            return callback(null, true);
+        }
+        
         // Get origins list
         const allowedOrigins = getAllowedOrigins();
         
@@ -50,9 +62,9 @@ app.use(cors({
             console.log(`CORS: Origin ${origin} is allowed`);
             callback(null, origin);
         } else {
-            // Origin not allowed
-            console.log(`CORS: Origin ${origin} is not allowed`);
-            callback(null, allowedOrigins[0]); // Default to first allowed origin
+            // Origin not allowed but allow anyway in development for easier debugging
+            console.log(`CORS: Origin ${origin} is not in the allowed list, but allowing in development`);
+            callback(null, true);
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

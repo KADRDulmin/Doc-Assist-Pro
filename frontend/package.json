@@ -11,7 +11,12 @@
     "web": "CI=false expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "docker-start": "CI=false EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 expo start --web"
+    "docker-start": "CI=false EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 expo start --web",
+    "docker-start-expo": "CI=false EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 PORT=8081 expo start --port 8081",
+    "start-lan": "node ./scripts/start-expo-lan.js",
+    "docker-start-lan": "node ./scripts/start-expo-lan.js",
+    "device": "node ./scripts/direct-device.js",
+    "expo": "expo"
   },
   "jest": {
     "preset": "jest-expo"

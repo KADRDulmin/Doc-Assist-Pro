@@ -74,21 +74,28 @@ services:
       - doc-assist-network
 
   frontend:
-    build:
+    build: 
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "19006:19006"
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
-      - "8081:8081"
+      - "19006:19006"  # Web
+      - "19000:19000"  # Metro bundler
+      - "8081:8081"    # Metro bundler alternative port
+      - "19001:19001"  # Dev tools
+      - "19002:19002"  # Dev menu
     environment:
       NODE_ENV: development
       CI: "false"
-      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
-      REACT_NATIVE_PACKAGER_HOSTNAME: 0.0.0.0
-      EXPO_PUBLIC_API_URL: http://localhost:3000
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: "0.0.0.0"
+      REACT_NATIVE_PACKAGER_HOSTNAME: "0.0.0.0"
+      EXPO_PUBLIC_API_URL: "http://localhost:3000"
+      # For QR code access via mobile devices
+      EXPO_PUBLIC_WEBAPP_URL: "http://localhost:19006"
+      # LAN access - will be overridden by the CMD in Dockerfile
+      EXPO_PUBLIC_LOCAL_URL: "http://192.168.1.4:19000"
+      # Additional environment variables for better connectivity
+      EXPO_NO_DOCTOR: 1
+      EXPO_DEBUG: 1
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -96,12 +103,16 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    # Use specific command to ensure proper port binding
+    command: ["npm", "run", "docker-start-expo"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:19006"]
+      test: ["CMD", "curl", "-f", "http://localhost:19000"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    # Instead of host networking, let's use bridge and explicit port mappings
+    # network_mode: "host"
     networks:
       - doc-assist-network
 
