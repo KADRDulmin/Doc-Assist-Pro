@@ -34,7 +34,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/Doc-Assist-Pro.git
+git clone https://github.com/KADRDulmin/Doc-Assist-Pro.git
 
 # Navigate to project directory
 cd Doc-Assist-Pro
