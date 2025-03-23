@@ -3,6 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "check-files": "node ./scripts/check-files.js",
+    "check-imports": "node ./scripts/check-imports.js",
     "start": "CI=false expo start",
     "start-web": "CI=false expo start --web",
     "reset-project": "node ./scripts/reset-project.js",

@@ -1,14 +1,16 @@
 import { Image, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { authService } from '@/services/authService';
-import { tokenService } from '@/services/tokenService';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/src/hooks/useAuth';
 
 export default function HomeScreen() {
+  // Use the auth hook instead of direct service calls
+  const { logout, isLoading } = useAuth();
+
   const handleLogout = () => {
     Alert.alert(
       "Logout",
@@ -23,41 +25,7 @@ export default function HomeScreen() {
           onPress: async () => {
             try {
               console.log('Logout button pressed, logging out user...');
-              
-              // For web platform, use direct approach
-              if (Platform.OS === 'web') {
-                // Force direct token clearing (bypass potential AsyncStorage issues)
-                try {
-                  console.log('Using web-specific logout approach');
-                  // Clear token directly from both AsyncStorage and memory
-                  await tokenService.clearToken();
-                  
-                  // Force a small delay and then navigate
-                  console.log('Preparing to navigate to login screen...');
-                  setTimeout(() => {
-                    console.log('Navigating now...');
-                    // Use router.push instead of replace for web
-                    router.push('/(auth)/login');
-                    
-                    // Force reload as last resort if needed
-                    if (typeof window !== 'undefined') {
-                      setTimeout(() => {
-                        if (window.location.pathname !== '/(auth)/login') {
-                          console.log('Forcing page reload');
-                          window.location.href = '/(auth)/login';
-                        }
-                      }, 300);
-                    }
-                  }, 200);
-                } catch (e) {
-                  console.error('Web-specific logout error:', e);
-                  throw e;
-                }
-              } else {
-                // Standard approach for native platforms
-                await authService.logout();
-                router.replace('/(auth)/login');
-              }
+              await logout();
             } catch (error) {
               console.error('Error during logout process:', error);
               Alert.alert('Logout Error', 'Failed to logout properly. Please try again.');
@@ -79,9 +47,10 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcomeeee!</ThemedText>
+        <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
       </ThemedView>
+      
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
@@ -113,14 +82,18 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+      
       <ThemedView style={styles.logoutContainer}>
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
+          disabled={isLoading}
           accessibilityLabel="Logout button"
           accessibilityHint="Logs you out of the application"
         >
-          <ThemedText style={styles.logoutButtonText}>Logout</ThemedText>
+          <ThemedText style={styles.logoutButtonText}>
+            {isLoading ? 'Logging out...' : 'Logout'}
+          </ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ParallaxScrollView>

@@ -1,29 +1,14 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { authService } from '@/services/authService';
+// Update the import path
+import { useAuth } from '@/src/hooks/useAuth';
+import { useEffect, useState } from 'react';
 
 export default function Index() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const authenticated = await authService.isAuthenticated();
-        setIsAuthenticated(authenticated);
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  if (isLoading) {
+  // Show loading state while checking authentication
+  if (isLoading || isAuthenticated === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0a7ea4" />

@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { authService } from '@/services/authService';
-import { API_URL } from '@/services/api';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/src/hooks/useAuth';
+import { API_URL } from '@/src/services/api/base-api.service';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [errors, setErrors] = useState({ email: '', password: '', confirmPassword: '' });
+  
   // Store API URL in state to avoid SSR issues
   const [apiUrl, setApiUrl] = useState('');
+  
+  // Use our auth hook
+  const { isLoading, register } = useAuth();
 
   // Use effect to set API URL and check server status after mount
   useEffect(() => {
@@ -80,15 +83,14 @@ export default function RegisterScreen() {
     if (serverStatus !== 'online') {
       Alert.alert(
         'Server Unavailable',
-        `Cannot connect to the server at ${API_URL}. Please check your connection and try again.`
+        `Cannot connect to the server at ${apiUrl}. Please check your connection and try again.`
       );
       return;
     }
 
-    setLoading(true);
     try {
-      console.log('Attempting registration with API URL:', API_URL);
-      await authService.register({ email, password });
+      console.log('Attempting registration...');
+      await register({ email, password });
       
       Alert.alert(
         'Registration Successful',
@@ -104,12 +106,10 @@ export default function RegisterScreen() {
         errorMessage = 'This email is already registered. Please try logging in instead.';
       } else if (errorMessage.includes('Network error')) {
         errorMessage += '\n\nTips:\n1. Check if your backend server is running\n' + 
-                       `2. Make sure ${API_URL} is accessible from your device`;
+                       `2. Make sure ${apiUrl} is accessible from your device`;
       }
       
       Alert.alert('Registration Failed', errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -166,9 +166,9 @@ export default function RegisterScreen() {
       <TouchableOpacity
         style={[styles.button, serverStatus === 'offline' && styles.disabledButton]}
         onPress={handleRegister}
-        disabled={loading || serverStatus === 'offline'}
+        disabled={isLoading || serverStatus === 'offline'}
       >
-        {loading ? (
+        {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <ThemedText style={styles.buttonText}>Register</ThemedText>

@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, View, Text } from 'react-native';
 import { router } from 'expo-router';
-import { authService } from '@/services/authService';
-import { API_URL } from '@/services/api';
 import Constants from 'expo-constants';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/src/hooks/useAuth';
+import { API_URL } from '@/src/services/api/base-api.service';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [apiUrl, setApiUrl] = useState('');
   const [showTestCreds, setShowTestCreds] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
   const isDev = process.env.NODE_ENV !== 'production';
+  
+  // Use our custom auth hook
+  const { isLoading, error, login } = useAuth();
 
   // Set the API URL after component mount to avoid SSR issues
   useEffect(() => {
@@ -61,33 +63,36 @@ export default function LoginScreen() {
       return;
     }
 
-    setLoading(true);
     try {
-      console.log('Attempting login with API URL:', apiUrl);
-      const response = await authService.login({ email, password });
-      console.log('Login successful, navigating to home screen...');
+      const success = await login({ email, password });
       
-      // Navigate to main app
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('Login failed:', error);
-      let errorMessage = error instanceof Error ? error.message : 'Login failed';
-      
-      // Check for specific error cases and provide helpful messages
-      if (errorMessage.includes('Invalid credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-        if (isDev) {
-          errorMessage += '\n\nTry the test account:\nEmail: test@example.com\nPassword: test123';
-        }
-      } else if (errorMessage.includes('Network error')) {
-        errorMessage += '\n\nTips:\n1. Check if your backend server is running\n' + 
-                       `2. Make sure ${apiUrl} is accessible from your device`;
+      if (success) {
+        console.log('Login successful, navigating to home screen...');
+        router.replace('/(tabs)');
+      } else if (error) {
+        displayErrorAlert(error);
       }
-      
-      Alert.alert('Login Failed', errorMessage);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Login error:', err);
+      displayErrorAlert('An unexpected error occurred');
     }
+  };
+
+  const displayErrorAlert = (errorMessage: string) => {
+    let message = errorMessage;
+    
+    // Check for specific error cases and provide helpful messages
+    if (errorMessage.includes('Invalid credentials')) {
+      message = 'Invalid email or password. Please try again.';
+      if (isDev) {
+        message += '\n\nTry the test account:\nEmail: test@example.com\nPassword: test123';
+      }
+    } else if (errorMessage.includes('Network error')) {
+      message += '\n\nTips:\n1. Check if your backend server is running\n' + 
+                `2. Make sure ${apiUrl} is accessible from your device`;
+    }
+    
+    Alert.alert('Login Failed', message);
   };
 
   return (
@@ -138,9 +143,9 @@ export default function LoginScreen() {
       <TouchableOpacity
         style={styles.button}
         onPress={handleLogin}
-        disabled={loading}
+        disabled={isLoading}
       >
-        {loading ? (
+        {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <ThemedText style={styles.buttonText}>Login</ThemedText>
