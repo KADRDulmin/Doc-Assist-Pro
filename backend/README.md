@@ -10,9 +10,6 @@
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)](https://jwt.io/)
 [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-<p align="center">
-  <img src="https://via.placeholder.com/700x300?text=Doc-Assist-Pro+Backend" alt="Backend Architecture" />
-</p>
 
 > RESTful API service powering the Doc-Assist-Pro healthcare platform
 
@@ -41,6 +38,104 @@
 - **In-Memory Fallback**: Graceful degradation when database is unavailable
 
 ---
+
+# Backend Architecture
+
+## 🏗️ System Overview
+
+The backend system is built with Node.js and Express, providing a robust RESTful API for authentication and user management. The architecture follows a clean, modular design with separation of concerns and fallback mechanisms for high availability.
+
+```
+┌─────────────────────┐
+│                     │
+│    Express Server   │
+│                     │
+└───────────┬─────────┘
+            │
+            ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│                     │     │                     │
+│  Middleware Layer   │◄────│   Routes & API      │
+│                     │     │                     │
+└───────────┬─────────┘     └─────────────────────┘
+            │
+            ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│                     │     │                     │
+│    Controllers      │◄────│     Services        │
+│                     │     │                     │
+└───────────┬─────────┘     └────────┬────────────┘
+            │                        │
+            ▼                        ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│                     │     │                     │
+│    Repositories     │◄────│      Models         │
+│                     │     │                     │
+└───────────┬─────────┘     └─────────────────────┘
+            │
+            ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│                     │     │                     │
+│  PostgreSQL DB      │◄────│  Memory Fallback    │
+│                     │     │                     │
+└─────────────────────┘     └─────────────────────┘
+```
+
+## 🔧 Core Components
+
+### API Server (`app.js`)
+- Express server configuration with CORS support
+- Centralized error handling
+- Request logging
+- Dynamic environment configuration
+
+### Configuration Layer
+- Environment-based settings via `.env`
+- Intelligent PostgreSQL connection management
+- Docker environment detection
+- Connection pooling
+
+### Authentication System
+- JWT-based authentication
+- Password hashing with bcrypt
+- Token verification middleware
+- User session management
+
+### Database Access
+- PostgreSQL with connection pooling
+- In-memory fallback store for high availability
+- Automatic table creation and initialization
+- Health checking capabilities
+
+
+## 🔐 Security Features
+
+- **Password Security**: Bcrypt hashing with salt rounds
+- **JWT Authentication**: Secure token-based sessions
+- **Input Validation**: Server-side validation for all requests
+- **Error Handling**: Sanitized error responses
+- **CORS Protection**: Configurable origin restrictions
+- **Database Security**: Parameterized queries to prevent SQL injection
+
+## 🛡️ Error Handling
+
+The system implements a comprehensive error handling strategy:
+
+- **Global Error Middleware**: Catches and standardizes all errors
+- **Specific Error Types**: Custom error handling for different scenarios
+- **Graceful Degradation**: Fallback strategies when services are unavailable
+- **Detailed Logging**: Errors are logged with contextual information
+
+
+## 📦 Containerization
+
+The backend is containerized using Docker with the following features:
+
+- Alpine-based Node.js container
+- Multi-stage build process
+- Health check endpoint
+- Container orchestration with docker-compose
+- Auto-detection of container environment
 
 ## 🐳 Docker Setup
 
@@ -168,14 +263,24 @@ The database is initialized with a test user:
 
 ### Available Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| GET | `/api` | API information | No |
-| GET | `/api/health` | Health check | No |
-| GET | `/api/health/db` | Database health check | No |
-| POST | `/api/auth/register` | Register new user | No |
-| POST | `/api/auth/login` | Login user | No |
-| GET | `/api/auth/me` | Get current user | Yes |
+
+### Authentication API
+
+| Method | Endpoint           | Description                           | Auth Required |
+|--------|-------------------|---------------------------------------|---------------|
+| POST   | /api/auth/register | Register a new user                   | No            |
+| POST   | /api/auth/login    | Authenticate and get token            | No            |
+| GET    | /api/auth/me       | Get current user profile              | Yes           |
+
+### System Endpoints
+
+| Method | Endpoint           | Description                           | Auth Required |
+|--------|-------------------|---------------------------------------|---------------|
+| GET    | /api              | API information and available endpoints| No            |
+| GET    | /api/health       | System health check                   | No            |
+| GET    | /api/health/db    | Database connection status            | No            |
+| GET    | /api/cors-test    | Test CORS configuration               | No            |
+
 
 ### Authentication
 
@@ -218,9 +323,35 @@ The backend follows a modular architecture for better organization and maintaina
 
 ### Architectural Design
 
-<div align="center">
-    <img src="https://via.placeholder.com/800x400?text=Backend+Architecture+Diagram" alt="Architecture Diagram" />
-</div>
+
+```
+backend/
+├── app.js                  # Application entry point
+├── config/                 # Configuration files
+│   └── database.js         # Database connection
+├── controllers/            # Request handlers
+│   └── authController.js   # Authentication endpoints
+├── database/               # Database management
+│   └── init.js             # DB initialization script
+├── middleware/             # Express middleware
+│   ├── auth.js             # JWT authentication
+│   └── errorHandler.js     # Global error handling
+├── models/                 # Data models
+│   └── user.js             # User entity
+├── repositories/           # Data access layer
+│   └── userRepository.js   # User storage operations
+├── routes/                 # API routes
+│   ├── index.js            # Main router
+│   └── authRoutes.js       # Auth endpoints
+├── scripts/                # Utility scripts
+│   └── check-postgres.js   # DB connection checker
+├── services/               # Business logic
+│   ├── authService.js      # Auth operations
+│   └── emailService.js     # Email notifications
+└── utils/                  # Helper utilities
+    └── memoryStore.js      # In-memory data fallback
+```
+
 
 The backend follows a layered architecture pattern:
 
