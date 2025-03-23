@@ -342,6 +342,6 @@ docker exec doc-assist-pro_db_1 psql -U postgres -c "\l"
 
 ### 🚀 Ready to Transform Healthcare Management?
 
-[Report Bug](https://github.com/KADRDulmin/Doc-Assist-Pro/issues) · [Request Feature](https://github./KADRDulmin/Doc-Assist-Pro/discussions)
+[Report Bug](https://github.com/KADRDulmin/Doc-Assist-Pro/issues) · [Request Feature](https://github.com/KADRDulmin/Doc-Assist-Pro/discussions)
 
 </div>
