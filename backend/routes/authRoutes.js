@@ -12,6 +12,9 @@ const DoctorProfile = require('../models/doctor-profile');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 
+// Add logout route (requires authentication)
+router.post('/logout', authenticate, authController.logout);
+
 // Role-specific registration routes
 router.post('/register/doctor', doctorController.registerDoctor);
 router.post('/register/patient', patientController.registerPatient);

@@ -150,6 +150,21 @@ class AuthService {
     }
     
     /**
+     * Logout a user
+     * Sets the user's active status to false in the database
+     */
+    async logout(userId) {
+        if (!userId) {
+            throw new Error('User ID is required');
+        }
+        
+        // Deactivate user account by setting is_active to false
+        const user = await userRepository.updateActiveStatus(userId, false);
+        
+        return { success: true, message: 'Logged out successfully' };
+    }
+    
+    /**
      * Verify JWT token
      */
     verifyToken(token) {

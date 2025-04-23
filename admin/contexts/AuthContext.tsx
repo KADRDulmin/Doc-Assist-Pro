@@ -210,6 +210,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     try {
       setIsLoading(true);
       
+      // Make API call to logout endpoint if we have a token
+      if (userToken) {
+        try {
+          await apiFetch('/auth/logout', {
+            method: 'POST'
+            // Token will be included automatically by apiFetch
+          });
+          console.log('Logout API call successful');
+        } catch (apiError) {
+          console.error('Logout API error:', apiError);
+          // Continue with local logout even if API fails
+        }
+      }
+      
       // Clear auth data
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userInfo');

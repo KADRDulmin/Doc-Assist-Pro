@@ -56,6 +56,25 @@ const login = async (req, res, next) => {
 };
 
 /**
+ * Handle user logout
+ */
+const logout = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        
+        // Logout user
+        await authService.logout(userId);
+        
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * Get current user information
  */
 const getCurrentUser = async (req, res, next) => {
@@ -73,5 +92,6 @@ const getCurrentUser = async (req, res, next) => {
 module.exports = {
     register,
     login,
+    logout,
     getCurrentUser
 };

@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useContext } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { AuthContext } from '@/contexts/AuthContext';
 
 // Simple color constants
 const Colors = {
@@ -13,6 +14,9 @@ const Colors = {
 };
 
 export default function DoctorDashboardScreen() {
+  // Get the logout function from AuthContext
+  const { logout, userInfo } = useContext(AuthContext);
+
   // Mock data
   const appointments = [
     { id: 1, patient: 'John Doe', time: '9:00 AM', type: 'Check-up' },
@@ -20,14 +24,39 @@ export default function DoctorDashboardScreen() {
     { id: 3, patient: 'Robert Brown', time: '2:00 PM', type: 'Consultation' },
   ];
 
-  const handleLogout = () => {
-    router.replace('/auth/welcome');
+  const handleLogout = async () => {
+    // Show confirmation dialog
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to logout? Your account will be marked as inactive.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error) {
+              console.error('Error during logout:', error);
+              // Fallback if logout fails
+              router.replace('/auth/welcome');
+            }
+          }
+        }
+      ]
+    );
   };
+
+  // Get doctor's name from context
+  const doctorName = userInfo ? 
+    `Dr. ${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() : 
+    'Doctor';
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome, Dr. Smith</Text>
+        <Text style={styles.greeting}>Welcome, {doctorName}</Text>
         <Text style={styles.subHeading}>Today's Appointments</Text>
       </View>
 

@@ -176,6 +176,34 @@ class UserRepository {
     }
     
     /**
+     * Update user active status
+     */
+    async updateActiveStatus(id, isActive) {
+        try {
+            const client = await pool.connect();
+            try {
+                console.log(`Updating active status for user ID ${id} to ${isActive}`);
+                const result = await client.query(
+                    `UPDATE users 
+                     SET is_active = $1, updated_at = CURRENT_TIMESTAMP
+                     WHERE id = $2 RETURNING *`,
+                    [isActive, id]
+                );
+                
+                return result.rows[0] ? new User(result.rows[0]) : null;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._updateActiveStatusInMemory(id, isActive);
+            }
+            throw error;
+        }
+    }
+    
+    /**
      * Delete a user by ID
      */
     async delete(id) {
@@ -289,6 +317,19 @@ class UserRepository {
         memoryStore.users[index] = {
             ...memoryStore.users[index],
             ...userData,
+            updated_at: new Date()
+        };
+        
+        return new User(memoryStore.users[index]);
+    }
+    
+    _updateActiveStatusInMemory(id, isActive) {
+        const index = memoryStore.users.findIndex(user => user.id === parseInt(id));
+        if (index === -1) return null;
+        
+        memoryStore.users[index] = {
+            ...memoryStore.users[index],
+            is_active: isActive,
             updated_at: new Date()
         };
         
