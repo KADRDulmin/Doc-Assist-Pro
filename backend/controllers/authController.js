@@ -14,18 +14,21 @@ try {
  */
 const register = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, first_name, last_name, role, phone } = req.body;
         
         // Attempt to register user
-        const user = await authService.register(email, password);
+        const user = await authService.register({ 
+            email, password, first_name, last_name, role, phone 
+        });
         
         // Send verification email
         emailService.sendVerificationEmail && emailService.sendVerificationEmail(email);
         
-        console.log(`User registered successfully: ${email}`);
+        console.log(`User registered successfully: ${email} (${role || 'patient'})`);
         res.status(201).json({ 
             success: true,
-            message: 'User registered successfully' 
+            message: 'User registered successfully',
+            data: user.toJSON()
         });
     } catch (error) {
         next(error);

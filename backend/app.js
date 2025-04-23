@@ -29,7 +29,9 @@ const getAllowedOrigins = () => {
         'http://192.168.*.*:19000',
         'http://192.168.*.*:19006',
         'exp://192.168.*.*:19000',
-        'http://0.0.0.0:19006'
+        'http://0.0.0.0:19006',
+        // Allow connections from all origins in development
+        '*'
     ];
     
     console.log('CORS: Allowed origins configured as:', origins);
@@ -57,7 +59,7 @@ app.use(cors({
         // Log the request origin
         console.log(`CORS: Request from origin: ${origin}`);
         
-        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*') || !origin) {
             // Origin is allowed
             console.log(`CORS: Origin ${origin} is allowed`);
             callback(null, origin);
@@ -74,11 +76,16 @@ app.use(cors({
     optionsSuccessStatus: 204
 }));
 
-app.use(express.json());
+// Increase JSON request body limit to handle larger payloads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware
+// Request logging middleware with request body
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+    }
     next();
 });
 

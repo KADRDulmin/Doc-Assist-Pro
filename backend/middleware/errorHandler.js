@@ -2,7 +2,20 @@
  * Global error handling middleware
  */
 const errorHandler = (err, req, res, next) => {
-    console.error('Error:', err.message);
+    // Detailed logging for debugging
+    console.error('=== ERROR HANDLER ===');
+    console.error(`Path: ${req.method} ${req.path}`);
+    console.error(`Error name: ${err.name}`);
+    console.error(`Error message: ${err.message}`);
+    console.error(`Stack trace: ${err.stack}`);
+    
+    if (req.body && Object.keys(req.body).length > 0) {
+        // Don't log passwords
+        const sanitizedBody = { ...req.body };
+        if (sanitizedBody.password) sanitizedBody.password = '[REDACTED]';
+        if (sanitizedBody.confirmPassword) sanitizedBody.confirmPassword = '[REDACTED]';
+        console.error('Request body:', JSON.stringify(sanitizedBody, null, 2));
+    }
     
     // Default error status and message
     let statusCode = 500;
@@ -23,10 +36,17 @@ const errorHandler = (err, req, res, next) => {
         message = 'Database service unavailable. Using fallback storage.';
     }
     
+    // Include more details in development mode
+    const isDev = process.env.NODE_ENV !== 'production';
+    
     // Send error response
     res.status(statusCode).json({
         success: false,
-        error: message
+        error: message,
+        ...(isDev && { 
+            details: err.message,
+            stack: err.stack?.split('\n').map(line => line.trim())
+        })
     });
 };
 
