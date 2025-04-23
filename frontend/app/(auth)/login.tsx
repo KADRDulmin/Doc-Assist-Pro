@@ -98,7 +98,7 @@ export default function LoginScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>Doc-Assist-Pro</ThemedText>
-      <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
+      <ThemedText style={styles.subtitle}>Patient Login</ThemedText>
 
       {isDev && (
         <TouchableOpacity 
@@ -148,7 +148,7 @@ export default function LoginScreen() {
         {isLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <ThemedText style={styles.buttonText}>Login</ThemedText>
+          <ThemedText style={styles.buttonText}>Login as Patient</ThemedText>
         )}
       </TouchableOpacity>
 
@@ -156,7 +156,7 @@ export default function LoginScreen() {
         onPress={() => router.push('/(auth)/register')}
         style={styles.linkContainer}
       >
-        <ThemedText style={styles.link}>Don't have an account? Register</ThemedText>
+        <ThemedText style={styles.link}>New patient? Create an account</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );

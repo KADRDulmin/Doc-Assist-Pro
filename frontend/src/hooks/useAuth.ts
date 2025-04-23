@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { authController } from '../controllers/auth.controller';
-import { LoginCredentials, RegisterCredentials } from '../models/auth.model';
+import { LoginCredentials, RegisterCredentials, PatientRegisterData } from '../models/auth.model';
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +62,23 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Register patient function
+  const registerPatient = useCallback(async (patientData: PatientRegisterData) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await authController.registerPatient(patientData);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Patient registration failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Logout function
   const logout = useCallback(async () => {
     setIsLoading(true);
@@ -96,6 +113,7 @@ export const useAuth = () => {
     error,
     login,
     register,
+    registerPatient,
     logout
   };
 };

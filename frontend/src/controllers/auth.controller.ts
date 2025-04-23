@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 // Fix the import path
 import { authApiService } from '../services/api/auth-api.service';
 import { tokenService } from '../services/token.service';
-import { LoginCredentials, RegisterCredentials } from '../models/auth.model';
+import { LoginCredentials, RegisterCredentials, PatientRegisterData } from '../models/auth.model';
 
 class AuthController {
   /**
@@ -39,6 +39,19 @@ class AuthController {
       return await authApiService.register(credentials);
     } catch (error) {
       console.error('Registration failed in controller:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle patient registration
+   * @param patientData - New patient registration data with profile
+   */
+  async registerPatient(patientData: PatientRegisterData) {
+    try {
+      return await authApiService.registerPatient(patientData);
+    } catch (error) {
+      console.error('Patient registration failed in controller:', error);
       throw error;
     }
   }

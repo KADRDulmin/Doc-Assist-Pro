@@ -5,7 +5,8 @@
 import { BaseApiService, HttpMethod } from './base-api.service';
 import { 
   LoginCredentials, 
-  RegisterCredentials, 
+  RegisterCredentials,
+  PatientRegisterData,
   AuthResponse, 
   RegisterResponse 
 } from '../../models/auth.model';
@@ -14,6 +15,7 @@ class AuthApiService extends BaseApiService {
   private readonly AUTH_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
+    REGISTER_PATIENT: '/api/auth/register/patient',
     ME: '/api/auth/me'
   };
 
@@ -38,6 +40,18 @@ class AuthApiService extends BaseApiService {
       this.AUTH_ENDPOINTS.REGISTER,
       HttpMethod.POST,
       credentials
+    );
+  }
+
+  /**
+   * Register a new patient with profile data
+   * @param patientData - Patient registration data
+   */
+  async registerPatient(patientData: PatientRegisterData): Promise<RegisterResponse> {
+    return this.request<RegisterResponse>(
+      this.AUTH_ENDPOINTS.REGISTER_PATIENT,
+      HttpMethod.POST,
+      patientData
     );
   }
 
