@@ -300,28 +300,10 @@ export default function HomeScreen() {
       onPress: () => router.push('/prescriptions')
     },
     {
-      id: 'lab-results',
-      title: 'Lab Results',
-      icon: <FontAwesome5 name="flask" size={22} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/lab-results')
-    },
-    {
-      id: 'messages',
-      title: 'Messages',
-      icon: <Feather name="message-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/messages')
-    },
-    {
       id: 'settings',
       title: 'Settings',
       icon: <Feather name="settings" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
       onPress: () => router.push('/settings')
-    },
-    {
-      id: 'help',
-      title: 'Help & Support',
-      icon: <Feather name="help-circle" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/help')
     }
   ];
 
@@ -524,117 +506,259 @@ export default function HomeScreen() {
         </View>
 
         {/* Upcoming Appointments */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeaderView}>
-            <View style={styles.sectionTitleContainer}>
-              <Ionicons name="calendar" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-              <ThemedText type="subtitle" style={styles.sectionTitleText}>Upcoming Appointments</ThemedText>
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons 
+                name="calendar" 
+                size={24} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
+              <ThemedText style={styles.sectionTitle}>Upcoming Appointments</ThemedText>
             </View>
-            <TouchableOpacity onPress={() => router.push('/appointments')}>
-              <ThemedText style={styles.seeAllLink}>See All</ThemedText>
+            <TouchableOpacity 
+              style={styles.seeAllButtonContainer} 
+              onPress={() => router.push('/appointments')}
+            >
+              <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
+              <Feather 
+                name="chevron-right" 
+                size={16} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
             </TouchableOpacity>
           </View>
           
-          <ThemedView style={styles.appointmentsContainer}>
+          <View style={styles.appointmentsArea}>
             {upcomingAppointments.length === 0 ? (
               <ThemedView style={styles.emptyStateContainer}>
-                <Ionicons name="calendar-outline" size={40} color={Colors[colorScheme ?? 'light'].text} />
+                <Ionicons 
+                  name="calendar-outline" 
+                  size={40} 
+                  color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                />
                 <ThemedText style={styles.emptyStateText}>No upcoming appointments</ThemedText>
+                <TouchableOpacity 
+                  style={[
+                    styles.emptyStateButton,
+                    { backgroundColor: colorScheme === 'dark' ? '#1a8fc1' : '#0a7ea4' }
+                  ]}
+                  onPress={() => router.push('/new-appointment')}
+                >
+                  <ThemedText style={styles.emptyStateButtonText}>Schedule Now</ThemedText>
+                </TouchableOpacity>
               </ThemedView>
             ) : (
               <ScrollView 
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.appointmentsScrollContent}
+                decelerationRate="fast"
+                snapToInterval={260} // Width of card + margin
+                snapToAlignment="start"
               >
                 {upcomingAppointments.map((appointment) => (
                   <TouchableOpacity
                     key={appointment.id}
-                    style={styles.horizontalAppointmentCard}
+                    style={[
+                      styles.appointmentCard,
+                      { 
+                        backgroundColor: colorScheme === 'dark' ? '#172C36' : '#fff',
+                        borderLeftWidth: 4,
+                        borderLeftColor: appointment.status === 'confirmed' ? '#2ecc71' : '#f39c12'
+                      }
+                    ]}
                     onPress={() => router.push(`/appointments/${appointment.id}`)}
+                    activeOpacity={0.9}
                   >
-                    <View style={styles.appointmentCardHeaderView}>
-                      <View style={styles.appointmentDateContainerView}>
-                        <ThemedText style={styles.appointmentDateText}>{appointment.date}</ThemedText>
-                        <ThemedText style={styles.appointmentTime}>{appointment.time}</ThemedText>
+                    <View style={styles.appointmentCardHeader}>
+                      <View style={styles.appointmentDateContainer}>
+                        <ThemedText style={[styles.appointmentDateText, colorScheme === 'dark' && { color: '#fff' }]}>
+                          {appointment.date}
+                        </ThemedText>
+                        <ThemedText style={[styles.appointmentTimeText, colorScheme === 'dark' && { color: '#a0a0a0' }]}>
+                          {appointment.time}
+                        </ThemedText>
                       </View>
+                      
                       <View style={[
-                        styles.appointmentStatusBadgeView,
-                        appointment.status === 'confirmed' ? styles.confirmedBadgeStyle : styles.pendingBadgeStyle
+                        styles.appointmentStatusBadge,
+                        appointment.status === 'confirmed' ? 
+                          (colorScheme === 'dark' ? styles.confirmedBadgeDark : styles.confirmedBadgeLight) : 
+                          (colorScheme === 'dark' ? styles.pendingBadgeDark : styles.pendingBadgeLight)
                       ]}>
-                        <ThemedText style={styles.appointmentStatusTextStyle}>{appointment.status}</ThemedText>
+                        <ThemedText style={[
+                          styles.appointmentStatusText,
+                          appointment.status === 'confirmed' ? styles.confirmedText : styles.pendingText
+                        ]}>
+                          {appointment.status}
+                        </ThemedText>
                       </View>
                     </View>
                     
-                    <View style={styles.appointmentCardBodyView}>
-                      <View style={styles.doctorAvatarContainerView}>
-                        <Ionicons name="person-circle" size={36} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                    <View style={[
+                      styles.appointmentDivider,
+                      { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                    ]} />
+                    
+                    <View style={styles.appointmentCardBody}>
+                      <View style={styles.doctorAvatarContainer}>
+                        <View style={[
+                          styles.doctorAvatarCircle,
+                          { backgroundColor: colorScheme === 'dark' ? '#203A43' : '#E0EAFC' }
+                        ]}>
+                          <Ionicons 
+                            name="person" 
+                            size={22} 
+                            color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                          />
+                        </View>
                       </View>
-                      <View style={styles.appointmentDetailsView}>
-                        <ThemedText style={styles.doctorName}>{appointment.doctor}</ThemedText>
-                        <ThemedText style={styles.doctorSpecialtyText}>{appointment.specialty}</ThemedText>
+                      
+                      <View style={styles.appointmentDetails}>
+                        <ThemedText style={[styles.doctorNameText, colorScheme === 'dark' && { color: '#fff' }]}>
+                          {appointment.doctor}
+                        </ThemedText>
+                        <View style={styles.specialtyContainer}>
+                          <Ionicons 
+                            name="medical" 
+                            size={12} 
+                            color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                          />
+                          <ThemedText style={[
+                            styles.doctorSpecialtyText, 
+                            colorScheme === 'dark' && { color: '#a0a0a0' }
+                          ]}>
+                            {appointment.specialty}
+                          </ThemedText>
+                        </View>
+                        <View style={[
+                          styles.appointmentTypeContainer,
+                          { backgroundColor: colorScheme === 'dark' ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.1)' }  
+                        ]}>
+                          <ThemedText style={[
+                            styles.appointmentTypeText,
+                            { color: colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4' }
+                          ]}>
+                            {appointment.type}
+                          </ThemedText>
+                        </View>
                       </View>
                     </View>
                   </TouchableOpacity>
                 ))}
                 
                 <TouchableOpacity
-                  style={styles.newAppointmentCard}
+                  style={[
+                    styles.newAppointmentCard,
+                    { backgroundColor: colorScheme === 'dark' ? '#1a8fc1' : '#4fb6e0' }
+                  ]}
                   onPress={() => router.push('/new-appointment')}
+                  activeOpacity={0.8}
                 >
                   <View style={styles.newAppointmentContent}>
                     <View style={styles.newAppointmentIconContainer}>
-                      <Ionicons name="add-circle" size={32} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                      <Ionicons name="add-circle" size={36} color="#fff" />
                     </View>
-                    <ThemedText style={styles.newAppointmentText}>New Appointment</ThemedText>
+                    <ThemedText style={styles.newAppointmentText}>
+                      Schedule New{'\n'}Appointment
+                    </ThemedText>
                   </View>
                 </TouchableOpacity>
               </ScrollView>
             )}
-          </ThemedView>
-        </ThemedView>
+          </View>
+        </View>
 
         {/* Nearby Doctors */}
         <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeaderView}>
-            <ThemedText style={styles.sectionTitleText}>Nearby Doctors</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/doctors')}>
-              <ThemedText style={styles.seeAllText}>See All</ThemedText>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons 
+                name="people" 
+                size={24} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
+              <ThemedText style={styles.sectionTitle}>Nearby Doctors</ThemedText>
+            </View>
+            <TouchableOpacity 
+              style={styles.seeAllButtonContainer} 
+              onPress={() => router.push('/doctors')}
+            >
+              <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
+              <Feather 
+                name="chevron-right" 
+                size={16} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
             </TouchableOpacity>
           </View>
           
           <ScrollView 
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.doctorsContainer}
+            contentContainerStyle={styles.doctorsScrollContent}
+            decelerationRate="fast"
+            snapToInterval={200} // Width of card + margin
+            snapToAlignment="start"
           >
             {nearbyDoctors.map((doctor) => (
               <TouchableOpacity
                 key={doctor.id}
-                style={styles.doctorCard}
+                style={[
+                  styles.doctorCard,
+                  { backgroundColor: colorScheme === 'dark' ? '#1D2B34' : '#fff' }
+                ]}
                 onPress={() => router.push(`/doctors/${doctor.id}`)}
+                activeOpacity={0.9}
               >
-                <View style={styles.doctorImageContainer}>
-                  <Ionicons name="person-circle" size={50} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                <View style={styles.doctorImageWrapper}>
+                  <LinearGradient
+                    colors={colorScheme === 'dark' ? ['#2C5364', '#203A43'] : ['#E0EAFC', '#CFDEF3']}
+                    style={styles.doctorImageContainer}
+                  >
+                    <Ionicons 
+                      name="person" 
+                      size={38} 
+                      color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                    />
+                  </LinearGradient>
+                  
                   {doctor.availableToday && (
                     <View style={styles.availableBadge}>
+                      <Ionicons name="checkmark-circle" size={14} color="#fff" />
                       <ThemedText style={styles.availableBadgeText}>Available Today</ThemedText>
                     </View>
                   )}
                 </View>
                 
                 <View style={styles.doctorCardContent}>
-                  <ThemedText style={styles.doctorCardName}>{doctor.name}</ThemedText>
-                  <ThemedText style={styles.doctorCardSpecialty}>{doctor.specialty}</ThemedText>
+                  <ThemedText style={styles.doctorCardName} numberOfLines={1}>{doctor.name}</ThemedText>
+                  
+                  <View style={styles.doctorSpecialtyRow}>
+                    <Ionicons 
+                      name="medical" 
+                      size={12} 
+                      color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                    />
+                    <ThemedText style={styles.doctorCardSpecialty} numberOfLines={1}>{doctor.specialty}</ThemedText>
+                  </View>
                   
                   <View style={styles.doctorCardFooter}>
-                    <View style={styles.ratingContainer}>
+                    <View style={[
+                      styles.ratingContainer,
+                      { backgroundColor: colorScheme === 'dark' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(255, 193, 7, 0.1)' }
+                    ]}>
                       <Ionicons name="star" size={14} color="#FFC107" />
                       <ThemedText style={styles.ratingText}>{doctor.rating}</ThemedText>
                     </View>
                     
                     <View style={styles.distanceContainer}>
-                      <Ionicons name="location" size={14} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                      <Ionicons 
+                        name="location" 
+                        size={14} 
+                        color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+                      />
                       <ThemedText style={styles.distanceText}>{doctor.distance}</ThemedText>
                     </View>
                   </View>
@@ -645,42 +769,99 @@ export default function HomeScreen() {
         </View>
 
         {/* Health Tips */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeaderView}>
-            <ThemedText style={styles.sectionTitleText}>Health Tips</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/health-tips')}>
-              <ThemedText style={styles.seeAllText}>See All</ThemedText>
+        <View style={[styles.sectionContainer, styles.healthTipsSection]}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Ionicons 
+                name="bulb" 
+                size={24} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
+              <ThemedText style={styles.sectionTitle}>Health Tips</ThemedText>
+            </View>
+            <TouchableOpacity 
+              style={styles.seeAllButtonContainer} 
+              onPress={() => router.push('/health-tips')}
+            >
+              <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
+              <Feather 
+                name="chevron-right" 
+                size={16} 
+                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
+              />
             </TouchableOpacity>
           </View>
           
           <View style={styles.healthTipsContainer}>
-            {healthTips.map((tip) => (
-              <TouchableOpacity
-                key={tip.id}
-                style={styles.healthTipCard}
-                onPress={() => router.push(`/health-tips/${tip.id}`)}
-              >
-                <LinearGradient
-                  colors={colorScheme === 'dark' ? ['#2C3E50', '#1D3D47'] : ['#ECF0F1', '#D6EAF8']}
-                  style={styles.healthTipCardGradient}
+            {healthTips.map((tip, index) => {
+              // Determine gradient colors based on index and color scheme
+              let gradientColors;
+              if (index % 3 === 0) {
+                gradientColors = colorScheme === 'dark' ? 
+                  ['#1a8fc1', '#0c5270'] : 
+                  ['#4fb6e0', '#0a7ea4'];
+              } else if (index % 3 === 1) {
+                gradientColors = colorScheme === 'dark' ? 
+                  ['#7e57c2', '#5e35b1'] : 
+                  ['#9575cd', '#7e57c2'];
+              } else {
+                gradientColors = colorScheme === 'dark' ? 
+                  ['#43a047', '#2e7d32'] : 
+                  ['#66bb6a', '#43a047'];
+              }
+
+              // Determine icon based on index
+              let iconName;
+              if (index % 3 === 0) {
+                iconName = "nutrition";
+              } else if (index % 3 === 1) {
+                iconName = "bed";
+              } else {
+                iconName = "fitness";
+              }
+              
+              return (
+                <TouchableOpacity
+                  key={tip.id}
+                  style={[
+                    styles.healthTipCard,
+                    index === healthTips.length - 1 ? { marginBottom: 0 } : null
+                  ]}
+                  onPress={() => router.push(`/health-tips/${tip.id}`)}
+                  activeOpacity={0.9}
                 >
-                  <View style={styles.healthTipContentView}>
-                    <ThemedText style={styles.healthTipTitleText}>{tip.title}</ThemedText>
-                    <ThemedText style={styles.healthTipSummary}>{tip.summary}</ThemedText>
-                    <ThemedText style={styles.readMoreText}>Read More</ThemedText>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+                  <LinearGradient
+                    colors={gradientColors}
+                    start={[0, 0]}
+                    end={[1, 1]}
+                    style={styles.healthTipGradient}
+                  >
+                    <View style={styles.healthTipIconContainer}>
+                      <Ionicons name={iconName as any} size={24} color="#fff" />
+                    </View>
+                    
+                    <View style={styles.healthTipContent}>
+                      <ThemedText style={styles.healthTipTitle}>{tip.title}</ThemedText>
+                      <ThemedText style={styles.healthTipSummary} numberOfLines={2}>{tip.summary}</ThemedText>
+                      
+                      <View style={styles.healthTipFooter}>
+                        <ThemedText style={styles.readMoreButton}>Read More</ThemedText>
+                        <Feather name="arrow-right" size={16} color="#fff" />
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Bottom spacing for bottom tabs */}
         <View style={{ height: 100 }} />
-      </ScrollView>
 
-      {/* Version info */}
-      <ThemedText style={styles.versionText}>Doc-Assist-Pro v1.0.0</ThemedText>
+        {/* Version info */}
+        <ThemedText style={styles.versionText}>Doc-Assist-Pro v1.0.0</ThemedText>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -836,255 +1017,241 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  section: {
-    marginHorizontal: 20,
-    marginTop: 24,
-  },
   sectionContainer: {
     marginHorizontal: 20,
-    marginTop: 24,
+    marginTop: 30,
   },
-  sectionHeaderView: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingHorizontal: 0,
+    marginBottom: 18,
+    paddingHorizontal: 5,
   },
-  sectionTitleContainer: {
+  sectionTitleWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sectionTitleText: {
-    fontSize: 18,
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
   },
-  seeAllLink: {
+  seeAllButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+  },
+  seeAllButtonText: {
     color: '#0a7ea4',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginRight: 3,
   },
-  seeAllText: {
-    color: '#0a7ea4',
-    fontWeight: '500',
-  },
-  appointmentsContainer: {
-    borderRadius: 15,
-    overflow: 'hidden',
-    marginBottom: 5,
+  appointmentsArea: {
+    marginTop: 5,
   },
   appointmentsScrollContent: {
-    paddingRight: 15,
+    paddingLeft: 5,
+    paddingRight: 25,
+    paddingBottom: 15,
+    paddingTop: 5,
   },
-  horizontalAppointmentCard: {
+  appointmentCard: {
     width: 240,
-    marginRight: 10,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    marginRight: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.12 : 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    position: 'relative',
   },
-  appointmentCardHeaderView: {
+  appointmentCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 16,
+    paddingBottom: 12,
   },
-  appointmentDateContainerView: {
+  appointmentDateContainer: {
     alignItems: 'flex-start',
   },
   appointmentDateText: {
     fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  appointmentTime: {
-    fontSize: 13,
-    opacity: 0.7,
-  },
-  appointmentStatusBadgeView: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  confirmedBadgeStyle: {
-    backgroundColor: 'rgba(46, 204, 113, 0.15)',
-  },
-  pendingBadgeStyle: {
-    backgroundColor: 'rgba(241, 196, 15, 0.15)',
-  },
-  appointmentStatusTextStyle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  appointmentCardBodyView: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  doctorAvatarContainerView: {
-    marginRight: 12,
-  },
-  appointmentDetailsView: {
-    flex: 1,
-  },
-  doctorName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  doctorSpecialtyText: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  appointmentCard: {
-    flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  appointmentLeftSection: {
-    marginRight: 16,
-    justifyContent: 'center',
-  },
-  appointmentDateBadge: {
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appointmentMiddleSection: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  appointmentType: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  appointmentRightSection: {
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingVertical: 5,
-  },
-  statusBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginBottom: 10,
-  },
-  confirmedStatus: {
-    backgroundColor: 'rgba(46, 204, 113, 0.15)',
-  },
-  pendingStatus: {
-    backgroundColor: 'rgba(241, 196, 15, 0.15)',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 35,
-    paddingHorizontal: 20,
-  },
-  emptyStateText: {
-    marginTop: 15,
-    fontSize: 16,
-    opacity: 0.7,
-    textAlign: 'center',
-  },
-  recordsContainer: {
-    borderRadius: 15,
-    overflow: 'hidden',
+    fontSize: 18,
     marginBottom: 5,
   },
-  recordCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  appointmentTimeText: {
+    fontSize: 14,
+    opacity: 0.7,
   },
-  recordIconContainer: {
-    width: 40,
-    height: 40,
+  appointmentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  confirmedBadgeLight: {
+    backgroundColor: 'rgba(46, 204, 113, 0.15)',
+  },
+  confirmedBadgeDark: {
+    backgroundColor: 'rgba(46, 204, 113, 0.25)',
+  },
+  pendingBadgeLight: {
+    backgroundColor: 'rgba(243, 156, 18, 0.15)',
+  },
+  pendingBadgeDark: {
+    backgroundColor: 'rgba(243, 156, 18, 0.25)',
+  },
+  appointmentStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  confirmedText: {
+    color: '#27ae60',
+  },
+  pendingText: {
+    color: '#d35400',
+  },
+  appointmentDivider: {
+    height: 1,
+    marginHorizontal: 16,
+  },
+  appointmentCardBody: {
+    flexDirection: 'row',
+    padding: 16,
+    paddingTop: 12,
+  },
+  doctorAvatarContainer: {
     marginRight: 14,
   },
-  recordDetails: {
+  doctorAvatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appointmentDetails: {
     flex: 1,
   },
-  recordTitle: {
+  doctorNameText: {
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 15,
-    marginBottom: 3,
+    marginBottom: 5,
   },
-  recordType: {
+  specialtyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  doctorSpecialtyText: {
     fontSize: 13,
     opacity: 0.7,
+    marginLeft: 4,
   },
-  recordDateSection: {
-    alignItems: 'flex-end',
+  appointmentTypeContainer: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginTop: 4,
   },
-  recordDate: {
-    fontSize: 13,
-    marginBottom: 8,
-    opacity: 0.7,
+  appointmentTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
-  doctorsContainer: {
+  newAppointmentCard: {
+    width: 240,
+    height: 160, // Fixed height to match the screenshot
+    marginRight: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  newAppointmentContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 25,
+  },
+  newAppointmentIconContainer: {
+    marginBottom: 15,
+  },
+  newAppointmentText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  doctorsScrollContent: {
     paddingLeft: 5,
-    paddingRight: 20,
-    paddingVertical: 10,
+    paddingRight: 25,
+    paddingBottom: 15,
+    paddingTop: 5,
   },
   doctorCard: {
     width: 180,
-    marginRight: 15,
-    borderRadius: 15,
+    marginRight: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.12 : 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  doctorImageWrapper: {
+    position: 'relative',
   },
   doctorImageContainer: {
-    height: 120,
+    height: 140,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 126, 164, 0.05)',
-    position: 'relative',
   },
   availableBadge: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(46, 204, 113, 0.85)',
-    paddingVertical: 4,
+    backgroundColor: 'rgba(46, 204, 113, 0.9)',
+    paddingVertical: 6,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   availableBadgeText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+    marginLeft: 4,
   },
   doctorCardContent: {
-    padding: 12,
+    padding: 16,
   },
   doctorCardName: {
     fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 5,
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  doctorSpecialtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   doctorCardSpecialty: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.7,
-    marginBottom: 8,
+    marginLeft: 4,
   },
   doctorCardFooter: {
     flexDirection: 'row',
@@ -1095,11 +1262,15 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   ratingText: {
     fontSize: 12,
-    marginLeft: 3,
-    fontWeight: '500',
+    marginLeft: 4,
+    fontWeight: '600',
+    color: '#f39c12',
   },
   distanceContainer: {
     flexDirection: 'row',
@@ -1107,34 +1278,92 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 12,
-    marginLeft: 3,
+    marginLeft: 4,
+  },
+  healthTipsSection: {
+    marginBottom: 20,
   },
   healthTipsContainer: {
     marginTop: 5,
   },
   healthTipCard: {
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 15,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  healthTipCardGradient: {
-    borderRadius: 15,
-  },
-  healthTipContentView: {
+  healthTipGradient: {
+    flexDirection: 'row',
     padding: 18,
   },
-  healthTipTitleText: {
+  healthTipIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  healthTipContent: {
+    flex: 1,
+  },
+  healthTipTitle: {
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 8,
   },
   healthTipSummary: {
+    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
     marginBottom: 12,
   },
-  readMoreText: {
-    color: '#0a7ea4',
+  healthTipFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  readMoreButton: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+    marginRight: 6,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    backgroundColor: Platform.OS === 'ios' ? 
+      'rgba(255, 255, 255, 0.6)' : 
+      '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    marginHorizontal: 10,
+  },
+  emptyStateText: {
+    marginTop: 15,
+    fontSize: 16,
+    opacity: 0.7,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyStateButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  emptyStateButtonText: {
+    color: '#fff',
     fontWeight: '600',
   },
   sidebar: {
@@ -1237,26 +1466,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 999,
-  },
-  newAppointmentCard: {
-    width: 240,
-    marginRight: 10,
-    padding: 15,
-    borderRadius: 12,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  newAppointmentContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  newAppointmentIconContainer: {
-    marginBottom: 10,
-  },
-  newAppointmentText: {
-    fontWeight: '600',
   },
   versionText: {
     position: 'absolute',

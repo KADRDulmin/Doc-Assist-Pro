@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router';
 import React, { useState, useRef } from 'react';
-import { Platform, View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Platform, View, StyleSheet, TouchableOpacity, Animated, SafeAreaView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -13,6 +14,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const fabMenuAnimation = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   // Animation functions for FAB menu
   const toggleFabMenu = () => {
@@ -69,28 +71,58 @@ export default function TabLayout() {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, paddingTop: insets.top }}>
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           headerShown: false,
           tabBarButton: HapticTab,
-          tabBarStyle: Platform.select({
-            ios: {
-              // Use a transparent background on iOS to show the blur effect
-              position: 'absolute',
-              height: 80,
-              paddingBottom: 20,
-            },
-            default: {
-              backgroundColor: Colors[colorScheme ?? 'light'].background,
-              height: 60,
-            },
-          }),
+          // Apply safe area padding to the header
+          headerStyle: {
+            height: 56 + insets.top,
+            paddingTop: insets.top,
+          },
+          // Preserve safe area at the top for all screens
+          contentStyle: {
+            paddingTop: insets.top,
+          },
+          tabBarStyle: {
+            ...Platform.select({
+              ios: {
+                position: 'absolute',
+                height: 80 + insets.bottom,
+                paddingBottom: 20 + insets.bottom,
+                borderTopWidth: 0,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -3 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3,
+                backgroundColor: colorScheme === 'dark' ? 'rgba(18, 18, 18, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+              },
+              android: {
+                height: 60 + insets.bottom,
+                paddingBottom: insets.bottom,
+                backgroundColor: Colors[colorScheme ?? 'light'].background,
+                elevation: 8,
+              },
+              default: {
+                backgroundColor: Colors[colorScheme ?? 'light'].background,
+                height: 60 + insets.bottom,
+                paddingBottom: insets.bottom,
+              },
+            }),
+            // Shared styles
+            borderTopColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+          },
           tabBarLabelStyle: {
             fontSize: 11,
+            fontWeight: '500',
             marginTop: 3,
-          }
+          },
+          tabBarItemStyle: {
+            paddingTop: 6,
+          },
         }}>
         <Tabs.Screen
           name="index"
@@ -138,7 +170,7 @@ export default function TabLayout() {
       </Tabs>
 
       {/* Floating Action Button and Menu */}
-      <View style={styles.fabContainer}>
+      <View style={[styles.fabContainer, { bottom: 40 + insets.bottom }]}>
         {/* FAB Menu Options */}
         {fabMenuOpen && (
           <View style={styles.fabMenuContainer}>
@@ -197,7 +229,7 @@ export default function TabLayout() {
         
         {/* Main FAB */}
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: colorScheme === 'dark' ? '#1a8fc1' : '#0a7ea4' }]}
           onPress={toggleFabMenu}
         >
           <Animated.View style={{ transform: [{ rotate: fabRotation }] }}>
@@ -205,7 +237,7 @@ export default function TabLayout() {
           </Animated.View>
         </TouchableOpacity>
       </View>
-    </>
+    </View>
   );
 }
 
@@ -232,6 +264,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    borderWidth: Platform.OS === 'ios' ? 0 : 0, // Add border for better visibility on light backgrounds
   },
   fabMenuContainer: {
     position: 'absolute',
