@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
 // Define colors directly here to prevent tint undefined error
@@ -15,9 +16,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: tintColor,
-        // Prevent theme access that causes undefined error
         tabBarInactiveTintColor: '#888888',
         headerShown: false,
+        // Providing default tab bar style with background color instead of TabBarBackground component
+        tabBarStyle: Platform.select({
+          ios: {
+            // iOS style
+            position: 'absolute',
+            backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#FFFFFF',
+          },
+          default: {
+            backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#FFFFFF',
+          },
+        }),
       }}
     >
       <Tabs.Screen
