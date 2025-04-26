@@ -6,6 +6,7 @@ const { requireRole, requireDoctor, requireAdmin } = require('../middleware/role
 
 // Public routes
 router.get('/', doctorController.getAllDoctors);
+router.get('/nearby', doctorController.getNearbyDoctors);
 router.get('/:doctorId', doctorController.getDoctorById);
 
 // Add a specializations endpoint to help with doctor registration

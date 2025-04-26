@@ -95,7 +95,14 @@ export class BaseApiService {
     if (includeAuth) {
       const token = await tokenService.getToken();
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        // Ensure the token is properly formatted with 'Bearer ' prefix
+        headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        
+        if (__DEV__) {
+          console.log('Adding auth token to request headers');
+        }
+      } else if (__DEV__) {
+        console.warn('Authentication required but no token found');
       }
     }
 
@@ -136,6 +143,56 @@ export class BaseApiService {
       // Log response details for debugging in development
       if (__DEV__) {
         console.log(`Response status: ${response.status}`);
+      }
+      
+      // Check for token refresh header
+      if (requiresAuth && response.headers.has('X-New-Token')) {
+        const newToken = response.headers.get('X-New-Token');
+        if (newToken) {
+          console.log('Received new token from server, updating local storage');
+          await tokenService.storeToken(newToken);
+        }
+      }
+      
+      // If token expired but we have valid credentials, retry the request once
+      if (response.status === 401 && requiresAuth) {
+        const responseData = await response.json();
+        
+        // Check if this is a token expiration error
+        if (responseData.error && responseData.error.includes('Token expired')) {
+          console.log('Token expired, attempting to refresh and retry request');
+          
+          // Try refreshing the token
+          try {
+            const refreshResponse = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                token: await tokenService.getToken()
+              })
+            });
+            
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              if (refreshData.token) {
+                // Save new token
+                await tokenService.storeToken(refreshData.token);
+                
+                // Retry original request with new token
+                console.log('Token refreshed successfully, retrying original request');
+                options.headers = await this.getHeaders(requiresAuth);
+                const retryResponse = await fetch(url, options);
+                
+                // Handle retry response
+                if (retryResponse.ok) {
+                  return await retryResponse.json();
+                }
+              }
+            }
+          } catch (refreshError) {
+            console.error('Failed to refresh token:', refreshError);
+          }
+        }
       }
       
       // Handle response content based on Content-Type

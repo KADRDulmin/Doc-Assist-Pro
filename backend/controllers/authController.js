@@ -1,4 +1,5 @@
 const authService = require('../services/authService');
+const userRepository = require('../repositories/userRepository');
 
 // Optional email service
 let emailService;
@@ -10,88 +11,123 @@ try {
 }
 
 /**
- * Handle user registration
+ * Authentication Controller
  */
-const register = async (req, res, next) => {
-    try {
-        const { email, password, first_name, last_name, role, phone } = req.body;
-        
-        // Attempt to register user
-        const user = await authService.register({ 
-            email, password, first_name, last_name, role, phone 
-        });
-        
-        // Send verification email
-        emailService.sendVerificationEmail && emailService.sendVerificationEmail(email);
-        
-        console.log(`User registered successfully: ${email} (${role || 'patient'})`);
-        res.status(201).json({ 
-            success: true,
-            message: 'User registered successfully',
-            data: user.toJSON()
-        });
-    } catch (error) {
-        next(error);
+class AuthController {
+    /**
+     * Register a new user
+     */
+    async register(req, res, next) {
+        try {
+            const { email, password, first_name, last_name, role, phone } = req.body;
+            
+            // Attempt to register user
+            const user = await authService.register({ 
+                email, password, first_name, last_name, role, phone 
+            });
+            
+            // Send verification email
+            emailService.sendVerificationEmail && emailService.sendVerificationEmail(email);
+            
+            console.log(`User registered successfully: ${email} (${role || 'patient'})`);
+            res.status(201).json({ 
+                success: true,
+                message: 'User registered successfully',
+                data: user.toJSON()
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-};
-
-/**
- * Handle user login
- */
-const login = async (req, res, next) => {
-    try {
-        const { email, password } = req.body;
-        
-        // Attempt to login user
-        const { token, user } = await authService.login(email, password);
-        
-        res.json({ 
-            success: true,
-            token,
-            user
-        });
-    } catch (error) {
-        next(error);
+    
+    /**
+     * Login user
+     */
+    async login(req, res, next) {
+        try {
+            const { email, password } = req.body;
+            
+            // Attempt to login user
+            const { token, user } = await authService.login(email, password);
+            
+            res.json({ 
+                success: true,
+                token,
+                user
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-};
-
-/**
- * Handle user logout
- */
-const logout = async (req, res, next) => {
-    try {
-        const userId = req.user.id;
-        
-        // Logout user
-        await authService.logout(userId);
-        
-        res.json({
-            success: true,
-            message: 'Logged out successfully'
-        });
-    } catch (error) {
-        next(error);
+    
+    /**
+     * Refresh auth token
+     */
+    async refreshToken(req, res, next) {
+        try {
+            const { token } = req.body;
+            
+            if (!token) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Token is required'
+                });
+            }
+            
+            try {
+                // Try to refresh the token
+                const newToken = authService.refreshToken(token);
+                
+                res.json({
+                    success: true,
+                    message: 'Token refreshed successfully',
+                    token: newToken
+                });
+            } catch (error) {
+                // If token can't be refreshed, return 401
+                return res.status(401).json({
+                    success: false,
+                    error: error.message
+                });
+            }
+        } catch (error) {
+            next(error);
+        }
     }
-};
-
-/**
- * Get current user information
- */
-const getCurrentUser = async (req, res, next) => {
-    try {
-        // User is already attached to request in auth middleware
-        res.json({
-            success: true,
-            user: req.user
-        });
-    } catch (error) {
-        next(error);
+    
+    /**
+     * Logout user
+     */
+    async logout(req, res, next) {
+        try {
+            const userId = req.user.id;
+            
+            // Logout user
+            await authService.logout(userId);
+            
+            res.json({
+                success: true,
+                message: 'Logged out successfully'
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-};
+    
+    /**
+     * Get current user
+     */
+    async getCurrentUser(req, res, next) {
+        try {
+            // User is already attached to request in auth middleware
+            res.json({
+                success: true,
+                user: req.user
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+}
 
-module.exports = {
-    register,
-    login,
-    logout,
-    getCurrentUser
-};
+module.exports = new AuthController();

@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS doctor_profiles (
     education TEXT,
     bio TEXT,
     consultation_fee DECIMAL(10, 2),
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -94,6 +97,44 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create appointments table
+CREATE TABLE IF NOT EXISTS appointments (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
+    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id) ON DELETE CASCADE,
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'upcoming', -- upcoming, completed, cancelled
+    appointment_type VARCHAR(50) NOT NULL DEFAULT 'general', -- general, follow-up, check-up, consultation, emergency
+    notes TEXT,
+    location VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for appointments
+CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+
+-- Create feedback table
+CREATE TABLE IF NOT EXISTS feedback (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
+    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id) ON DELETE CASCADE,
+    appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for feedback
+CREATE INDEX IF NOT EXISTS idx_feedback_patient ON feedback(patient_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_doctor ON feedback(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_appointment ON feedback(appointment_id);
 
 -- Insert default roles
 INSERT INTO roles (name, description) 
@@ -124,3 +165,34 @@ SELECT u.id, 'Male', 'O+'
 FROM users u
 WHERE u.email = 'patient@example.com'
 AND NOT EXISTS (SELECT 1 FROM patient_profiles pp WHERE pp.user_id = u.id);
+
+-- Add test appointment
+INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status, appointment_type, notes, location)
+SELECT pp.id, dp.id, (CURRENT_DATE + INTERVAL '1 day')::date, '10:00:00', 'upcoming', 'general', 'Initial consultation', 'Central Hospital, Room 305'
+FROM patient_profiles pp
+JOIN doctor_profiles dp ON true
+JOIN users u1 ON pp.user_id = u1.id AND u1.email = 'patient@example.com'
+JOIN users u2 ON dp.user_id = u2.id AND u2.email = 'doctor@example.com'
+LIMIT 1
+ON CONFLICT DO NOTHING;
+
+-- Add test completed appointment for feedback
+INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status, appointment_type, notes, location)
+SELECT pp.id, dp.id, (CURRENT_DATE - INTERVAL '5 day')::date, '14:30:00', 'completed', 'check-up', 'Follow-up checkup', 'Medical Center'
+FROM patient_profiles pp
+JOIN doctor_profiles dp ON true
+JOIN users u1 ON pp.user_id = u1.id AND u1.email = 'patient@example.com'
+JOIN users u2 ON dp.user_id = u2.id AND u2.email = 'doctor@example.com'
+LIMIT 1
+ON CONFLICT DO NOTHING;
+
+-- Add test feedback
+INSERT INTO feedback (patient_id, doctor_id, appointment_id, rating, comment)
+SELECT pp.id, dp.id, a.id, 5, 'Dr. User was very professional and thorough. Excellent care!'
+FROM patient_profiles pp
+JOIN doctor_profiles dp ON true
+JOIN appointments a ON a.patient_id = pp.id AND a.doctor_id = dp.id AND a.status = 'completed'
+JOIN users u1 ON pp.user_id = u1.id AND u1.email = 'patient@example.com'
+JOIN users u2 ON dp.user_id = u2.id AND u2.email = 'doctor@example.com'
+LIMIT 1
+ON CONFLICT DO NOTHING;

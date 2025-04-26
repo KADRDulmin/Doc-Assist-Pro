@@ -189,6 +189,174 @@ class PatientRepository {
     }
     
     /**
+     * Get patient prescriptions
+     */
+    async getPatientPrescriptions(patientId) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                // Check if the prescriptions table exists
+                const tableCheck = await client.query(`
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_name = 'prescriptions'
+                    );
+                `);
+                
+                if (!tableCheck.rows[0].exists) {
+                    console.warn('Prescriptions table does not exist yet');
+                    // Return empty array if table doesn't exist
+                    return [];
+                }
+                
+                const result = await client.query(
+                    `SELECT * FROM prescriptions WHERE patient_id = $1 ORDER BY created_at DESC`,
+                    [patientId]
+                );
+                
+                return result.rows.map(row => ({
+                    id: row.id,
+                    patient_id: row.patient_id,
+                    doctor_id: row.doctor_id,
+                    medication_name: row.medication_name,
+                    dosage: row.dosage,
+                    frequency: row.frequency,
+                    start_date: row.start_date,
+                    end_date: row.end_date,
+                    status: row.status,
+                    notes: row.notes,
+                    created_at: row.created_at,
+                    updated_at: row.updated_at
+                }));
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._getPatientPrescriptionsInMemory(patientId);
+            }
+            throw error;
+        }
+    }
+    
+    /**
+     * Get patient medical records
+     */
+    async getPatientMedicalRecords(patientId) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                // Check if the medical_records table exists
+                const tableCheck = await client.query(`
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_name = 'medical_records'
+                    );
+                `);
+                
+                if (!tableCheck.rows[0].exists) {
+                    console.warn('Medical records table does not exist yet');
+                    // Return empty array if table doesn't exist
+                    return [];
+                }
+                
+                const result = await client.query(
+                    `SELECT * FROM medical_records WHERE patient_id = $1 ORDER BY created_at DESC`,
+                    [patientId]
+                );
+                
+                return result.rows;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._getPatientMedicalRecordsInMemory(patientId);
+            }
+            throw error;
+        }
+    }
+    
+    /**
+     * Get a specific medical record by ID
+     */
+    async getMedicalRecordById(recordId) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                // Check if the medical_records table exists
+                const tableCheck = await client.query(`
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_name = 'medical_records'
+                    );
+                `);
+                
+                if (!tableCheck.rows[0].exists) {
+                    console.warn('Medical records table does not exist yet');
+                    return null;
+                }
+                
+                const result = await client.query(
+                    `SELECT * FROM medical_records WHERE id = $1`,
+                    [recordId]
+                );
+                
+                return result.rows.length > 0 ? result.rows[0] : null;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._getMedicalRecordByIdInMemory(recordId);
+            }
+            throw error;
+        }
+    }
+    
+    /**
+     * Get patient prescriptions from memory store
+     */
+    _getPatientPrescriptionsInMemory(patientId) {
+        const prescriptions = memoryStore.prescriptions || [];
+        return prescriptions.filter(p => p.patient_id === parseInt(patientId));
+    }
+    
+    /**
+     * Get patient medical records from memory store
+     */
+    _getPatientMedicalRecordsInMemory(patientId) {
+        // Initialize medical_records array if it doesn't exist
+        if (!memoryStore.medical_records) {
+            memoryStore.medical_records = [];
+        }
+        
+        return memoryStore.medical_records.filter(record => 
+            record.patient_id === parseInt(patientId)
+        );
+    }
+    
+    /**
+     * Get a specific medical record by ID from memory store
+     */
+    _getMedicalRecordByIdInMemory(recordId) {
+        // Initialize medical_records array if it doesn't exist
+        if (!memoryStore.medical_records) {
+            memoryStore.medical_records = [];
+        }
+        
+        return memoryStore.medical_records.find(record => 
+            record.id === parseInt(recordId)
+        ) || null;
+    }
+    
+    /**
      * Helper method to check for connection errors
      */
     _isConnectionError(error) {

@@ -1,44 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  View, 
-  Alert,
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ScrollView,
   RefreshControl,
   Dimensions,
+  Alert,
   Platform,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator,
   Animated
 } from 'react-native';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, FontAwesome5, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useAuth } from '@/src/hooks/useAuth';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/src/contexts/AuthContext';
+import patientService, { PatientDashboardData } from '@/src/services/patient.service';
+import appointmentService, { AppointmentData } from '@/src/services/appointment.service';
+import doctorService, { DoctorData } from '@/src/services/doctor.service';
+import healthTipService, { HealthTipData } from '@/src/services/healthTip.service';
+import geminiService, { HealthTipRecommendation } from '@/src/services/gemini.service';
 
 const windowWidth = Dimensions.get('window').width;
 
 // Define interfaces for all data types
 interface UserProfile {
-  name: string;
-  age: number;
-  nextAppointment: string;
-}
-
-interface Appointment {
   id: number;
-  type: string;
-  doctor: string;
-  specialty: string;
-  date: string;
-  time: string;
-  status: string;
+  name: string;
+  age: number | null;
+  nextAppointment: string | null;
 }
 
 interface MedicalRecord {
@@ -63,126 +60,200 @@ interface MenuItem {
   onPress: () => void;
 }
 
-interface Doctor {
-  id: number;
-  name: string;
-  specialty: string;
-  rating: number;
-  imageUrl?: string;
-  distance: string;
-  availableToday: boolean;
-}
-
-interface HealthTip {
-  id: number;
-  title: string;
-  summary: string;
-  imageUrl?: string;
-}
-
 export default function HomeScreen() {
-  const { logout, isLoading } = useAuth();
+  const { logout, isLoading: authLoading } = useAuth();
   const colorScheme = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([
-    {
-      id: 1,
-      doctor: 'Dr. Emily Chen',
-      specialty: 'Cardiology',
-      type: 'Follow-up',
-      date: 'Today',
-      time: '10:00 AM',
-      status: 'confirmed'
-    },
-    {
-      id: 2,
-      doctor: 'Dr. Michael Wong',
-      specialty: 'General Medicine',
-      type: 'Check-up',
-      date: 'May 15',
-      time: '3:30 PM',
-      status: 'pending'
-    }
-  ]);
+  const [dashboardData, setDashboardData] = useState<PatientDashboardData | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentData[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: 1, title: 'Reminder: Follow-up appointment', message: 'Tomorrow at 10:00 AM', date: 'Today', isNew: true },
-    { id: 2, title: 'Test Results Available', message: 'Your blood work results are ready', date: 'Yesterday', isNew: false }
-  ]);
-  const [nearbyDoctors, setNearbyDoctors] = useState<Doctor[]>([
-    {
-      id: 1,
-      name: 'Dr. Emily Chen',
-      specialty: 'Cardiology',
-      rating: 4.9,
-      distance: '1.2 mi',
-      availableToday: true
-    },
-    {
-      id: 2,
-      name: 'Dr. James Wilson',
-      specialty: 'Pediatrics',
-      rating: 4.7,
-      distance: '2.5 mi',
-      availableToday: true
-    },
-    {
-      id: 3,
-      name: 'Dr. Sarah Miller',
-      specialty: 'Dermatology',
-      rating: 4.8,
-      distance: '3.0 mi',
-      availableToday: false
-    },
-    {
-      id: 4,
-      name: 'Dr. Robert Brown',
-      specialty: 'Orthopedics',
-      rating: 4.6,
-      distance: '3.5 mi',
-      availableToday: true
-    }
-  ]);
-  const [healthTips, setHealthTips] = useState<HealthTip[]>([
-    {
-      id: 1,
-      title: 'Healthy Eating Habits',
-      summary: 'Learn how small diet changes can improve your overall health and energy levels.',
-    },
-    {
-      id: 2,
-      title: 'Importance of Sleep',
-      summary: 'Discover why quality sleep is crucial for your physical and mental wellbeing.',
-    },
-    {
-      id: 3,
-      title: 'Stress Management',
-      summary: 'Effective techniques to manage stress in your daily life.',
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [healthTips, setHealthTips] = useState<HealthTipRecommendation[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [personalizedTipsLoading, setPersonalizedTipsLoading] = useState(false);
   
   // Sidebar Animation States
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarAnimation = useRef(new Animated.Value(0)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   
-  // Mock data - replace with actual API calls
+  // Load data from API
   useEffect(() => {
-    // Simulate loading user profile
-    setUserProfile({
-      name: 'Sarah Johnson',
-      age: 34,
-      nextAppointment: 'May 2, 2025'
-    });
-
-    // Simulate loading medical records
-    setMedicalRecords([
-      { id: 1, type: 'Prescription', title: 'Hypertension Medication', date: 'Apr 10, 2025' },
-      { id: 2, type: 'Lab Results', title: 'Blood Work Analysis', date: 'Mar 25, 2025' },
-      { id: 3, type: 'Medical Note', title: 'Annual Check-up Report', date: 'Feb 15, 2025' }
-    ]);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Load patient profile
+      const profileResponse = await patientService.getMyProfile();
+      if (profileResponse.success && profileResponse.data) {
+        const profile = profileResponse.data;
+        
+        // Calculate age if date_of_birth exists
+        let age = null;
+        if (profile.date_of_birth) {
+          const birthDate = new Date(profile.date_of_birth);
+          const today = new Date();
+          age = today.getFullYear() - birthDate.getFullYear();
+          
+          // Adjust age if birthday hasn't occurred yet this year
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+        }
+        
+        setUserProfile({
+          id: profile.user_id,
+          name: `${profile.user?.first_name || ''} ${profile.user?.last_name || ''}`.trim(),
+          age,
+          nextAppointment: null // Will be updated with dashboard data
+        });
+      }
+      
+      // Load dashboard data
+      const dashboardResponse = await patientService.getDashboardData();
+      if (dashboardResponse.success && dashboardResponse.data) {
+        setDashboardData(dashboardResponse.data);
+        
+        // Update next appointment in user profile
+        if (dashboardResponse.data.upcomingAppointment && userProfile) {
+          setUserProfile(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              nextAppointment: dashboardResponse.data.upcomingAppointment.appointment_date
+            };
+          });
+        }
+      }
+      
+      // Load upcoming appointments
+      const appointmentsResponse = await appointmentService.getMyAppointments('upcoming');
+      if (appointmentsResponse.success && appointmentsResponse.data) {
+        setUpcomingAppointments(appointmentsResponse.data.slice(0, 5)); // Limit to 5 appointments
+      }
+      
+      // Load medical records
+      const medicalRecordsResponse = await patientService.getMedicalRecords();
+      if (medicalRecordsResponse.success && medicalRecordsResponse.data) {
+        // Transform to expected format
+        const formattedRecords = medicalRecordsResponse.data.map(record => ({
+          id: record.id,
+          type: record.type || 'Medical Record',
+          title: record.title || 'Medical Document',
+          date: new Date(record.created_at).toLocaleDateString()
+        }));
+        
+        setMedicalRecords(formattedRecords.slice(0, 3)); // Limit to 3 records
+      }
+      
+      // Load personalized health tips using Gemini API
+      await loadPersonalizedHealthTips();
+      
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setError('Failed to load your data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Function to load personalized health tips based on appointments
+  const loadPersonalizedHealthTips = async () => {
+    setPersonalizedTipsLoading(true);
+    try {
+      // Get all appointments to extract doctor specialties
+      const allAppointmentsResponse = await appointmentService.getMyAppointments();
+      
+      if (allAppointmentsResponse.success && allAppointmentsResponse.data) {
+        // Extract unique doctor specialties from appointments
+        const specialties = allAppointmentsResponse.data
+          .filter(appointment => appointment.doctor?.specialization)
+          .map(appointment => appointment.doctor?.specialization as string);
+          
+        // Remove duplicates
+        const uniqueSpecialties = [...new Set(specialties)];
+        
+        // Get patient medical conditions if available
+        const profileResponse = await patientService.getMyProfile();
+        const medicalHistory = profileResponse.success && profileResponse.data?.medical_history 
+          ? profileResponse.data.medical_history 
+          : '';
+          
+        // Generate personalized health tips
+        const tipsResponse = await geminiService.getPersonalizedHealthTips(uniqueSpecialties, medicalHistory);
+        
+        if (tipsResponse.success && tipsResponse.data) {
+          setHealthTips(tipsResponse.data);
+        } else {
+          // Fallback to default tips if API call fails
+          setHealthTips([
+            {
+              id: 'default-1',
+              title: 'Healthy Eating Habits',
+              summary: 'Learn how small diet changes can improve your overall health and energy levels.',
+              category: 'Nutrition',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: 'default-2',
+              title: 'Importance of Sleep',
+              summary: 'Discover why quality sleep is crucial for your physical and mental wellbeing.',
+              category: 'Wellness',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: 'default-3',
+              title: 'Stress Management',
+              summary: 'Effective techniques to manage stress in your daily life.',
+              category: 'Mental Health',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load personalized health tips:', err);
+      // Keep using fallback data in case of error
+      setHealthTips([
+        {
+          id: 'default-1',
+          title: 'Healthy Eating Habits',
+          summary: 'Learn how small diet changes can improve your overall health and energy levels.',
+          category: 'Nutrition',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-2',
+          title: 'Importance of Sleep',
+          summary: 'Discover why quality sleep is crucial for your physical and mental wellbeing.',
+          category: 'Wellness',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 'default-3',
+          title: 'Stress Management',
+          summary: 'Effective techniques to manage stress in your daily life.',
+          category: 'Mental Health',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setPersonalizedTipsLoading(false);
+    }
+  };
 
   // Animation functions for sidebar
   const toggleSidebar = () => {
@@ -226,32 +297,35 @@ export default function HomeScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Replace with actual API calls
     try {
-      // await fetchUserProfile();
-      // await fetchAppointments();
-      // await fetchMedicalRecords();
-      setTimeout(() => {
-        setRefreshing(false);
-      }, 1500);
+      await loadDashboardData();
     } catch (error) {
       console.error('Failed to refresh data:', error);
+    } finally {
       setRefreshing(false);
     }
   }, []);
   
   const handleAppointmentPress = (appointmentId: number) => {
-    // Navigate to appointment details
-    // router.push(`/appointments/${appointmentId}`);
-    Alert.alert('Appointment Details', `Viewing details for appointment #${appointmentId}`);
+    router.push({ pathname: `/appointments/${appointmentId}` });
   };
 
   const handleMedicalRecordPress = (recordId: number) => {
-    // Navigate to medical record details
-    // router.push(`/medical-records/${recordId}`);
-    Alert.alert('Medical Record', `Viewing details for record #${recordId}`);
+    router.push({ pathname: `/medical-records/${recordId}` });
   };
   
+  // Function to handle health tip press and navigate to detail page
+  const handleHealthTipPress = (tip: HealthTipRecommendation) => {
+    router.push({
+      pathname: '/health-tips/[id]', // Updated to health-tips plural to match existing routes
+      params: {
+        id: tip.id,
+        title: tip.title,
+        category: tip.category
+      }
+    });
+  };
+
   const handleLogout = () => {
     Alert.alert(
       "Logout",
@@ -279,31 +353,19 @@ export default function HomeScreen() {
       id: 'profile',
       title: 'My Profile',
       icon: <Feather name="user" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/profile')
+      onPress: () => router.push({ pathname: '/profile' })
     },
     {
       id: 'appointments',
       title: 'My Appointments',
       icon: <Feather name="calendar" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/appointments')
+      onPress: () => router.push({ pathname: '/appointments' })
     },
     {
       id: 'medical-records',
       title: 'Medical Records',
       icon: <Feather name="file-text" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/medical-records')
-    },
-    {
-      id: 'prescriptions',
-      title: 'Prescriptions',
-      icon: <FontAwesome5 name="prescription-bottle-alt" size={22} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/prescriptions')
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      icon: <Feather name="settings" size={24} color={colorScheme === 'dark' ? '#fff' : '#333'} />,
-      onPress: () => router.push('/settings')
+      onPress: () => router.push({ pathname: '/medical-records' })
     }
   ];
 
@@ -336,6 +398,15 @@ export default function HomeScreen() {
   
   const sidebarGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const sidebarGradientLight = ['#ffffff', '#f7f7f7'] as const;
+
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+        <ThemedText style={{ marginTop: 20 }}>Loading your data...</ThemedText>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -370,16 +441,12 @@ export default function HomeScreen() {
           <View style={styles.sidebarHeader}>
             <View style={styles.sidebarProfileContainer}>
               <View style={styles.sidebarProfileImage}>
-                <Ionicons name="person" size={40} color="#fff" />
+                <Ionicons name="person" size={30} color="#fff" />
               </View>
               <View style={styles.sidebarProfileInfo}>
-                <ThemedText style={styles.sidebarProfileName}>
-                  {userProfile?.name || 'Patient'}
-                </ThemedText>
+                <ThemedText style={styles.sidebarProfileName}>{userProfile?.name || 'Patient'}</ThemedText>
                 <View style={styles.sidebarProfileBadge}>
-                  <ThemedText style={styles.sidebarProfileBadgeText}>
-                    Patient
-                  </ThemedText>
+                  <ThemedText style={styles.sidebarProfileBadgeText}>Patient</ThemedText>
                 </View>
               </View>
             </View>
@@ -392,12 +459,8 @@ export default function HomeScreen() {
                 style={styles.sidebarMenuItem}
                 onPress={item.onPress}
               >
-                <View style={styles.sidebarMenuItemIcon}>
-                  {item.icon}
-                </View>
-                <ThemedText style={styles.sidebarMenuItemText}>
-                  {item.title}
-                </ThemedText>
+                <View style={styles.sidebarMenuItemIcon}>{item.icon}</View>
+                <ThemedText style={styles.sidebarMenuItemText}>{item.title}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -433,15 +496,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
             
             <View style={styles.headerInfo}>
-              <ThemedText type="title" style={styles.greetingText}>
-                Hello, {userProfile?.name || 'Patient'}
-              </ThemedText>
+              <ThemedText style={styles.greetingText}>Hello, {userProfile?.name?.split(' ')[0] || 'there'}</ThemedText>
               <ThemedText style={styles.subGreeting}>
                 How are you feeling today?
               </ThemedText>
+              
               {userProfile?.nextAppointment && (
                 <View style={styles.nextAppointment}>
-                  <Ionicons name="calendar" size={14} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                  <Ionicons name="calendar-outline" size={12} color="#fff" />
                   <ThemedText style={styles.nextAppointmentText}>
                     Next appointment: {userProfile.nextAppointment}
                   </ThemedText>
@@ -451,19 +513,16 @@ export default function HomeScreen() {
             
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={30} color="#ccc" />
+                <Ionicons name="person" size={30} color="#fff" />
               </View>
-              <TouchableOpacity 
-                style={styles.notificationBadge}
-                onPress={() => router.push('/notifications')}
-              >
-                <Ionicons name="notifications" size={18} color="#fff" />
-                {notifications.filter(n => n.isNew).length > 0 && (
-                  <View style={styles.badgeIndicator}>
-                    <ThemedText style={styles.badgeText}>{notifications.filter(n => n.isNew).length}</ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
+              
+              {notifications.length > 0 && (
+                <View style={styles.notificationBadge}>
+                  <ThemedText style={{ color: '#fff', fontSize: 12 }}>
+                    {notifications.length > 9 ? '9+' : notifications.length}
+                  </ThemedText>
+                </View>
+              )}
             </View>
           </View>
         </LinearGradient>
@@ -473,7 +532,8 @@ export default function HomeScreen() {
           <View style={styles.dashboardGreetingContent}>
             <Ionicons name="sunny-outline" size={24} color={colorScheme === 'dark' ? '#FDB813' : '#FF9800'} />
             <ThemedText style={styles.dashboardGreetingText}>
-              Good morning! Today is April 25, 2025
+              {userProfile?.age ? `Take care of your health at ${userProfile.age}. Your well-being is our priority.` : 
+                'Take care of your health. Your well-being is our priority.'}
             </ThemedText>
           </View>
         </ThemedView>
@@ -481,27 +541,27 @@ export default function HomeScreen() {
         {/* Quick Statistics */}
         <View style={styles.statsContainer}>
           <ThemedView style={styles.statsCard}>
-            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(46, 204, 113, 0.15)' }]}>
-              <Ionicons name="pulse" size={22} color="#2ecc71" />
+            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+              <Ionicons name="calendar-outline" size={22} color="#4CAF50" />
             </View>
-            <ThemedText style={styles.statsLabel}>Last Checkup</ThemedText>
-            <ThemedText style={styles.statsValue}>Mar 15</ThemedText>
+            <ThemedText style={styles.statsLabel}>Upcoming</ThemedText>
+            <ThemedText style={styles.statsValue}>{dashboardData?.appointmentsCount?.upcoming || 0}</ThemedText>
           </ThemedView>
           
           <ThemedView style={styles.statsCard}>
-            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(52, 152, 219, 0.15)' }]}>
-              <Ionicons name="medkit" size={22} color="#3498db" />
+            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(33, 150, 243, 0.1)' }]}>
+              <Ionicons name="checkmark-circle-outline" size={22} color="#2196F3" />
             </View>
-            <ThemedText style={styles.statsLabel}>Prescriptions</ThemedText>
-            <ThemedText style={styles.statsValue}>5 Active</ThemedText>
+            <ThemedText style={styles.statsLabel}>Completed</ThemedText>
+            <ThemedText style={styles.statsValue}>{dashboardData?.appointmentsCount?.completed || 0}</ThemedText>
           </ThemedView>
           
           <ThemedView style={styles.statsCard}>
-            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(241, 196, 15, 0.15)' }]}>
-              <Ionicons name="calendar" size={22} color="#f1c40f" />
+            <View style={[styles.statsIconContainer, { backgroundColor: 'rgba(255, 152, 0, 0.1)' }]}>
+              <Ionicons name="documents-outline" size={22} color="#FF9800" />
             </View>
-            <ThemedText style={styles.statsLabel}>Next Visit</ThemedText>
-            <ThemedText style={styles.statsValue}>May 2</ThemedText>
+            <ThemedText style={styles.statsLabel}>Records</ThemedText>
+            <ThemedText style={styles.statsValue}>{dashboardData?.medicalRecordsCount || 0}</ThemedText>
           </ThemedView>
         </View>
 
@@ -509,262 +569,135 @@ export default function HomeScreen() {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrapper}>
-              <Ionicons 
-                name="calendar" 
-                size={24} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
+              <Ionicons name="calendar" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
               <ThemedText style={styles.sectionTitle}>Upcoming Appointments</ThemedText>
             </View>
             <TouchableOpacity 
-              style={styles.seeAllButtonContainer} 
-              onPress={() => router.push('/appointments')}
+              style={styles.seeAllButtonContainer}
+              onPress={() => router.push({ pathname: '/appointments' })}
             >
               <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
-              <Feather 
-                name="chevron-right" 
-                size={16} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.appointmentsArea}>
-            {upcomingAppointments.length === 0 ? (
-              <ThemedView style={styles.emptyStateContainer}>
-                <Ionicons 
-                  name="calendar-outline" 
-                  size={40} 
-                  color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                />
-                <ThemedText style={styles.emptyStateText}>No upcoming appointments</ThemedText>
-                <TouchableOpacity 
-                  style={[
-                    styles.emptyStateButton,
-                    { backgroundColor: colorScheme === 'dark' ? '#1a8fc1' : '#0a7ea4' }
-                  ]}
-                  onPress={() => router.push('/new-appointment')}
-                >
-                  <ThemedText style={styles.emptyStateButtonText}>Schedule Now</ThemedText>
-                </TouchableOpacity>
-              </ThemedView>
-            ) : (
-              <ScrollView 
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.appointmentsScrollContent}
-                decelerationRate="fast"
-                snapToInterval={260} // Width of card + margin
-                snapToAlignment="start"
-              >
-                {upcomingAppointments.map((appointment) => (
-                  <TouchableOpacity
-                    key={appointment.id}
-                    style={[
-                      styles.appointmentCard,
-                      { 
-                        backgroundColor: colorScheme === 'dark' ? '#172C36' : '#fff',
-                        borderLeftWidth: 4,
-                        borderLeftColor: appointment.status === 'confirmed' ? '#2ecc71' : '#f39c12'
-                      }
-                    ]}
-                    onPress={() => router.push(`/appointments/${appointment.id}`)}
-                    activeOpacity={0.9}
-                  >
-                    <View style={styles.appointmentCardHeader}>
-                      <View style={styles.appointmentDateContainer}>
-                        <ThemedText style={[styles.appointmentDateText, colorScheme === 'dark' && { color: '#fff' }]}>
-                          {appointment.date}
-                        </ThemedText>
-                        <ThemedText style={[styles.appointmentTimeText, colorScheme === 'dark' && { color: '#a0a0a0' }]}>
-                          {appointment.time}
-                        </ThemedText>
-                      </View>
-                      
-                      <View style={[
-                        styles.appointmentStatusBadge,
-                        appointment.status === 'confirmed' ? 
-                          (colorScheme === 'dark' ? styles.confirmedBadgeDark : styles.confirmedBadgeLight) : 
-                          (colorScheme === 'dark' ? styles.pendingBadgeDark : styles.pendingBadgeLight)
-                      ]}>
-                        <ThemedText style={[
-                          styles.appointmentStatusText,
-                          appointment.status === 'confirmed' ? styles.confirmedText : styles.pendingText
-                        ]}>
-                          {appointment.status}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    
-                    <View style={[
-                      styles.appointmentDivider,
-                      { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-                    ]} />
-                    
-                    <View style={styles.appointmentCardBody}>
-                      <View style={styles.doctorAvatarContainer}>
-                        <View style={[
-                          styles.doctorAvatarCircle,
-                          { backgroundColor: colorScheme === 'dark' ? '#203A43' : '#E0EAFC' }
-                        ]}>
-                          <Ionicons 
-                            name="person" 
-                            size={22} 
-                            color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                          />
-                        </View>
-                      </View>
-                      
-                      <View style={styles.appointmentDetails}>
-                        <ThemedText style={[styles.doctorNameText, colorScheme === 'dark' && { color: '#fff' }]}>
-                          {appointment.doctor}
-                        </ThemedText>
-                        <View style={styles.specialtyContainer}>
-                          <Ionicons 
-                            name="medical" 
-                            size={12} 
-                            color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                          />
-                          <ThemedText style={[
-                            styles.doctorSpecialtyText, 
-                            colorScheme === 'dark' && { color: '#a0a0a0' }
-                          ]}>
-                            {appointment.specialty}
-                          </ThemedText>
-                        </View>
-                        <View style={[
-                          styles.appointmentTypeContainer,
-                          { backgroundColor: colorScheme === 'dark' ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.1)' }  
-                        ]}>
-                          <ThemedText style={[
-                            styles.appointmentTypeText,
-                            { color: colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4' }
-                          ]}>
-                            {appointment.type}
-                          </ThemedText>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-                
-                <TouchableOpacity
-                  style={[
-                    styles.newAppointmentCard,
-                    { backgroundColor: colorScheme === 'dark' ? '#1a8fc1' : '#4fb6e0' }
-                  ]}
-                  onPress={() => router.push('/new-appointment')}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.newAppointmentContent}>
-                    <View style={styles.newAppointmentIconContainer}>
-                      <Ionicons name="add-circle" size={36} color="#fff" />
-                    </View>
-                    <ThemedText style={styles.newAppointmentText}>
-                      Schedule New{'\n'}Appointment
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-
-        {/* Nearby Doctors */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleWrapper}>
-              <Ionicons 
-                name="people" 
-                size={24} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
-              <ThemedText style={styles.sectionTitle}>Nearby Doctors</ThemedText>
-            </View>
-            <TouchableOpacity 
-              style={styles.seeAllButtonContainer} 
-              onPress={() => router.push('/doctors')}
-            >
-              <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
-              <Feather 
-                name="chevron-right" 
-                size={16} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
+              <Feather name="chevron-right" size={16} color="#0a7ea4" />
             </TouchableOpacity>
           </View>
           
           <ScrollView 
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.doctorsScrollContent}
+            contentContainerStyle={styles.appointmentsScrollContent}
             decelerationRate="fast"
-            snapToInterval={200} // Width of card + margin
-            snapToAlignment="start"
           >
-            {nearbyDoctors.map((doctor) => (
-              <TouchableOpacity
-                key={doctor.id}
-                style={[
-                  styles.doctorCard,
-                  { backgroundColor: colorScheme === 'dark' ? '#1D2B34' : '#fff' }
-                ]}
-                onPress={() => router.push(`/doctors/${doctor.id}`)}
-                activeOpacity={0.9}
+            {upcomingAppointments.length > 0 ? upcomingAppointments.map((appointment) => (
+              <TouchableOpacity 
+                key={appointment.id} 
+                onPress={() => handleAppointmentPress(appointment.id)}
+                style={styles.appointmentCard}
               >
-                <View style={styles.doctorImageWrapper}>
-                  <LinearGradient
-                    colors={colorScheme === 'dark' ? ['#2C5364', '#203A43'] : ['#E0EAFC', '#CFDEF3']}
-                    style={styles.doctorImageContainer}
+                <View style={styles.appointmentCardHeader}>
+                  <View style={styles.appointmentDateContainer}>
+                    <ThemedText style={styles.appointmentDateText}>
+                      {new Date(appointment.appointment_date).toLocaleDateString()}
+                    </ThemedText>
+                    <ThemedText style={styles.appointmentTimeText}>
+                      {appointment.appointment_time}
+                    </ThemedText>
+                  </View>
+                  <View 
+                    style={[
+                      styles.appointmentStatusBadge,
+                      colorScheme === 'dark' ? styles.confirmedBadgeDark : styles.confirmedBadgeLight
+                    ]}
                   >
-                    <Ionicons 
-                      name="person" 
-                      size={38} 
-                      color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                    />
-                  </LinearGradient>
-                  
-                  {doctor.availableToday && (
-                    <View style={styles.availableBadge}>
-                      <Ionicons name="checkmark-circle" size={14} color="#fff" />
-                      <ThemedText style={styles.availableBadgeText}>Available Today</ThemedText>
-                    </View>
-                  )}
+                    <ThemedText style={[styles.appointmentStatusText, styles.confirmedText]}>
+                      {appointment.status}
+                    </ThemedText>
+                  </View>
                 </View>
                 
-                <View style={styles.doctorCardContent}>
-                  <ThemedText style={styles.doctorCardName} numberOfLines={1}>{doctor.name}</ThemedText>
-                  
-                  <View style={styles.doctorSpecialtyRow}>
-                    <Ionicons 
-                      name="medical" 
-                      size={12} 
-                      color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                    />
-                    <ThemedText style={styles.doctorCardSpecialty} numberOfLines={1}>{doctor.specialty}</ThemedText>
-                  </View>
-                  
-                  <View style={styles.doctorCardFooter}>
+                <View 
+                  style={[
+                    styles.appointmentDivider, 
+                    { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' } 
+                  ]}
+                />
+                
+                <View style={styles.appointmentCardBody}>
+                  <View style={styles.doctorAvatarContainer}>
                     <View style={[
-                      styles.ratingContainer,
-                      { backgroundColor: colorScheme === 'dark' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(255, 193, 7, 0.1)' }
+                      styles.doctorAvatarCircle, 
+                      { backgroundColor: colorScheme === 'dark' ? 'rgba(161, 206, 220, 0.1)' : 'rgba(10, 126, 164, 0.1)' }
                     ]}>
-                      <Ionicons name="star" size={14} color="#FFC107" />
-                      <ThemedText style={styles.ratingText}>{doctor.rating}</ThemedText>
-                    </View>
-                    
-                    <View style={styles.distanceContainer}>
                       <Ionicons 
-                        name="location" 
-                        size={14} 
+                        name="person" 
+                        size={24} 
                         color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
                       />
-                      <ThemedText style={styles.distanceText}>{doctor.distance}</ThemedText>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.appointmentDetails}>
+                    <ThemedText style={styles.doctorNameText}>
+                      {appointment.doctor?.user?.first_name && appointment.doctor?.user?.last_name
+                        ? `Dr. ${appointment.doctor.user.first_name} ${appointment.doctor.user.last_name}`
+                        : 'Doctor'
+                      }
+                    </ThemedText>
+                    
+                    <View style={styles.specialtyContainer}>
+                      <FontAwesome5 name="stethoscope" size={12} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                      <ThemedText style={styles.doctorSpecialtyText}>
+                        {appointment.doctor?.specialization || 'Specialist'}
+                      </ThemedText>
+                    </View>
+                    
+                    <View 
+                      style={[
+                        styles.appointmentTypeContainer,
+                        { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                      ]}
+                    >
+                      <ThemedText style={styles.appointmentTypeText}>
+                        {appointment.appointment_type}
+                      </ThemedText>
                     </View>
                   </View>
                 </View>
               </TouchableOpacity>
-            ))}
+            )) : (
+              <TouchableOpacity
+                style={styles.newAppointmentCard}
+                onPress={() => router.push({ pathname: '/new-appointment' })}
+              >
+                <LinearGradient
+                  colors={getActionCardGradient('new')}
+                  style={styles.newAppointmentContent}
+                >
+                  <View style={styles.newAppointmentIconContainer}>
+                    <Ionicons name="add-circle" size={40} color="#fff" />
+                  </View>
+                  <ThemedText style={styles.newAppointmentText}>
+                    Schedule your first appointment
+                  </ThemedText>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity
+              style={styles.newAppointmentCard}
+              onPress={() => router.push({ pathname: '/new-appointment' })}
+            >
+              <LinearGradient
+                colors={getActionCardGradient('new')}
+                style={styles.newAppointmentContent}
+              >
+                <View style={styles.newAppointmentIconContainer}>
+                  <Ionicons name="add-circle" size={40} color="#fff" />
+                </View>
+                <ThemedText style={styles.newAppointmentText}>
+                  Schedule new appointment
+                </ThemedText>
+              </LinearGradient>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -772,87 +705,46 @@ export default function HomeScreen() {
         <View style={[styles.sectionContainer, styles.healthTipsSection]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrapper}>
-              <Ionicons 
-                name="bulb" 
-                size={24} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
+              <Ionicons name="bulb" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
               <ThemedText style={styles.sectionTitle}>Health Tips</ThemedText>
             </View>
             <TouchableOpacity 
-              style={styles.seeAllButtonContainer} 
-              onPress={() => router.push('/health-tips')}
+              style={styles.seeAllButtonContainer}
+              onPress={() => router.push({ pathname: '/health-tips' })}
             >
               <ThemedText style={styles.seeAllButtonText}>See All</ThemedText>
-              <Feather 
-                name="chevron-right" 
-                size={16} 
-                color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-              />
+              <Feather name="chevron-right" size={16} color="#0a7ea4" />
             </TouchableOpacity>
           </View>
           
           <View style={styles.healthTipsContainer}>
-            {healthTips.map((tip, index) => {
-              // Determine gradient colors based on index and color scheme
-              let gradientColors;
-              if (index % 3 === 0) {
-                gradientColors = colorScheme === 'dark' ? 
-                  ['#1a8fc1', '#0c5270'] : 
-                  ['#4fb6e0', '#0a7ea4'];
-              } else if (index % 3 === 1) {
-                gradientColors = colorScheme === 'dark' ? 
-                  ['#7e57c2', '#5e35b1'] : 
-                  ['#9575cd', '#7e57c2'];
-              } else {
-                gradientColors = colorScheme === 'dark' ? 
-                  ['#43a047', '#2e7d32'] : 
-                  ['#66bb6a', '#43a047'];
-              }
-
-              // Determine icon based on index
-              let iconName;
-              if (index % 3 === 0) {
-                iconName = "nutrition";
-              } else if (index % 3 === 1) {
-                iconName = "bed";
-              } else {
-                iconName = "fitness";
-              }
-              
-              return (
-                <TouchableOpacity
-                  key={tip.id}
-                  style={[
-                    styles.healthTipCard,
-                    index === healthTips.length - 1 ? { marginBottom: 0 } : null
-                  ]}
-                  onPress={() => router.push(`/health-tips/${tip.id}`)}
-                  activeOpacity={0.9}
+            {healthTips.map((tip) => (
+              <TouchableOpacity 
+                key={tip.id}
+                style={styles.healthTipCard}
+                onPress={() => router.push({ pathname: `/health-tips/${tip.id}` })}
+              >
+                <LinearGradient
+                  colors={colorScheme === 'dark' ? 
+                    ['#1D3D47', '#2d5a6b'] :
+                    ['#78b1c4', '#A1CEDC']
+                  }
+                  style={styles.healthTipGradient}
                 >
-                  <LinearGradient
-                    colors={gradientColors}
-                    start={[0, 0]}
-                    end={[1, 1]}
-                    style={styles.healthTipGradient}
-                  >
-                    <View style={styles.healthTipIconContainer}>
-                      <Ionicons name={iconName as any} size={24} color="#fff" />
+                  <View style={styles.healthTipIconContainer}>
+                    <Ionicons name="bulb" size={24} color="#fff" />
+                  </View>
+                  <View style={styles.healthTipContent}>
+                    <ThemedText style={styles.healthTipTitle}>{tip.title}</ThemedText>
+                    <ThemedText style={styles.healthTipSummary}>{tip.summary}</ThemedText>
+                    <View style={styles.healthTipFooter}>
+                      <ThemedText style={styles.readMoreButton}>Read more</ThemedText>
+                      <Feather name="chevron-right" size={14} color="#fff" />
                     </View>
-                    
-                    <View style={styles.healthTipContent}>
-                      <ThemedText style={styles.healthTipTitle}>{tip.title}</ThemedText>
-                      <ThemedText style={styles.healthTipSummary} numberOfLines={2}>{tip.summary}</ThemedText>
-                      
-                      <View style={styles.healthTipFooter}>
-                        <ThemedText style={styles.readMoreButton}>Read More</ThemedText>
-                        <Feather name="arrow-right" size={16} color="#fff" />
-                      </View>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -1192,93 +1084,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
-  },
-  doctorsScrollContent: {
-    paddingLeft: 5,
-    paddingRight: 25,
-    paddingBottom: 15,
-    paddingTop: 5,
-  },
-  doctorCard: {
-    width: 180,
-    marginRight: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.12 : 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  doctorImageWrapper: {
-    position: 'relative',
-  },
-  doctorImageContainer: {
-    height: 140,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  availableBadge: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(46, 204, 113, 0.9)',
-    paddingVertical: 6,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  availableBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  doctorCardContent: {
-    padding: 16,
-  },
-  doctorCardName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 6,
-  },
-  doctorSpecialtyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  doctorCardSpecialty: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginLeft: 4,
-  },
-  doctorCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ratingText: {
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: '600',
-    color: '#f39c12',
-  },
-  distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  distanceText: {
-    fontSize: 12,
-    marginLeft: 4,
   },
   healthTipsSection: {
     marginBottom: 20,

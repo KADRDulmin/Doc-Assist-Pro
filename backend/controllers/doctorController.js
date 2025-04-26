@@ -2,6 +2,7 @@ const doctorRepository = require('../repositories/doctorRepository');
 const authService = require('../services/authService');
 // Import DoctorProfile directly since it's exported directly, not as a property
 const DoctorProfile = require('../models/doctor-profile');
+const feedbackRepository = require('../repositories/feedbackRepository');
 
 /**
  * Doctor-specific controller
@@ -234,6 +235,146 @@ class DoctorController {
         } catch (error) {
             next(error);
         }
+    }
+
+    /**
+     * Get nearby doctors for patients
+     */
+    async getNearbyDoctors(req, res, next) {
+        try {
+            const { latitude, longitude, specialty, maxDistance } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            
+            // Get all doctors
+            let doctors = await doctorRepository.getAllDoctors();
+            
+            // Filter by specialty if provided
+            if (specialty) {
+                doctors = doctors.filter(doctor => 
+                    doctor.specialty && doctor.specialty.toLowerCase().includes(specialty.toLowerCase())
+                );
+            }
+            
+            // If location parameters are provided, calculate and sort by distance
+            if (latitude && longitude) {
+                const userLocation = {
+                    latitude: parseFloat(latitude),
+                    longitude: parseFloat(longitude)
+                };
+                
+                const distanceLimit = maxDistance ? parseFloat(maxDistance) : 50; // default to 50 miles/km
+                
+                // Calculate distance for each doctor and filter by max distance
+                doctors = doctors
+                    .map(doctor => {
+                        if (doctor.latitude && doctor.longitude) {
+                            const distance = this._calculateDistance(
+                                userLocation.latitude, 
+                                userLocation.longitude,
+                                doctor.latitude,
+                                doctor.longitude
+                            );
+                            return { ...doctor, distance };
+                        }
+                        return { ...doctor, distance: 999 }; // Unknown distance
+                    })
+                    .filter(doctor => doctor.distance <= distanceLimit)
+                    .sort((a, b) => a.distance - b.distance);
+            }
+            
+            // Add availability information
+            const today = new Date().toISOString().split('T')[0];
+            const appointmentRepository = require('../repositories/appointmentRepository');
+            
+            // Get ratings for all doctors in one query for performance
+            const doctorIds = doctors.map(doctor => doctor.id);
+            const ratingsMap = {};
+            
+            if (doctorIds.length > 0) {
+                const ratings = await Promise.all(
+                    doctorIds.map(id => feedbackRepository.getDoctorAverageRating(id))
+                );
+                
+                doctorIds.forEach((id, index) => {
+                    ratingsMap[id] = ratings[index];
+                });
+            }
+            
+            // Enhance doctors with availability and ratings
+            const enhancedDoctors = await Promise.all(
+                doctors.map(async (doctor) => {
+                    // Check today's appointment availability
+                    const appointments = await appointmentRepository.getDoctorAppointments(
+                        doctor.id, { date: today }
+                    );
+                    
+                    const bookedSlots = appointments
+                        .filter(appt => appt.status !== 'cancelled')
+                        .length;
+                    
+                    // Assuming 8 slots available per day
+                    const totalSlots = 8; 
+                    const availableToday = bookedSlots < totalSlots;
+                    
+                    return {
+                        id: doctor.id,
+                        name: `${doctor.user?.first_name || ''} ${doctor.user?.last_name || ''}`.trim(),
+                        specialty: doctor.specialty || 'General Medicine',
+                        rating: ratingsMap[doctor.id]?.averageRating || 0,
+                        distance: doctor.distance ? `${doctor.distance.toFixed(1)} mi` : 'Unknown',
+                        availableToday,
+                        imageUrl: doctor.profile_image || null
+                    };
+                })
+            );
+            
+            // Paginate results
+            const startIndex = (page - 1) * limit;
+            const endIndex = page * limit;
+            const paginatedDoctors = enhancedDoctors.slice(startIndex, endIndex);
+            
+            res.json({
+                success: true,
+                data: paginatedDoctors,
+                pagination: {
+                    total: enhancedDoctors.length,
+                    page,
+                    limit,
+                    pages: Math.ceil(enhancedDoctors.length / limit)
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    /**
+     * Calculate distance between two coordinates using Haversine formula
+     * @param {number} lat1 - Latitude of point 1
+     * @param {number} lon1 - Longitude of point 1
+     * @param {number} lat2 - Latitude of point 2
+     * @param {number} lon2 - Longitude of point 2
+     * @returns {number} Distance in miles
+     */
+    _calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 3958.8; // Earth's radius in miles (6371 km for kilometers)
+        const dLat = this._toRadians(lat2 - lat1);
+        const dLon = this._toRadians(lon2 - lon1);
+        
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(this._toRadians(lat1)) * Math.cos(this._toRadians(lat2)) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+            
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        return distance;
+    }
+    
+    _toRadians(degrees) {
+        return degrees * (Math.PI / 180);
     }
 }
 

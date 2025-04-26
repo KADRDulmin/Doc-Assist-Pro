@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { initializeDatabase } = require('./database/init');
+const appointmentScheduler = require('./services/appointmentScheduler');
 
 // Load environment variables
 dotenv.config();
@@ -111,6 +112,10 @@ app.listen(PORT, '0.0.0.0', async () => {
     // Initialize database in background
     try {
         await initializeDatabase();
+        
+        // Start the appointment scheduler after database is initialized
+        appointmentScheduler.startScheduling(15); // Check every 15 minutes
+        console.log('Appointment scheduler started - checking for missed appointments every 15 minutes');
     } catch (error) {
         console.error('Database initialization error:', error.message);
         console.log('Server will continue running with potential fallback to in-memory storage');

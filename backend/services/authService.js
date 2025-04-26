@@ -136,17 +136,46 @@ class AuthService {
         }
         
         // Generate JWT token with role
-        const token = jwt.sign(
+        const token = this.generateToken(user);
+        
+        return { user: user.toJSON(), token };
+    }
+    
+    /**
+     * Generate a new JWT token for a user
+     */
+    generateToken(user) {
+        return jwt.sign(
             { 
                 userId: user.id,
                 email: user.email,
                 role: user.role
             }, 
             process.env.JWT_SECRET, 
-            { expiresIn: process.env.JWT_EXPIRY || '1h' }
+            { expiresIn: process.env.JWT_EXPIRY || '24h' } // Extended expiration time to 24 hours
         );
-        
-        return { user: user.toJSON(), token };
+    }
+    
+    /**
+     * Refresh an existing token
+     */
+    refreshToken(oldToken) {
+        try {
+            // Verify the existing token
+            const decoded = this.verifyToken(oldToken, true);
+            
+            // Get user info from the decoded token
+            const { userId, email, role } = decoded;
+            
+            // Generate a new token
+            return jwt.sign(
+                { userId, email, role }, 
+                process.env.JWT_SECRET, 
+                { expiresIn: process.env.JWT_EXPIRY || '24h' }
+            );
+        } catch (error) {
+            throw new Error('Unable to refresh token: ' + error.message);
+        }
     }
     
     /**
@@ -158,24 +187,29 @@ class AuthService {
             throw new Error('User ID is required');
         }
         
-        // Deactivate user account by setting is_active to false
-        const user = await userRepository.updateActiveStatus(userId, false);
-        
+        // Update to not deactivate account on logout
+        // Just return success message
         return { success: true, message: 'Logged out successfully' };
     }
     
     /**
      * Verify JWT token
+     * @param {string} token - The JWT token to verify
+     * @param {boolean} ignoreExpiration - Whether to ignore token expiration (for refresh)
      */
-    verifyToken(token) {
+    verifyToken(token, ignoreExpiration = false) {
         if (!token) {
             throw new Error('No token provided');
         }
         
         try {
-            return jwt.verify(token, process.env.JWT_SECRET);
+            const options = ignoreExpiration ? { ignoreExpiration: true } : {};
+            return jwt.verify(token, process.env.JWT_SECRET, options);
         } catch (error) {
-            throw new Error('Invalid or expired token');
+            if (error.name === 'TokenExpiredError') {
+                throw new Error('Token expired');
+            }
+            throw new Error('Invalid token');
         }
     }
 }

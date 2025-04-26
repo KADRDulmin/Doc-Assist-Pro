@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -18,6 +18,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import feedbackService, { FeedbackData, NewFeedback } from '@/src/services/feedback.service';
+import { useAuth } from '@/src/hooks/useAuth';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -46,54 +48,72 @@ interface PendingFeedback {
 
 export default function FeedbackScreen() {
   const colorScheme = useColorScheme();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'submitted'>('pending');
   const [rating, setRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
   const [currentFeedbackDoctor, setCurrentFeedbackDoctor] = useState<PendingFeedback | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Mock data for feedback history
-  const [submittedFeedbacks, setSubmittedFeedbacks] = useState<DoctorFeedback[]>([
-    {
-      id: 1,
-      doctorId: 101,
-      doctorName: 'Dr. Robert Lee',
-      specialty: 'Dermatology',
-      appointmentDate: 'Apr 10, 2025',
-      rating: 4,
-      comment: 'Very professional and thorough in examination. Explained everything clearly.',
-      date: 'Apr 11, 2025',
-    },
-    {
-      id: 2,
-      doctorId: 102,
-      doctorName: 'Dr. Maria Garcia',
-      specialty: 'Orthopedics',
-      appointmentDate: 'Mar 22, 2025',
-      rating: 5,
-      comment: 'Dr. Garcia was exceptional. She took time to listen to all my concerns and provided excellent treatment options.',
-      date: 'Mar 23, 2025',
-    }
-  ]);
+  // Real data from API
+  const [submittedFeedbacks, setSubmittedFeedbacks] = useState<DoctorFeedback[]>([]);
+  const [pendingFeedbacks, setPendingFeedbacks] = useState<PendingFeedback[]>([]);
 
-  // Mock data for pending feedbacks
-  const [pendingFeedbacks, setPendingFeedbacks] = useState<PendingFeedback[]>([
-    {
-      id: 1,
-      doctorId: 103,
-      doctorName: 'Dr. Emily Chen',
-      specialty: 'Cardiology',
-      appointmentDate: 'Apr 25, 2025',
-      appointmentType: 'Follow-up',
-    },
-    {
-      id: 2,
-      doctorId: 104,
-      doctorName: 'Dr. Michael Wong',
-      specialty: 'General Medicine',
-      appointmentDate: 'Apr 20, 2025',
-      appointmentType: 'Check-up',
+  // Fetch feedback data when component mounts
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadFeedbackData();
     }
-  ]);
+  }, [isAuthenticated]);
+
+  // Function to load feedback data from API
+  const loadFeedbackData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get feedback submitted by the user
+      const myFeedbackResponse = await feedbackService.getMyFeedback();
+      
+      if (myFeedbackResponse.success && myFeedbackResponse.data) {
+        // Transform API data to match our UI structure
+        const submittedData = myFeedbackResponse.data.map(feedback => ({
+          id: feedback.id,
+          doctorId: feedback.doctor_id,
+          doctorName: feedback.doctor?.user.first_name + ' ' + feedback.doctor?.user.last_name,
+          specialty: feedback.doctor?.specialization || 'Doctor',
+          appointmentDate: new Date(feedback.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          rating: feedback.rating,
+          comment: feedback.comment || '',
+          date: new Date(feedback.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+        }));
+        
+        setSubmittedFeedbacks(submittedData);
+        
+        // For now, we'll use a simplified approach for pending feedbacks
+        // In a real app, you might want to fetch completed appointments that don't have feedback yet
+        // This is a placeholder and should be replaced with proper API endpoint when available
+        // For example: const pendingResponse = await appointmentService.getCompletedAppointmentsWithoutFeedback();
+        
+        // For now we'll keep the mock data for pending feedbacks
+        // but in a production app, this should come from the API
+      }
+    } catch (err) {
+      console.error('Error loading feedback data:', err);
+      setError('Failed to load feedback data. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const openFeedbackForm = (doctor: PendingFeedback) => {
     setCurrentFeedbackDoctor(doctor);
@@ -107,7 +127,7 @@ export default function FeedbackScreen() {
     setFeedbackText('');
   };
 
-  const submitFeedback = () => {
+  const submitFeedback = async () => {
     if (!currentFeedbackDoctor) return;
     
     if (rating === 0) {
@@ -115,28 +135,51 @@ export default function FeedbackScreen() {
       return;
     }
     
-    // Create new feedback
-    const newFeedback: DoctorFeedback = {
-      id: Date.now(),
-      doctorId: currentFeedbackDoctor.doctorId,
-      doctorName: currentFeedbackDoctor.doctorName,
-      specialty: currentFeedbackDoctor.specialty,
-      appointmentDate: currentFeedbackDoctor.appointmentDate,
-      rating,
-      comment: feedbackText,
-      date: 'Apr 25, 2025', // Today's date
-    };
-    
-    // Add to submitted feedbacks
-    setSubmittedFeedbacks([newFeedback, ...submittedFeedbacks]);
-    
-    // Remove from pending feedbacks
-    setPendingFeedbacks(pendingFeedbacks.filter(pf => pf.id !== currentFeedbackDoctor.id));
-    
-    // Close form
-    closeFeedbackForm();
-    
-    Alert.alert('Thank You!', 'Your feedback has been submitted successfully.');
+    try {
+      // Create feedback data for API
+      const feedbackData: NewFeedback = {
+        doctor_id: currentFeedbackDoctor.doctorId,
+        rating,
+        comment: feedbackText,
+      };
+      
+      // Submit feedback to API
+      const response = await feedbackService.submitFeedback(feedbackData);
+      
+      if (response.success) {
+        // Add the new feedback to the submitted list
+        const newFeedback: DoctorFeedback = {
+          id: response.data.id,
+          doctorId: response.data.doctor_id,
+          doctorName: currentFeedbackDoctor.doctorName,
+          specialty: currentFeedbackDoctor.specialty,
+          appointmentDate: currentFeedbackDoctor.appointmentDate,
+          rating,
+          comment: feedbackText,
+          date: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+        };
+        
+        // Update the submitted feedbacks list
+        setSubmittedFeedbacks([newFeedback, ...submittedFeedbacks]);
+        
+        // Remove from pending feedbacks
+        setPendingFeedbacks(pendingFeedbacks.filter(pf => pf.id !== currentFeedbackDoctor.id));
+        
+        // Close form
+        closeFeedbackForm();
+        
+        Alert.alert('Thank You!', 'Your feedback has been submitted successfully.');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to submit feedback. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+      Alert.alert('Error', 'An error occurred while submitting your feedback. Please try again later.');
+    }
   };
   
   // Define fixed gradient colors for LinearGradient
@@ -320,6 +363,38 @@ export default function FeedbackScreen() {
               </>
             )}
           </>
+        )}
+
+        {/* Loading state */}
+        {isLoading && (
+          <ThemedView style={styles.emptyState}>
+            <ThemedText style={styles.emptyStateText}>
+              Loading feedback data...
+            </ThemedText>
+          </ThemedView>
+        )}
+
+        {/* Error state */}
+        {error && !isLoading && (
+          <ThemedView style={styles.emptyState}>
+            <MaterialIcons 
+              name="error-outline" 
+              size={60} 
+              color={Colors[colorScheme ?? 'light'].text}
+              style={{ opacity: 0.5 }}
+            />
+            <ThemedText style={styles.emptyStateText}>
+              {error}
+            </ThemedText>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={loadFeedbackData}
+            >
+              <ThemedText style={styles.retryButtonText}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
         )}
 
         {/* Bottom space for bottom tabs */}
@@ -609,27 +684,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   ratingText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 14,
     marginTop: 5,
+    fontWeight: '500',
   },
   feedbackInputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   feedbackLabel: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 16,
+    marginBottom: 10,
   },
   feedbackInput: {
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     height: 100,
     textAlignVertical: 'top',
+    backgroundColor: '#fff',
   },
   feedbackInputDark: {
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#333',
+    borderColor: '#555',
     color: '#fff',
   },
   submitButton: {
@@ -640,7 +717,18 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#fff',
-    fontWeight: '600',
     fontSize: 16,
+    fontWeight: '600',
   },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#0a7ea4',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+  }
 });

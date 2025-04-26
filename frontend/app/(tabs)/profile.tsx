@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -8,58 +8,51 @@ import {
   SafeAreaView,
   Alert,
   Switch,
-  Image
+  ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
-
-interface UserProfile {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  gender: string;
-  bloodType: string;
-  height: string;
-  weight: string;
-  allergies: string[];
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phoneNumber: string;
-  }
-}
+import patientService, { PatientProfileData } from '@/src/services/patient.service';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(colorScheme === 'dark');
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState<PatientProfileData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock user profile data
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@example.com',
-    phoneNumber: '+1 (555) 123-4567',
-    dateOfBirth: 'May 15, 1990',
-    gender: 'Female',
-    bloodType: 'O+',
-    height: '165 cm',
-    weight: '60 kg',
-    allergies: ['Penicillin', 'Peanuts'],
-    emergencyContact: {
-      name: 'John Johnson',
-      relationship: 'Spouse',
-      phoneNumber: '+1 (555) 987-6543'
+  // Fetch profile data when component mounts
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  // Function to fetch patient profile data
+  const fetchProfileData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await patientService.getMyProfile();
+      if (response.success && response.data) {
+        setProfileData(response.data);
+      } else {
+        setError('Failed to load profile data');
+      }
+    } catch (err: any) {
+      console.error('Error fetching profile:', err);
+      setError(err?.message || 'An error occurred while fetching your profile');
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -101,6 +94,32 @@ export default function ProfileScreen() {
   const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
+  // Format allergies as an array for display
+  const allergiesList = profileData?.allergies ? 
+    profileData.allergies.split(',').map(item => item.trim()).filter(item => item.length > 0) : 
+    [];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+        <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={50} color="#e53935" />
+        <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchProfileData}>
+          <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Profile Header */}
@@ -119,7 +138,9 @@ export default function ProfileScreen() {
           </View>
           
           <View style={styles.profileNameContainer}>
-            <ThemedText style={styles.profileName}>{userProfile.name}</ThemedText>
+            <ThemedText style={styles.profileName}>
+              {profileData?.user ? `${profileData.user.first_name || ''} ${profileData.user.last_name || ''}`.trim() : 'User'}
+            </ThemedText>
             <View style={styles.patientBadge}>
               <ThemedText style={styles.patientBadgeText}>Patient</ThemedText>
             </View>
@@ -144,22 +165,24 @@ export default function ProfileScreen() {
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Email</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.email}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.user?.email || 'Not provided'}</ThemedText>
           </View>
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Phone</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.phoneNumber}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.user?.phone || 'Not provided'}</ThemedText>
           </View>
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Date of Birth</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.dateOfBirth}</ThemedText>
+            <ThemedText style={styles.infoValue}>
+              {profileData?.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'Not provided'}
+            </ThemedText>
           </View>
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Gender</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.gender}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.gender || 'Not provided'}</ThemedText>
           </View>
         </ThemedView>
         
@@ -172,28 +195,29 @@ export default function ProfileScreen() {
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Blood Type</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.bloodType}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.blood_group || 'Not provided'}</ThemedText>
           </View>
           
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Height</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.height}</ThemedText>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Weight</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.weight}</ThemedText>
+            <ThemedText style={styles.infoLabel}>Medical History</ThemedText>
+            <ThemedText style={styles.infoValue} numberOfLines={2}>
+              {profileData?.medical_history || 'None'}
+            </ThemedText>
           </View>
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Allergies</ThemedText>
-            <View style={styles.allergiesContainer}>
-              {userProfile.allergies.map((allergy, index) => (
-                <View key={index} style={styles.allergyTag}>
-                  <ThemedText style={styles.allergyText}>{allergy}</ThemedText>
-                </View>
-              ))}
-            </View>
+            {allergiesList.length > 0 ? (
+              <View style={styles.allergiesContainer}>
+                {allergiesList.map((allergy, index) => (
+                  <View key={index} style={styles.allergyTag}>
+                    <ThemedText style={styles.allergyText}>{allergy}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <ThemedText style={styles.infoValue}>None</ThemedText>
+            )}
           </View>
         </ThemedView>
 
@@ -206,17 +230,12 @@ export default function ProfileScreen() {
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Name</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.emergencyContact.name}</ThemedText>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Relationship</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.emergencyContact.relationship}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.emergency_contact_name || 'Not provided'}</ThemedText>
           </View>
           
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Phone</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.emergencyContact.phoneNumber}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profileData?.emergency_contact_phone || 'Not provided'}</ThemedText>
           </View>
         </ThemedView>
         
@@ -288,6 +307,37 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#0a7ea4',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 20 : 40,
@@ -394,11 +444,14 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
+    maxWidth: '60%',
+    textAlign: 'right',
   },
   allergiesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    maxWidth: '60%',
   },
   allergyTag: {
     backgroundColor: 'rgba(10, 126, 164, 0.1)',

@@ -15,6 +15,9 @@ router.post('/login', authController.login);
 // Add logout route (requires authentication)
 router.post('/logout', authenticate, authController.logout);
 
+// Add refresh token endpoint
+router.post('/refresh-token', authController.refreshToken);
+
 // Role-specific registration routes
 router.post('/register/doctor', doctorController.registerDoctor);
 router.post('/register/patient', patientController.registerPatient);

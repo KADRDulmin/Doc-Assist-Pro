@@ -24,10 +24,12 @@ class AuthApiService extends BaseApiService {
    * @param credentials - Login credentials
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Login doesn't require auth token
     return this.request<AuthResponse>(
       this.AUTH_ENDPOINTS.LOGIN,
       HttpMethod.POST,
-      credentials
+      credentials,
+      false // No auth required for login
     );
   }
 
@@ -36,10 +38,12 @@ class AuthApiService extends BaseApiService {
    * @param credentials - Registration credentials
    */
   async register(credentials: RegisterCredentials): Promise<RegisterResponse> {
+    // Registration doesn't require auth token
     return this.request<RegisterResponse>(
       this.AUTH_ENDPOINTS.REGISTER,
       HttpMethod.POST,
-      credentials
+      credentials,
+      false // No auth required for registration
     );
   }
 
@@ -48,10 +52,12 @@ class AuthApiService extends BaseApiService {
    * @param patientData - Patient registration data
    */
   async registerPatient(patientData: PatientRegisterData): Promise<RegisterResponse> {
+    // Patient registration doesn't require auth token
     return this.request<RegisterResponse>(
       this.AUTH_ENDPOINTS.REGISTER_PATIENT,
       HttpMethod.POST,
-      patientData
+      patientData,
+      false // No auth required for registration
     );
   }
 
@@ -59,6 +65,7 @@ class AuthApiService extends BaseApiService {
    * Get current user profile
    */
   async getCurrentUser() {
+    // This endpoint requires authentication
     return this.request(
       this.AUTH_ENDPOINTS.ME,
       HttpMethod.GET,

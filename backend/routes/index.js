@@ -3,6 +3,9 @@ const router = express.Router();
 const authRoutes = require('./authRoutes');
 const doctorRoutes = require('./doctorRoutes');
 const patientRoutes = require('./patientRoutes');
+const appointmentRoutes = require('./appointmentRoutes');
+const feedbackRoutes = require('./feedbackRoutes');
+const healthTipRoutes = require('./healthTipRoutes');
 const { checkConnection } = require('../config/database');
 
 // API info route
@@ -15,6 +18,9 @@ router.get('/', (req, res) => {
             auth: '/api/auth',
             doctors: '/api/doctors',
             patients: '/api/patients',
+            appointments: '/api/appointments',
+            feedback: '/api/feedback',
+            healthTips: '/api/health-tips',
             health: '/api/health'
         }
     });
@@ -148,5 +154,8 @@ router.get('/routes-check', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/patients', patientRoutes);
+router.use('/appointments', appointmentRoutes);
+router.use('/feedback', feedbackRoutes);
+router.use('/health-tips', healthTipRoutes);
 
 module.exports = router;

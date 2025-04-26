@@ -69,6 +69,8 @@ const DoctorAppointmentsScreen = () => {
         return <MaterialIcons name="cancel" size={20} color={Colors.error} />;
       case 'confirmed':
         return <MaterialIcons name="event-available" size={20} color={Colors.primary} />;
+      case 'missed':
+        return <MaterialIcons name="event-busy" size={20} color="#FF6B6B" />;
       case 'pending':
       default:
         return <MaterialIcons name="schedule" size={20} color={Colors.warning} />;
@@ -118,7 +120,7 @@ const DoctorAppointmentsScreen = () => {
       </View>
 
       <View style={styles.actionButtonsContainer}>
-        {item.status !== 'completed' && item.status !== 'cancelled' && (
+        {item.status !== 'completed' && item.status !== 'cancelled' && item.status !== 'missed' && (
           <>
             <TouchableOpacity style={[styles.actionButton, styles.completeButton]}>
               <MaterialIcons name="check" size={16} color="#fff" />
@@ -128,6 +130,11 @@ const DoctorAppointmentsScreen = () => {
             <TouchableOpacity style={[styles.actionButton, styles.rescheduleButton]}>
               <MaterialIcons name="event" size={16} color="#fff" />
               <Text style={styles.actionButtonText}>Reschedule</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionButton, styles.missedButton]}>
+              <MaterialIcons name="event-busy" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Missed</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.actionButton, styles.cancelButton]}>
@@ -172,6 +179,7 @@ const DoctorAppointmentsScreen = () => {
         <FilterButton title="Today" filter="today" />
         <FilterButton title="Completed" filter="completed" />
         <FilterButton title="Cancelled" filter="cancelled" />
+        <FilterButton title="Missed" filter="missed" />
       </View>
 
       {/* Appointment list */}
@@ -352,6 +360,9 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: Colors.error,
+  },
+  missedButton: {
+    backgroundColor: '#FF6B6B',
   },
   detailsButton: {
     backgroundColor: Colors.secondary,
