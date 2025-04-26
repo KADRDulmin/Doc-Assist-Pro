@@ -316,8 +316,9 @@ export default function HomeScreen() {
   
   // Function to handle health tip press and navigate to detail page
   const handleHealthTipPress = (tip: HealthTipRecommendation) => {
+    // Navigate to health tips detail route - use the route structure defined in your app
     router.push({
-      pathname: '/health-tips/[id]', // Updated to health-tips plural to match existing routes
+      pathname: '/health-tips/[id]', // Ensure this matches the directory structure: app/health-tips/[id].tsx
       params: {
         id: tip.id,
         title: tip.title,
@@ -718,33 +719,47 @@ export default function HomeScreen() {
           </View>
           
           <View style={styles.healthTipsContainer}>
-            {healthTips.map((tip) => (
-              <TouchableOpacity 
-                key={tip.id}
-                style={styles.healthTipCard}
-                onPress={() => router.push({ pathname: `/health-tips/${tip.id}` })}
-              >
-                <LinearGradient
-                  colors={colorScheme === 'dark' ? 
-                    ['#1D3D47', '#2d5a6b'] :
-                    ['#78b1c4', '#A1CEDC']
-                  }
-                  style={styles.healthTipGradient}
+            {personalizedTipsLoading ? (
+              <ThemedView style={styles.healthTipsLoadingContainer}>
+                <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                <ThemedText style={styles.healthTipsLoadingText}>Generating personalized tips...</ThemedText>
+              </ThemedView>
+            ) : (
+              healthTips.map((tip) => (
+                <TouchableOpacity 
+                  key={tip.id}
+                  style={styles.healthTipCard}
+                  onPress={() => router.push({
+                    pathname: '/health-tip/[id]',
+                    params: {
+                      id: tip.id,
+                      title: tip.title,
+                      category: tip.category
+                    }
+                  })}
                 >
-                  <View style={styles.healthTipIconContainer}>
-                    <Ionicons name="bulb" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.healthTipContent}>
-                    <ThemedText style={styles.healthTipTitle}>{tip.title}</ThemedText>
-                    <ThemedText style={styles.healthTipSummary}>{tip.summary}</ThemedText>
-                    <View style={styles.healthTipFooter}>
-                      <ThemedText style={styles.readMoreButton}>Read more</ThemedText>
-                      <Feather name="chevron-right" size={14} color="#fff" />
+                  <LinearGradient
+                    colors={colorScheme === 'dark' ? 
+                      ['#1D3D47', '#2d5a6b'] :
+                      ['#78b1c4', '#A1CEDC']
+                    }
+                    style={styles.healthTipGradient}
+                  >
+                    <View style={styles.healthTipIconContainer}>
+                      <Ionicons name="bulb" size={24} color="#fff" />
                     </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+                    <View style={styles.healthTipContent}>
+                      <ThemedText style={styles.healthTipTitle}>{tip.title}</ThemedText>
+                      <ThemedText style={styles.healthTipSummary}>{tip.summary}</ThemedText>
+                      <View style={styles.healthTipFooter}>
+                        <ThemedText style={styles.readMoreButton}>Read more</ThemedText>
+                        <Feather name="chevron-right" size={14} color="#fff" />
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
 

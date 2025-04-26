@@ -135,11 +135,21 @@ class GeminiService extends BaseApiService {
     category: string
   ): Promise<{ success: boolean; data?: HealthTipContent; message?: string }> {
     try {
-      // Construct the prompt for Gemini - Ask for ONLY the article text
-      const prompt = `Generate a detailed but concise article (around 300-400 words) about "${title}" related to the medical field of ${category}. 
-      The article should be informative, accurate, easy for a patient to understand, and include practical advice.
+      // Construct the prompt for Gemini - Ask for a well-structured article in markdown format
+      const prompt = `Generate a well-structured, concise article (around 300-400 words) about "${title}" related to the medical field of ${category}.
       
-      Return ONLY the article text. Do not include a title within the text, markdown formatting, or any other surrounding text.`;
+      The article should:
+      1. Start with a brief introduction about the topic
+      2. Include 2-3 clearly defined sections with distinct subtopics (using markdown headings ## for section titles)
+      3. Use bullet points or numbered lists for actionable advice
+      4. End with a brief conclusion
+      
+      Format the response as proper markdown with:
+      - Section headings (##)
+      - Bullet points or numbered lists where appropriate
+      - Emphasis on important points (using *italics* or **bold**)
+      
+      Return ONLY the properly formatted markdown article without any explanations about the markdown itself.`;
       
       // Call Gemini API
       const response = await fetch(GEMINI_API_URL, {
@@ -149,8 +159,12 @@ class GeminiService extends BaseApiService {
           contents: [{
             parts: [{ text: prompt }]
           }],
-           // Optional: Configure generation parameters
-          // generationConfig: { temperature: 0.7, maxOutputTokens: 800 } 
+          generationConfig: { 
+            temperature: 0.7, 
+            maxOutputTokens: 800,
+            topK: 40,
+            topP: 0.95 
+          }
         })
       });
       
