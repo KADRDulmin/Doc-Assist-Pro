@@ -125,6 +125,58 @@ class DoctorRepository {
     }
     
     /**
+     * Get doctor profile by ID
+     * @param {number} id - Doctor profile ID
+     * @returns {Promise<DoctorProfile|null>} Doctor profile or null if not found
+     */
+    async getProfileById(id) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                const result = await client.query(
+                    `SELECT dp.*, 
+                        u.id as user_id, u.email, u.first_name, u.last_name, 
+                        u.role, u.phone, u.is_active, u.is_verified
+                     FROM doctor_profiles dp
+                     JOIN users u ON dp.user_id = u.id
+                     WHERE dp.id = $1`,
+                    [id]
+                );
+                
+                if (result.rows.length === 0) {
+                    return null;
+                }
+                
+                const row = result.rows[0];
+                const profile = new DoctorProfile(row);
+                
+                // Add user information to profile
+                profile.user = new User({
+                    id: row.user_id,
+                    email: row.email,
+                    first_name: row.first_name,
+                    last_name: row.last_name,
+                    role: row.role,
+                    phone: row.phone,
+                    is_active: row.is_active,
+                    is_verified: row.is_verified
+                });
+                
+                return profile;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._getProfileByIdInMemory(id);
+            }
+            throw error;
+        }
+    }
+    
+    /**
      * Get all doctors with their profiles
      */
     async getAllDoctors(options = {}) {
@@ -302,6 +354,24 @@ class DoctorRepository {
         if (!profile) return null;
         
         const user = memoryStore.users.find(u => u.id === parseInt(userId));
+        if (!user) return null;
+        
+        const doctorProfile = new DoctorProfile(profile);
+        doctorProfile.user = new User(user);
+        
+        return doctorProfile;
+    }
+    
+    /**
+     * Get doctor profile by ID from memory
+     * @param {number} id - Doctor profile ID
+     * @returns {DoctorProfile|null} Doctor profile or null if not found
+     */
+    _getProfileByIdInMemory(id) {
+        const profile = memoryStore.doctorProfiles.find(p => p.id === parseInt(id));
+        if (!profile) return null;
+        
+        const user = memoryStore.users.find(u => u.id === profile.user_id);
         if (!user) return null;
         
         const doctorProfile = new DoctorProfile(profile);

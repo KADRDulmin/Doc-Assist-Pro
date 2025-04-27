@@ -141,6 +141,9 @@ export default function AppointmentsScreen() {
   const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
+  // Get safe colors for text
+  const textColor = colorScheme === 'dark' ? '#fff' : '#000';
+
   const renderAppointmentItem = ({ item }: { item: AppointmentData }) => (
     <TouchableOpacity 
       style={styles.appointmentCard}
@@ -178,14 +181,14 @@ export default function AppointmentsScreen() {
           
           <View style={styles.appointmentInfoContainer}>
             <View style={styles.appointmentInfoItem}>
-              <Ionicons name="calendar" size={16} color={Colors[colorScheme ?? 'light'].text} style={{ opacity: 0.6 }} />
+              <Ionicons name="calendar" size={16} color={textColor} style={{ opacity: 0.6 }} />
               <ThemedText style={styles.appointmentInfoText}>
                 {formatDate(item.appointment_date)}
               </ThemedText>
             </View>
             
             <View style={styles.appointmentInfoItem}>
-              <Ionicons name="time" size={16} color={Colors[colorScheme ?? 'light'].text} style={{ opacity: 0.6 }} />
+              <Ionicons name="time" size={16} color={textColor} style={{ opacity: 0.6 }} />
               <ThemedText style={styles.appointmentInfoText}>
                 {formatTime(item.appointment_time)}
               </ThemedText>
@@ -194,7 +197,7 @@ export default function AppointmentsScreen() {
           
           {item.location && (
             <View style={styles.locationContainer}>
-              <Ionicons name="location" size={16} color={Colors[colorScheme ?? 'light'].text} style={{ opacity: 0.6 }} />
+              <Ionicons name="location" size={16} color={textColor} style={{ opacity: 0.6 }} />
               <ThemedText style={styles.locationText}>{item.location}</ThemedText>
             </View>
           )}
@@ -208,7 +211,7 @@ export default function AppointmentsScreen() {
               style={[styles.footerButton, styles.rescheduleButton]}
               onPress={() => router.push(`/appointments/${item.id}/reschedule`)}
             >
-              <Ionicons name="calendar" size={16} color={Colors[colorScheme ?? 'light'].text} />
+              <Ionicons name="calendar" size={16} color={textColor} />
               <ThemedText style={styles.footerButtonText}>Reschedule</ThemedText>
             </TouchableOpacity>
             
@@ -237,7 +240,7 @@ export default function AppointmentsScreen() {
             style={[styles.footerButton, styles.rescheduleButton]}
             onPress={() => router.push(`/appointments/${item.id}/reschedule`)}
           >
-            <Ionicons name="calendar" size={16} color={Colors[colorScheme ?? 'light'].text} />
+            <Ionicons name="calendar" size={16} color={textColor} />
             <ThemedText style={styles.footerButtonText}>Reschedule</ThemedText>
           </TouchableOpacity>
         )}
@@ -334,7 +337,7 @@ export default function AppointmentsScreen() {
             <Ionicons 
               name="calendar-outline" 
               size={60} 
-              color={Colors[colorScheme ?? 'light'].text} 
+              color={textColor} 
               style={{ opacity: 0.3 }}
             />
             <ThemedText style={styles.emptyText}>

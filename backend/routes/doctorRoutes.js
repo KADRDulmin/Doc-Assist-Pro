@@ -32,6 +32,9 @@ router.get('/specializations/list', (req, res) => {
 // Doctor-only routes
 router.get('/profile/me', authenticate, requireDoctor, doctorController.getMyProfile);
 router.put('/profile/me', authenticate, requireDoctor, doctorController.updateMyProfile);
+router.get('/dashboard', authenticate, requireDoctor, doctorController.getDashboardData);
+router.get('/appointments', authenticate, requireDoctor, doctorController.getMyAppointments);
+router.get('/patients', authenticate, requireDoctor, doctorController.getMyPatients);
 
 // Admin routes
 router.get('/admin/all', authenticate, requireAdmin, doctorController.getAllDoctors);

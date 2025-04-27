@@ -3,6 +3,8 @@ const authService = require('../services/authService');
 // Import DoctorProfile directly since it's exported directly, not as a property
 const DoctorProfile = require('../models/doctor-profile');
 const feedbackRepository = require('../repositories/feedbackRepository');
+const appointmentRepository = require('../repositories/appointmentRepository');
+const patientRepository = require('../repositories/patientRepository');
 
 /**
  * Doctor-specific controller
@@ -285,7 +287,6 @@ class DoctorController {
             
             // Add availability information
             const today = new Date().toISOString().split('T')[0];
-            const appointmentRepository = require('../repositories/appointmentRepository');
             
             // Get ratings for all doctors in one query for performance
             const doctorIds = doctors.map(doctor => doctor.id);
@@ -375,6 +376,169 @@ class DoctorController {
     
     _toRadians(degrees) {
         return degrees * (Math.PI / 180);
+    }
+
+    /**
+     * Get doctor dashboard data
+     * Combines doctor profile with appointment counts and patient stats
+     */
+    async getDashboardData(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const profile = await doctorRepository.getProfileByUserId(userId);
+            
+            if (!profile) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Doctor profile not found'
+                });
+            }
+            
+            // Get today's appointments
+            const today = new Date().toISOString().split('T')[0];
+            const appointments = await appointmentRepository.getDoctorAppointments(profile.id, { date: today });
+            
+            // Get patient count - this can be optimized with a specific query
+            const allAppointments = await appointmentRepository.getDoctorAppointments(profile.id);
+            const uniquePatientIds = new Set();
+            allAppointments.forEach(app => {
+                if (app.patient_id) {
+                    uniquePatientIds.add(app.patient_id);
+                }
+            });
+            const patientCount = uniquePatientIds.size;
+            
+            // Get completed appointments count
+            const completedAppointments = allAppointments.filter(app => app.status === 'completed').length;
+            
+            // Add these stats to the profile object for the frontend
+            profile.patient_count = patientCount;
+            profile.completed_appointments = completedAppointments;
+            
+            res.json({
+                success: true,
+                data: {
+                    profile,
+                    appointments,
+                    stats: {
+                        appointmentCount: appointments.length,
+                        patientCount,
+                        completedAppointments
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+            next(error);
+        }
+    }
+    
+    /**
+     * Get appointments for the authenticated doctor
+     */
+    async getMyAppointments(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const profile = await doctorRepository.getProfileByUserId(userId);
+            
+            if (!profile) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Doctor profile not found'
+                });
+            }
+            
+            const { status, date } = req.query;
+            let options = {};
+            
+            if (status) {
+                options.status = status;
+            }
+            
+            if (date) {
+                options.date = date;
+            }
+            
+            const appointments = await appointmentRepository.getDoctorAppointments(profile.id, options);
+            
+            res.json({
+                success: true,
+                data: appointments
+            });
+        } catch (error) {
+            console.error('Error fetching doctor appointments:', error);
+            next(error);
+        }
+    }
+
+    /**
+     * Get patients for the authenticated doctor
+     * Returns patients who had appointments with this doctor
+     */
+    async getMyPatients(req, res, next) {
+        try {
+            const userId = req.user.id;
+            const { search } = req.query;
+            
+            const profile = await doctorRepository.getProfileByUserId(userId);
+            
+            if (!profile) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Doctor profile not found'
+                });
+            }
+            
+            // Get all appointments for this doctor
+            const appointments = await appointmentRepository.getDoctorAppointments(profile.id);
+            
+            // Extract unique patient IDs
+            const uniquePatientIds = [...new Set(appointments.map(app => app.patient_id))];
+            
+            // Get detailed patient information for each patient
+            const patientsPromises = uniquePatientIds.map(patientId => 
+                patientRepository.getProfileById(patientId)
+            );
+            
+            let patients = await Promise.all(patientsPromises);
+            
+            // Filter out any null results (in case a patient was deleted)
+            patients = patients.filter(patient => patient !== null);
+            
+            // Filter by search term if provided
+            if (search) {
+                const searchTerm = search.toLowerCase();
+                patients = patients.filter(patient => 
+                    (patient.user?.first_name && patient.user.first_name.toLowerCase().includes(searchTerm)) ||
+                    (patient.user?.last_name && patient.user.last_name.toLowerCase().includes(searchTerm)) ||
+                    (patient.user?.email && patient.user.email.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            // Add the count of appointments for each patient
+            patients = patients.map(patient => {
+                const patientAppointments = appointments.filter(app => app.patient_id === patient.id);
+                const completedCount = patientAppointments.filter(app => app.status === 'completed').length;
+                const cancelledCount = patientAppointments.filter(app => app.status === 'cancelled').length;
+                const upcomingCount = patientAppointments.filter(app => app.status === 'upcoming').length;
+                
+                return {
+                    ...patient,
+                    appointment_count: patientAppointments.length,
+                    completed_appointments: completedCount,
+                    cancelled_appointments: cancelledCount,
+                    upcoming_appointments: upcomingCount
+                };
+            });
+            
+            res.json({
+                success: true,
+                data: patients
+            });
+        } catch (error) {
+            console.error('Error fetching doctor patients:', error);
+            next(error);
+        }
     }
 }
 

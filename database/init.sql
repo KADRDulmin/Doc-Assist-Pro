@@ -101,21 +101,36 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
 -- Create appointments table
 CREATE TABLE IF NOT EXISTS appointments (
     id SERIAL PRIMARY KEY,
-    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id) ON DELETE CASCADE,
-    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id) ON DELETE CASCADE,
+    patient_id INTEGER REFERENCES patient_profiles(id) ON DELETE CASCADE,
+    doctor_id INTEGER REFERENCES doctor_profiles(id) ON DELETE CASCADE,
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'upcoming', -- upcoming, completed, cancelled
-    appointment_type VARCHAR(50) NOT NULL DEFAULT 'general', -- general, follow-up, check-up, consultation, emergency
+    status VARCHAR(20) DEFAULT 'upcoming',
+    appointment_type VARCHAR(50),
     notes TEXT,
     location VARCHAR(255),
+    symptoms TEXT,
+    possible_illness_1 VARCHAR(100),
+    possible_illness_2 VARCHAR(100),
+    recommended_doctor_speciality_1 VARCHAR(100),
+    recommended_doctor_speciality_2 VARCHAR(100),
+    criticality VARCHAR(20), -- Low, Medium, High, Emergency
+    parent_appointment_id INTEGER REFERENCES appointments(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add comments to explain the new columns
+COMMENT ON COLUMN appointments.symptoms IS 'Patient-reported symptoms';
+COMMENT ON COLUMN appointments.possible_illness_1 IS 'First possible illness suggested by the system';
+COMMENT ON COLUMN appointments.possible_illness_2 IS 'Second possible illness suggested by the system';
+COMMENT ON COLUMN appointments.recommended_doctor_speciality_1 IS 'First recommended doctor speciality';
+COMMENT ON COLUMN appointments.recommended_doctor_speciality_2 IS 'Second recommended doctor speciality';
+COMMENT ON COLUMN appointments.criticality IS 'Severity level of the condition: Low, Medium, High, or Emergency';
+
 -- Add indexes for appointments
-CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
-CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient_id ON appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor_id ON appointments(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 

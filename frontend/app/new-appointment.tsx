@@ -1,408 +1,450 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
+import { 
+  StyleSheet, 
+  SafeAreaView, 
+  TouchableOpacity, 
+  View, 
+  Text, 
   ScrollView,
-  TouchableOpacity,
   TextInput,
   Platform,
-  Alert,
   ActivityIndicator,
-  KeyboardAvoidingView
+  Alert
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Picker } from '@react-native-picker/picker';
 
+import { Colors } from '@/constants/Colors';
+import appointmentService, { NewAppointment } from '@/src/services/appointment.service';
+import doctorService, { DoctorData } from '@/src/services/doctor.service';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import appointmentService, { NewAppointment } from '@/src/services/appointment.service';
-import doctorService from '@/src/services/doctor.service';
-
-// Doctor data type definition
-interface Doctor {
-  id: number;
-  user: {
-    first_name: string;
-    last_name: string;
-  };
-  specialization: string;
-}
-
-// Appointment type options
-const appointmentTypes = [
-  { id: 'general', label: 'General Check-up' },
-  { id: 'follow_up', label: 'Follow-up' },
-  { id: 'consultation', label: 'Consultation' },
-  { id: 'emergency', label: 'Emergency' }
-];
-
-// Time slot options (9 AM - 5 PM)
-const timeSlots = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00'
-];
 
 export default function NewAppointmentScreen() {
   const colorScheme = useColorScheme();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isDarkMode = colorScheme === 'dark';
+  const router = useRouter();
+  const params = useLocalSearchParams();
   
-  // Form state
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [appointmentType, setAppointmentType] = useState('');
-  const [appointmentDate, setAppointmentDate] = useState(new Date());
-  const [appointmentTime, setAppointmentTime] = useState('');
-  const [location, setLocation] = useState('');
-  const [notes, setNotes] = useState('');
+  // Get pre-filled data from params if coming from symptom analysis
+  const doctorIdFromParams = params.doctorId ? String(params.doctorId) : undefined;
+  const symptomsFromParams = params.symptoms ? String(params.symptoms) : '';
+  const possibleIllness1FromParams = params.possibleIllness1 ? String(params.possibleIllness1) : '';
+  const possibleIllness2FromParams = params.possibleIllness2 ? String(params.possibleIllness2) : '';
+  const recommendedSpecialty1FromParams = params.recommendedSpecialty1 ? String(params.recommendedSpecialty1) : '';
+  const recommendedSpecialty2FromParams = params.recommendedSpecialty2 ? String(params.recommendedSpecialty2) : '';
+  const criticalityFromParams = params.criticality ? String(params.criticality) : '';
+  const explanationFromParams = params.explanation ? String(params.explanation) : '';
   
-  // UI state
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [doctors, setDoctors] = useState<DoctorData[]>([]);
+  const [selectedDoctor, setSelectedDoctor] = useState(doctorIdFromParams || '');
+  const [appointmentTypes, setAppointmentTypes] = useState<string[]>([
+    'General Consultation',
+    'Follow-up',
+    'Check-up',
+    'Emergency'
+  ]);
+  
+  const [appointmentType, setAppointmentType] = useState('General Consultation');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState('');
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [notes, setNotes] = useState(
+    explanationFromParams ? `Additional notes based on symptom analysis: ${explanationFromParams}` : ''
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDoctorSelector, setShowDoctorSelector] = useState(false);
+  
+  // State for symptom analysis fields
+  const [hasSymptomAnalysis, setHasSymptomAnalysis] = useState(!!symptomsFromParams);
+  const [symptoms, setSymptoms] = useState(symptomsFromParams);
+  const [possibleIllness1, setPossibleIllness1] = useState(possibleIllness1FromParams);
+  const [possibleIllness2, setPossibleIllness2] = useState(possibleIllness2FromParams);
+  const [recommendedSpecialty1, setRecommendedSpecialty1] = useState(recommendedSpecialty1FromParams);
+  const [recommendedSpecialty2, setRecommendedSpecialty2] = useState(recommendedSpecialty2FromParams);
+  const [criticality, setCriticality] = useState(criticalityFromParams);
 
-  // Fetch doctors when component mounts
+  // Define fixed gradient colors for LinearGradient
+  const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
+  const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
+
+  // Fetch doctors on mount
   useEffect(() => {
-    fetchDoctors();
+    loadDoctors();
   }, []);
 
-  // Function to fetch available doctors
-  const fetchDoctors = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Load available times when doctor or date changes
+  useEffect(() => {
+    if (selectedDoctor) {
+      loadAvailableTimes();
+    }
+  }, [selectedDoctor, selectedDate]);
 
+  const loadDoctors = async () => {
+    setLoading(true);
     try {
       const response = await doctorService.getAllDoctors();
-      
-      if (response.success && response.data) {
+      if (response.success) {
         setDoctors(response.data);
-      } else {
-        setError('Failed to load doctors');
+        
+        // If symptom analysis has recommended specialists, try to select a matching doctor
+        if (recommendedSpecialty1 && !selectedDoctor) {
+          const matchingDoctor = response.data.find(doctor => 
+            doctor.specialization?.toLowerCase().includes(recommendedSpecialty1.toLowerCase()) ||
+            doctor.specialization?.toLowerCase().includes(recommendedSpecialty2.toLowerCase())
+          );
+          
+          if (matchingDoctor) {
+            setSelectedDoctor(String(matchingDoctor.id));
+          }
+        }
       }
-    } catch (err: any) {
-      console.error('Error fetching doctors:', err);
-      setError(err?.message || 'An error occurred while fetching doctors');
+    } catch (error) {
+      console.error('Error loading doctors:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Handle date change
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const loadAvailableTimes = async () => {
+    if (!selectedDoctor) return;
+
+    try {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      const response = await appointmentService.getDoctorAvailability(Number(selectedDoctor), formattedDate);
+      
+      if (response.success) {
+        setAvailableTimes(response.data.available_slots);
+        // Reset selected time if it's not available
+        if (selectedTime && !response.data.available_slots.includes(selectedTime)) {
+          setSelectedTime('');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading available times:', error);
+    }
+  };
+
+  const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      setAppointmentDate(selectedDate);
+    if (date) {
+      setSelectedDate(date);
     }
   };
 
-  // Handle appointment scheduling
-  const handleScheduleAppointment = async () => {
+  const handleSubmit = async () => {
     // Validate form
     if (!selectedDoctor) {
       Alert.alert('Error', 'Please select a doctor');
       return;
     }
     
-    if (!appointmentType) {
-      Alert.alert('Error', 'Please select an appointment type');
+    if (!selectedDate) {
+      Alert.alert('Error', 'Please select a date');
       return;
     }
     
-    if (!appointmentTime) {
-      Alert.alert('Error', 'Please select an appointment time');
+    if (!selectedTime) {
+      Alert.alert('Error', 'Please select a time');
       return;
     }
 
-    setIsSubmitting(true);
+    setSubmitting(true);
     
     try {
-      // Prepare appointment data
+      // Format date and time for submission
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      
+      // Create appointment data
       const appointmentData: NewAppointment = {
-        doctor_id: selectedDoctor.id,
-        appointment_date: appointmentDate.toISOString().split('T')[0],
-        appointment_time: appointmentTime,
+        doctor_id: Number(selectedDoctor),
+        appointment_date: formattedDate,
+        appointment_time: selectedTime,
         appointment_type: appointmentType,
-        location: location || undefined,
-        notes: notes || undefined
+        notes,
+        location: 'Main Clinic', // Default location
       };
+      
+      // Add symptom analysis data if available
+      if (hasSymptomAnalysis) {
+        Object.assign(appointmentData, {
+          symptoms,
+          possible_illness_1: possibleIllness1,
+          possible_illness_2: possibleIllness2,
+          recommended_doctor_speciality_1: recommendedSpecialty1,
+          recommended_doctor_speciality_2: recommendedSpecialty2,
+          criticality
+        });
+      }
       
       // Submit the appointment
       const response = await appointmentService.createAppointment(appointmentData);
       
       if (response.success) {
         Alert.alert(
-          'Success',
-          'Appointment scheduled successfully!',
-          [{ text: 'OK', onPress: () => router.push('/appointments') }]
+          'Success', 
+          'Your appointment has been scheduled successfully',
+          [
+            { 
+              text: 'View Appointments', 
+              onPress: () => router.push('/(tabs)/appointments') 
+            }
+          ]
         );
       } else {
         Alert.alert('Error', response.message || 'Failed to schedule appointment');
       }
-    } catch (err: any) {
-      console.error('Error scheduling appointment:', err);
-      Alert.alert('Error', err?.message || 'An error occurred while scheduling your appointment');
+    } catch (error) {
+      console.error('Error submitting appointment:', error);
+      Alert.alert('Error', 'An unexpected error occurred while scheduling your appointment');
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  // Format date for display
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
   };
 
-  // Check if date is selectable (not in the past and not on weekends)
-  const isDateSelectable = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Don't allow dates in the past
-    if (date < today) {
-      return false;
+  // Get doctor name from ID
+  const getDoctorName = (doctorId: string | number) => {
+    const doctor = doctors.find(doc => doc.id === Number(doctorId));
+    if (!doctor) return '';
+    return `Dr. ${doctor.user?.first_name} ${doctor.user?.last_name}`;
+  };
+
+  // Get criticality color
+  const getCriticalityColor = (criticality: string) => {
+    switch (criticality) {
+      case 'Low': return '#4CAF50';
+      case 'Medium': return '#FF9800';
+      case 'High': return '#F44336';
+      case 'Emergency': return '#B71C1C';
+      default: return '#9E9E9E';
     }
-    
-    // Don't allow weekends (0 = Sunday, 6 = Saturday)
-    const day = date.getDay();
-    return day !== 0 && day !== 6;
   };
 
-  if (isLoading) {
+  // Determine if the appointment is emergent based on criticality
+  useEffect(() => {
+    if (criticality === 'High' || criticality === 'Emergency') {
+      setAppointmentType('Emergency');
+    }
+  }, [criticality]);
+
+  // Get safe color for activity indicator
+  const activityIndicatorColor = isDarkMode ? '#A1CEDC' : '#0a7ea4';
+
+  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-        <ThemedText style={styles.loadingText}>Loading doctors...</ThemedText>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={activityIndicatorColor} />
+        <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+      </SafeAreaView>
     );
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'Schedule Appointment',
-          headerStyle: {
-            backgroundColor: colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          headerShadowVisible: false,
-          headerBackTitleVisible: false,
-        }}
-      />
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={isDarkMode ? headerGradientDark : headerGradientLight}
+        style={styles.header}
       >
-        <ScrollView style={styles.container}>
-          <View style={styles.content}>
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={24} color="#e53935" />
-                <ThemedText style={styles.errorText}>{error}</ThemedText>
-                <TouchableOpacity style={styles.retryButton} onPress={fetchDoctors}>
-                  <ThemedText style={styles.retryButtonText}>Try Again</ThemedText>
-                </TouchableOpacity>
-              </View>
-            ) : null}
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <ThemedText style={styles.headerTitle}>Schedule Appointment</ThemedText>
+          <View style={{width: 24}} />
+        </View>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Symptom Analysis Summary (if available) */}
+        {hasSymptomAnalysis && (
+          <View style={styles.analysisSection}>
+            <View style={styles.analysisSectionHeader}>
+              <Ionicons name="analytics-outline" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+              <ThemedText style={styles.analysisSectionTitle}>Symptom Analysis</ThemedText>
+            </View>
             
-            {/* Doctor Selection */}
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Select Doctor</ThemedText>
-              
-              <TouchableOpacity 
-                style={styles.doctorSelector}
-                onPress={() => setShowDoctorSelector(!showDoctorSelector)}
-              >
-                {selectedDoctor ? (
-                  <View style={styles.selectedDoctor}>
-                    <ThemedText style={styles.doctorName}>
-                      Dr. {selectedDoctor.user.first_name} {selectedDoctor.user.last_name}
-                    </ThemedText>
-                    <ThemedText style={styles.doctorSpecialty}>
-                      {selectedDoctor.specialization}
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <ThemedText style={styles.placeholderText}>
-                    Select a doctor
-                  </ThemedText>
-                )}
-                <Ionicons 
-                  name={showDoctorSelector ? 'chevron-up' : 'chevron-down'} 
-                  size={20} 
-                  color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} 
-                />
-              </TouchableOpacity>
-              
-              {showDoctorSelector && (
-                <View style={styles.doctorsList}>
-                  {doctors.length === 0 ? (
-                    <ThemedText style={styles.noDataText}>No doctors available</ThemedText>
-                  ) : (
-                    doctors.map((doctor) => (
-                      <TouchableOpacity
-                        key={doctor.id}
-                        style={styles.doctorItem}
-                        onPress={() => {
-                          setSelectedDoctor(doctor);
-                          setShowDoctorSelector(false);
-                        }}
-                      >
-                        <ThemedText style={styles.doctorItemName}>
-                          Dr. {doctor.user.first_name} {doctor.user.last_name}
-                        </ThemedText>
-                        <ThemedText style={styles.doctorItemSpecialty}>
-                          {doctor.specialization}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))
-                  )}
+            <View style={styles.analysisSummary}>
+              {criticality && (
+                <View style={[
+                  styles.criticalityBadge, 
+                  {backgroundColor: getCriticalityColor(criticality)}
+                ]}>
+                  <Text style={styles.criticalityBadgeText}>{criticality} Priority</Text>
                 </View>
               )}
-            </ThemedView>
-            
-            {/* Appointment Type */}
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Appointment Type</ThemedText>
               
-              <View style={styles.appointmentTypeContainer}>
-                {appointmentTypes.map((type) => (
-                  <TouchableOpacity
-                    key={type.id}
-                    style={[
-                      styles.appointmentTypeButton,
-                      appointmentType === type.id && styles.selectedAppointmentType
-                    ]}
-                    onPress={() => setAppointmentType(type.id)}
-                  >
-                    <ThemedText style={[
-                      styles.appointmentTypeText,
-                      appointmentType === type.id && styles.selectedAppointmentTypeText
-                    ]}>
-                      {type.label}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ThemedView>
-            
-            {/* Date Selection */}
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Appointment Date</ThemedText>
-              
-              <TouchableOpacity 
-                style={styles.dateSelector}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <ThemedText>{formatDate(appointmentDate)}</ThemedText>
-                <Ionicons name="calendar" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-              </TouchableOpacity>
-              
-              {showDatePicker && (
-                <DateTimePicker
-                  value={appointmentDate}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
-                />
-              )}
-
-              <ThemedText style={styles.helpText}>
-                Note: Appointments are not available on weekends
-              </ThemedText>
-            </ThemedView>
-            
-            {/* Time Selection */}
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Appointment Time</ThemedText>
-              
-              <ScrollView 
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.timeSlotContainer}
-              >
-                {timeSlots.map((time) => (
-                  <TouchableOpacity
-                    key={time}
-                    style={[
-                      styles.timeSlotButton,
-                      appointmentTime === time && styles.selectedTimeSlot
-                    ]}
-                    onPress={() => setAppointmentTime(time)}
-                  >
-                    <ThemedText style={[
-                      styles.timeSlotText,
-                      appointmentTime === time && styles.selectedTimeSlotText
-                    ]}>
-                      {time}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </ThemedView>
-            
-            {/* Location and Notes */}
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Additional Information</ThemedText>
-              
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.inputLabel}>Location (Optional)</ThemedText>
-                <TextInput
-                  style={styles.textInput}
-                  value={location}
-                  onChangeText={setLocation}
-                  placeholder="Enter location"
-                  placeholderTextColor="#888"
-                />
+              <View style={styles.analysisRow}>
+                <ThemedText style={styles.analysisLabel}>Possible Conditions:</ThemedText>
+                <ThemedText style={styles.analysisValue}>
+                  {possibleIllness1}{possibleIllness2 ? `, ${possibleIllness2}` : ''}
+                </ThemedText>
               </View>
               
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.inputLabel}>Notes (Optional)</ThemedText>
-                <TextInput
-                  style={[styles.textInput, styles.textAreaInput]}
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="Any additional information for the doctor"
-                  placeholderTextColor="#888"
-                  multiline
-                  numberOfLines={4}
-                />
+              <View style={styles.analysisRow}>
+                <ThemedText style={styles.analysisLabel}>Recommended Specialists:</ThemedText>
+                <ThemedText style={styles.analysisValue}>
+                  {recommendedSpecialty1}{recommendedSpecialty2 ? `, ${recommendedSpecialty2}` : ''}
+                </ThemedText>
               </View>
-            </ThemedView>
-            
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={styles.scheduleButton}
-              onPress={handleScheduleAppointment}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="calendar-check" size={20} color="#fff" />
-                  <ThemedText style={styles.scheduleButtonText}>
-                    Schedule Appointment
-                  </ThemedText>
-                </>
-              )}
-            </TouchableOpacity>
+            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+        )}
+
+        {/* Doctor Selection */}
+        <View style={styles.formSection}>
+          <ThemedText style={styles.sectionTitle}>Select Doctor</ThemedText>
+          <View style={[
+            styles.pickerContainer,
+            isDarkMode && styles.pickerContainerDark
+          ]}>
+            <Picker
+              selectedValue={selectedDoctor}
+              onValueChange={(itemValue) => setSelectedDoctor(itemValue)}
+              style={styles.picker}
+              itemStyle={isDarkMode ? styles.pickerItemDark : styles.pickerItem}
+              dropdownIconColor={isDarkMode ? '#A1CEDC' : '#0a7ea4'}
+            >
+              <Picker.Item label="Select a doctor..." value="" color={isDarkMode ? '#A1CEDC' : '#000'} />
+              {doctors.map(doctor => (
+                <Picker.Item
+                  key={doctor.id}
+                  label={`Dr. ${doctor.user?.first_name} ${doctor.user?.last_name} (${doctor.specialization})`}
+                  value={doctor.id.toString()}
+                  color={isDarkMode ? '#A1CEDC' : '#000'}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Appointment Type */}
+        <View style={styles.formSection}>
+          <ThemedText style={styles.sectionTitle}>Appointment Type</ThemedText>
+          <View style={[
+            styles.pickerContainer,
+            isDarkMode && styles.pickerContainerDark
+          ]}>
+            <Picker
+              selectedValue={appointmentType}
+              onValueChange={(itemValue) => setAppointmentType(itemValue)}
+              style={styles.picker}
+              itemStyle={isDarkMode ? styles.pickerItemDark : styles.pickerItem}
+              dropdownIconColor={isDarkMode ? '#A1CEDC' : '#0a7ea4'}
+            >
+              {appointmentTypes.map((type, index) => (
+                <Picker.Item key={index} label={type} value={type} color={isDarkMode ? '#A1CEDC' : '#000'} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Date Selection */}
+        <View style={styles.formSection}>
+          <ThemedText style={styles.sectionTitle}>Date</ThemedText>
+          <TouchableOpacity 
+            style={[
+              styles.datePickerButton,
+              isDarkMode && styles.datePickerButtonDark
+            ]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Ionicons name="calendar" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+            <ThemedText style={styles.dateText}>{formatDate(selectedDate)}</ThemedText>
+          </TouchableOpacity>
+          
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+              minimumDate={new Date()}
+            />
+          )}
+        </View>
+
+        {/* Time Selection */}
+        <View style={styles.formSection}>
+          <ThemedText style={styles.sectionTitle}>Available Time Slots</ThemedText>
+          
+          {availableTimes.length === 0 ? (
+            <ThemedText style={styles.noSlotsText}>
+              No available slots for this date. Please select another date.
+            </ThemedText>
+          ) : (
+            <View style={styles.timeSlotContainer}>
+              {availableTimes.map((time, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.timeSlot,
+                    selectedTime === time && styles.selectedTimeSlot,
+                    isDarkMode && selectedTime === time && styles.selectedTimeSlotDark
+                  ]}
+                  onPress={() => setSelectedTime(time)}
+                >
+                  <Text 
+                    style={[
+                      styles.timeSlotText,
+                      selectedTime === time && styles.selectedTimeSlotText
+                    ]}
+                  >
+                    {time}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Notes */}
+        <View style={styles.formSection}>
+          <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
+          <TextInput
+            style={[
+              styles.notesInput,
+              isDarkMode && styles.notesInputDark
+            ]}
+            multiline
+            numberOfLines={4}
+            placeholder="Additional notes for the doctor..."
+            placeholderTextColor={isDarkMode ? '#78909c' : '#90a4ae'}
+            value={notes}
+            onChangeText={setNotes}
+          />
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[
+            styles.submitButton,
+            (!selectedDoctor || !selectedTime) && styles.disabledButton
+          ]}
+          onPress={handleSubmit}
+          disabled={!selectedDoctor || !selectedTime || submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.submitButtonText}>Schedule Appointment</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -410,158 +452,103 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 15,
+    marginTop: 10,
     fontSize: 16,
   },
-  errorContainer: {
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 0 : 40,
+    paddingBottom: 15,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(229, 57, 53, 0.1)',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
   },
-  errorText: {
-    flex: 1,
-    marginHorizontal: 10,
-    color: '#e53935',
+  backButton: {
+    padding: 8,
   },
-  retryButton: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-  },
-  retryButtonText: {
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
   },
-  section: {
-    borderRadius: 12,
+  scrollContent: {
     padding: 16,
+    paddingBottom: 40,
+  },
+  formSection: {
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontWeight: '600',
+    marginBottom: 10,
   },
-  doctorSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  pickerContainer: {
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    overflow: 'hidden',
   },
-  selectedDoctor: {
-    flex: 1,
+  pickerContainerDark: {
+    borderColor: '#34495e',
+    backgroundColor: '#2c3e50',
   },
-  doctorName: {
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  pickerItem: {
     fontSize: 16,
-    fontWeight: '500',
   },
-  doctorSpecialty: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-  placeholderText: {
-    opacity: 0.5,
-  },
-  doctorsList: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 8,
-    maxHeight: 200,
-  },
-  doctorItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  doctorItemName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  doctorItemSpecialty: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  noDataText: {
-    padding: 12,
-    textAlign: 'center',
-    opacity: 0.7,
-  },
-  appointmentTypeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
-  appointmentTypeButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    margin: 5,
-  },
-  selectedAppointmentType: {
-    backgroundColor: '#0a7ea4',
-    borderColor: '#0a7ea4',
-  },
-  appointmentTypeText: {
-    fontSize: 14,
-  },
-  selectedAppointmentTypeText: {
+  pickerItemDark: {
+    fontSize: 16,
     color: '#fff',
-    fontWeight: '500',
   },
-  dateSelector: {
+  datePickerButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 15,
   },
-  helpText: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginTop: 8,
-    fontStyle: 'italic',
+  datePickerButtonDark: {
+    borderColor: '#34495e',
+    backgroundColor: '#2c3e50',
+  },
+  dateText: {
+    marginLeft: 10,
+    fontSize: 16,
   },
   timeSlotContainer: {
     flexDirection: 'row',
-    marginBottom: 10,
+    flexWrap: 'wrap',
   },
-  timeSlotButton: {
+  timeSlot: {
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 8,
-    paddingVertical: 10,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    padding: 10,
     paddingHorizontal: 15,
-    marginRight: 10,
+    margin: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
   },
   selectedTimeSlot: {
     backgroundColor: '#0a7ea4',
     borderColor: '#0a7ea4',
+  },
+  selectedTimeSlotDark: {
+    backgroundColor: '#A1CEDC',
+    borderColor: '#A1CEDC',
   },
   timeSlotText: {
     fontSize: 14,
@@ -570,38 +557,85 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    marginBottom: 8,
+  noSlotsText: {
+    textAlign: 'center',
     opacity: 0.7,
+    marginVertical: 10,
   },
-  textInput: {
+  notesInput: {
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 15,
     fontSize: 16,
-  },
-  textAreaInput: {
-    minHeight: 100,
     textAlignVertical: 'top',
+    minHeight: 120,
   },
-  scheduleButton: {
-    flexDirection: 'row',
+  notesInputDark: {
+    borderColor: '#34495e',
+    backgroundColor: '#2c3e50',
+    color: '#fff',
+  },
+  submitButton: {
     backgroundColor: '#0a7ea4',
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 8,
+    paddingVertical: 15,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
-  scheduleButtonText: {
+  submitButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  // Symptom Analysis styles
+  analysisSection: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+    backgroundColor: 'rgba(10, 126, 164, 0.05)',
+  },
+  analysisSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  analysisSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     marginLeft: 8,
+  },
+  analysisSummary: {
+    marginBottom: 10,
+  },
+  criticalityBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  criticalityBadgeText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  analysisRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
+  analysisLabel: {
+    fontWeight: '600',
+    marginRight: 5,
+    fontSize: 14,
+  },
+  analysisValue: {
+    flex: 1,
+    fontSize: 14,
   },
 });

@@ -78,6 +78,29 @@ class DoctorService {
     const response = await api.get('/api/doctors/specializations/list');
     return response as ApiResponse<string[]>;
   }
+
+  /**
+   * Find doctors based on symptom analysis specialties
+   * @param specialty The medical specialty to search for
+   */
+  async findDoctorsBySpecialty(specialty: string): Promise<ApiResponse<DoctorData[]>> {
+    try {
+      if (!specialty) {
+        throw new Error('Specialty is required');
+      }
+      
+      // Call the new endpoint that finds doctors by specialty from symptom analysis
+      const response = await api.get(`/api/appointments/find-doctors/${encodeURIComponent(specialty)}`);
+      return response as ApiResponse<DoctorData[]>;
+    } catch (error) {
+      console.error('Error finding doctors by specialty:', error);
+      return {
+        success: false,
+        data: [],
+        message: error instanceof Error ? error.message : 'Failed to find doctors by specialty'
+      };
+    }
+  }
 }
 
 export default new DoctorService();

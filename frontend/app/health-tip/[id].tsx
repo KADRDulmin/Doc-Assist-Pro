@@ -65,7 +65,7 @@ export default function HealthTipDetailScreen() {
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
   // Markdown styling based on theme
-  const markdownStyles = {
+  const markdownStyles = StyleSheet.create({
     // Base styles
     body: {
       fontSize: 16,
@@ -112,7 +112,7 @@ export default function HealthTipDetailScreen() {
     },
     list_item: {
       marginBottom: 8,
-      flexDirection: 'row',
+      flexDirection: 'row' as const,
     },
     // Emphasis
     strong: {
@@ -180,7 +180,7 @@ export default function HealthTipDetailScreen() {
     td: {
       padding: 10,
     },
-  };
+  });
 
   // Loading state
   if (loading) {

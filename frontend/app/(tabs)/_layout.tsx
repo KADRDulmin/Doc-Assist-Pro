@@ -57,7 +57,7 @@ export default function TabLayout() {
 
   const handleNewConsultation = () => {
     toggleFabMenu();
-    router.push('/consultations/new');
+    router.push('/symptom-analysis');
   };
   
   const handleFollowUpAppointment = () => {

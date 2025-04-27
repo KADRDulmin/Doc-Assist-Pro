@@ -80,6 +80,207 @@ class AppointmentRepository {
     }
 
     /**
+     * Create appointment with symptom analysis
+     * @param {Object} appointmentData - Basic appointment data
+     * @param {Object} symptomData - Symptom analysis data
+     * @returns {Promise<Appointment>} Created appointment
+     */
+    async createAppointmentWithSymptoms(appointmentData, symptomData) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                console.log(`Creating appointment with symptoms analysis`);
+                
+                // Verify patient exists
+                const patientResult = await client.query(
+                    "SELECT 1 FROM patient_profiles WHERE id = $1",
+                    [appointmentData.patient_id]
+                );
+                
+                if (patientResult.rows.length === 0) {
+                    throw new Error(`Patient with ID ${appointmentData.patient_id} not found`);
+                }
+                
+                // If doctor_id is provided, verify doctor exists
+                if (appointmentData.doctor_id) {
+                    const doctorResult = await client.query(
+                        "SELECT 1 FROM doctor_profiles WHERE id = $1",
+                        [appointmentData.doctor_id]
+                    );
+                    
+                    if (doctorResult.rows.length === 0) {
+                        throw new Error(`Doctor with ID ${appointmentData.doctor_id} not found`);
+                    }
+                }
+                
+                const { 
+                    patient_id, 
+                    doctor_id, 
+                    appointment_date, 
+                    appointment_time, 
+                    status = 'upcoming',
+                    appointment_type,
+                    notes = '',
+                    location = ''
+                } = appointmentData;
+                
+                const {
+                    symptoms,
+                    possible_illness_1,
+                    possible_illness_2,
+                    recommended_doctor_speciality_1,
+                    recommended_doctor_speciality_2,
+                    criticality,
+                    symptom_analysis_json
+                } = symptomData;
+                
+                const result = await client.query(
+                    `INSERT INTO appointments (
+                        patient_id, doctor_id, appointment_date, appointment_time, 
+                        status, appointment_type, notes, location,
+                        symptoms, possible_illness_1, possible_illness_2,
+                        recommended_doctor_speciality_1, recommended_doctor_speciality_2,
+                        criticality
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+                    RETURNING *`,
+                    [
+                        patient_id, 
+                        doctor_id, 
+                        appointment_date, 
+                        appointment_time,
+                        status,
+                        appointment_type,
+                        notes,
+                        location,
+                        symptoms,
+                        possible_illness_1,
+                        possible_illness_2,
+                        recommended_doctor_speciality_1,
+                        recommended_doctor_speciality_2,
+                        criticality
+                    ]
+                );
+                
+                return new Appointment(result.rows[0]);
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._createAppointmentWithSymptomsInMemory(appointmentData, symptomData);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Update appointment with symptom analysis results
+     */
+    async updateAppointmentWithSymptomAnalysis(id, symptomData) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                // Check if appointment exists
+                const checkResult = await client.query(
+                    'SELECT 1 FROM appointments WHERE id = $1',
+                    [id]
+                );
+                
+                if (checkResult.rows.length === 0) {
+                    throw new Error(`Appointment with ID ${id} not found`);
+                }
+                
+                const {
+                    symptoms,
+                    possible_illness_1,
+                    possible_illness_2,
+                    recommended_doctor_speciality_1,
+                    recommended_doctor_speciality_2,
+                    criticality
+                } = symptomData;
+                
+                const result = await client.query(
+                    `UPDATE appointments SET
+                        symptoms = COALESCE($1, symptoms),
+                        possible_illness_1 = COALESCE($2, possible_illness_1),
+                        possible_illness_2 = COALESCE($3, possible_illness_2),
+                        recommended_doctor_speciality_1 = COALESCE($4, recommended_doctor_speciality_1),
+                        recommended_doctor_speciality_2 = COALESCE($5, recommended_doctor_speciality_2),
+                        criticality = COALESCE($6, criticality),
+                        updated_at = CURRENT_TIMESTAMP
+                     WHERE id = $7
+                     RETURNING *`,
+                    [
+                        symptoms,
+                        possible_illness_1,
+                        possible_illness_2,
+                        recommended_doctor_speciality_1,
+                        recommended_doctor_speciality_2,
+                        criticality,
+                        id
+                    ]
+                );
+                
+                return new Appointment(result.rows[0]);
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._updateAppointmentWithSymptomAnalysisInMemory(id, symptomData);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Get doctors by speciality - useful for recommending doctors based on symptom analysis
+     */
+    async getDoctorsBySpeciality(speciality, limit = 5) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                const result = await client.query(
+                    `SELECT dp.*, 
+                        u.id as user_id, u.email, u.first_name, u.last_name, 
+                        u.role, u.phone
+                     FROM doctor_profiles dp
+                     JOIN users u ON dp.user_id = u.id
+                     WHERE LOWER(dp.specialization) LIKE LOWER($1)
+                     LIMIT $2`,
+                    [`%${speciality}%`, limit]
+                );
+                
+                return result.rows.map(row => {
+                    const doctor = new DoctorProfile(row);
+                    doctor.user = new User({
+                        id: row.user_id,
+                        email: row.email,
+                        first_name: row.first_name,
+                        last_name: row.last_name,
+                        role: row.role,
+                        phone: row.phone
+                    });
+                    return doctor;
+                });
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, unable to get doctors by speciality');
+                return [];
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Get appointment by ID
      */
     async getAppointmentById(id) {
@@ -228,7 +429,7 @@ class AppointmentRepository {
      */
     async getDoctorAppointments(doctorId, options = {}) {
         try {
-            const { status = null, limit = 100, offset = 0 } = options;
+            const { status = null, date = null, limit = 100, offset = 0 } = options;
             const client = await pool.connect();
             
             try {
@@ -240,12 +441,26 @@ class AppointmentRepository {
                 
                 const params = [doctorId];
                 
+                // Add status filter if provided
                 if (status) {
                     params.push(status);
                     query += ` AND a.status = $${params.length}`;
                 }
                 
-                query += ` ORDER BY a.appointment_date DESC, a.appointment_time DESC
+                // Add date filter if provided
+                if (date) {
+                    params.push(date);
+                    query += ` AND a.appointment_date = $${params.length}`;
+                }
+                
+                // Special case for "today" status
+                if (status === 'today') {
+                    const today = new Date().toISOString().split('T')[0];
+                    params.push(today);
+                    query = query.replace('a.status = $2', `a.appointment_date = $${params.length}`);
+                }
+                
+                query += ` ORDER BY a.appointment_date ASC, a.appointment_time ASC
                            LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
                 
                 params.push(limit, offset);
@@ -636,6 +851,62 @@ class AppointmentRepository {
     }
     
     /**
+     * Create appointment with symptoms in memory
+     */
+    _createAppointmentWithSymptomsInMemory(appointmentData, symptomData) {
+        console.log(`Using in-memory storage for appointment creation with symptoms`);
+        
+        const { 
+            patient_id, 
+            doctor_id, 
+            appointment_date, 
+            appointment_time, 
+            status = 'upcoming',
+            appointment_type,
+            notes = '',
+            location = ''
+        } = appointmentData;
+        
+        // Check if patient exists in memory store
+        const patientExists = memoryStore.patientProfiles.some(p => p.id === parseInt(patient_id));
+        if (!patientExists) {
+            throw new Error(`Patient with ID ${patient_id} not found`);
+        }
+        
+        // Check if doctor exists in memory store if doctor_id is provided
+        if (doctor_id) {
+            const doctorExists = memoryStore.doctorProfiles.some(d => d.id === parseInt(doctor_id));
+            if (!doctorExists) {
+                throw new Error(`Doctor with ID ${doctor_id} not found`);
+            }
+        }
+        
+        // Initialize appointments array if it doesn't exist
+        if (!memoryStore.appointments) {
+            memoryStore.appointments = [];
+        }
+        
+        const newAppointment = {
+            id: memoryStore.appointments.length + 1,
+            patient_id: parseInt(patient_id),
+            doctor_id: doctor_id ? parseInt(doctor_id) : null,
+            appointment_date,
+            appointment_time,
+            status,
+            appointment_type,
+            notes,
+            location,
+            ...symptomData,
+            created_at: new Date(),
+            updated_at: new Date()
+        };
+        
+        memoryStore.appointments.push(newAppointment);
+        
+        return new Appointment(newAppointment);
+    }
+    
+    /**
      * Get appointment by ID from memory
      */
     _getAppointmentByIdInMemory(id) {
@@ -784,6 +1055,28 @@ class AppointmentRepository {
         const updatedAppointment = {
             ...oldAppointment,
             ...appointmentData,
+            id: oldAppointment.id,  // Ensure ID doesn't change
+            updated_at: new Date()
+        };
+        
+        memoryStore.appointments[index] = updatedAppointment;
+        
+        return this._getAppointmentByIdInMemory(id);
+    }
+    
+    /**
+     * Update appointment with symptom analysis in memory
+     */
+    _updateAppointmentWithSymptomAnalysisInMemory(id, symptomData) {
+        if (!memoryStore.appointments) throw new Error(`Appointment with ID ${id} not found`);
+        
+        const index = memoryStore.appointments.findIndex(a => a.id === parseInt(id));
+        if (index === -1) throw new Error(`Appointment with ID ${id} not found`);
+        
+        const oldAppointment = memoryStore.appointments[index];
+        const updatedAppointment = {
+            ...oldAppointment,
+            ...symptomData,
             id: oldAppointment.id,  // Ensure ID doesn't change
             updated_at: new Date()
         };

@@ -16,6 +16,15 @@ router.get('/types', (req, res) => {
 // Create new appointment (requires authentication)
 router.post('/', authenticate, appointmentController.createAppointment);
 
+// Create new appointment with symptom analysis
+router.post('/with-analysis', authenticate, appointmentController.createWithSymptomAnalysis);
+
+// Analyze symptoms without creating an appointment
+router.post('/analyze-symptoms', appointmentController.analyzeSymptoms);
+
+// Find recommended doctors based on symptom analysis
+router.get('/find-doctors/:speciality', appointmentController.findRecommendedDoctors);
+
 // Get appointments for authenticated user (patient or doctor)
 router.get('/my-appointments', authenticate, appointmentController.getMyAppointments);
 

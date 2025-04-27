@@ -1,6 +1,8 @@
 const appointmentRepository = require('../repositories/appointmentRepository');
 const doctorRepository = require('../repositories/doctorRepository');
 const patientRepository = require('../repositories/patientRepository');
+const symptomAnalysisService = require('../services/symptomAnalysisService');
+const { ValidationError } = require('../utils/errors');
 
 /**
  * Appointment controller - Handles appointment-related requests
@@ -79,6 +81,235 @@ class AppointmentController {
         }
     }
     
+    /**
+     * Create appointment with symptom analysis
+     * @param {Object} req - HTTP request object
+     * @param {Object} res - HTTP response object
+     * @param {Function} next - Express next function
+     */
+    async createWithSymptomAnalysis(req, res, next) {
+        try {
+            const { 
+                appointment_date, 
+                appointment_time, 
+                patient_id, 
+                doctor_id,
+                appointment_type,
+                location,
+                notes,
+                symptoms,
+                patientInfo
+            } = req.body;
+
+            if (!symptoms) {
+                throw new ValidationError('Symptoms are required for analysis');
+            }
+
+            if (!patient_id) {
+                throw new ValidationError('Patient ID is required');
+            }
+
+            // Validate appointment data
+            if (!appointment_date || !appointment_time) {
+                throw new ValidationError('Appointment date and time are required');
+            }
+
+            const appointmentData = {
+                patient_id,
+                doctor_id, // Doctor may be automatically assigned based on symptom analysis
+                appointment_date,
+                appointment_time,
+                appointment_type: appointment_type || 'in-person',
+                location: location || '',
+                notes: notes || '',
+                status: 'pending'
+            };
+
+            const result = await symptomAnalysisService.createAppointmentWithSymptomAnalysis(
+                appointmentData,
+                symptoms,
+                patientInfo || {}
+            );
+
+            res.status(201).json({
+                success: true,
+                message: 'Appointment created with symptom analysis',
+                data: {
+                    appointment: result.appointment,
+                    analysis: {
+                        possibleIllnesses: [
+                            result.analysis.possible_illness_1,
+                            result.analysis.possible_illness_2
+                        ].filter(Boolean),
+                        recommendedSpecialties: [
+                            result.analysis.recommended_doctor_speciality_1,
+                            result.analysis.recommended_doctor_speciality_2
+                        ].filter(Boolean),
+                        criticality: result.analysis.criticality,
+                        assessment: result.analysis.assessment,
+                        followUpQuestions: result.analysis.follow_up_questions
+                    }
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Update appointment with symptom analysis
+     * @param {Object} req - HTTP request object
+     * @param {Object} res - HTTP response object
+     * @param {Function} next - Express next function
+     */
+    async updateWithSymptomAnalysis(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { symptoms, patientInfo } = req.body;
+
+            if (!symptoms) {
+                throw new ValidationError('Symptoms are required for analysis');
+            }
+
+            const result = await symptomAnalysisService.updateAppointmentWithSymptomAnalysis(
+                id,
+                symptoms,
+                patientInfo || {}
+            );
+
+            res.status(200).json({
+                success: true,
+                message: 'Appointment updated with symptom analysis',
+                data: {
+                    appointment: result.appointment,
+                    analysis: {
+                        possibleIllnesses: [
+                            result.analysis.possible_illness_1,
+                            result.analysis.possible_illness_2
+                        ].filter(Boolean),
+                        recommendedSpecialties: [
+                            result.analysis.recommended_doctor_speciality_1,
+                            result.analysis.recommended_doctor_speciality_2
+                        ].filter(Boolean),
+                        criticality: result.analysis.criticality,
+                        assessment: result.analysis.assessment,
+                        followUpQuestions: result.analysis.follow_up_questions
+                    }
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    /**
+     * Get symptom analysis for an existing appointment
+     */
+    async getSymptomAnalysis(req, res, next) {
+        try {
+            const { id } = req.params;
+            
+            const appointment = await appointmentRepository.getAppointmentById(id);
+            
+            if (!appointment) {
+                throw new ValidationError('Appointment not found');
+            }
+            
+            if (!appointment.symptoms) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No symptom analysis found for this appointment',
+                    data: null
+                });
+            }
+            
+            res.status(200).json({
+                success: true,
+                message: 'Symptom analysis retrieved',
+                data: {
+                    symptoms: appointment.symptoms,
+                    analysis: {
+                        possibleIllnesses: [
+                            appointment.possible_illness_1,
+                            appointment.possible_illness_2
+                        ].filter(Boolean),
+                        recommendedSpecialties: [
+                            appointment.recommended_doctor_speciality_1,
+                            appointment.recommended_doctor_speciality_2
+                        ].filter(Boolean),
+                        criticality: appointment.criticality,
+                        symptomAnalysisJson: appointment.symptom_analysis_json ? 
+                            JSON.parse(appointment.symptom_analysis_json) : 
+                            {}
+                    }
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    /**
+     * Analyze symptoms without creating an appointment
+     */
+    async analyzeSymptoms(req, res, next) {
+        try {
+            const { symptoms, patientInfo } = req.body;
+            
+            if (!symptoms) {
+                throw new ValidationError('Symptoms are required for analysis');
+            }
+            
+            const analysisResult = await symptomAnalysisService.analyzeSymptoms(
+                symptoms,
+                patientInfo || {}
+            );
+            
+            res.status(200).json({
+                success: true,
+                message: 'Symptoms analyzed successfully',
+                data: {
+                    possibleIllnesses: [
+                        analysisResult.possible_illness_1,
+                        analysisResult.possible_illness_2
+                    ].filter(Boolean),
+                    recommendedSpecialties: [
+                        analysisResult.recommended_doctor_speciality_1,
+                        analysisResult.recommended_doctor_speciality_2
+                    ].filter(Boolean),
+                    criticality: analysisResult.criticality,
+                    assessment: analysisResult.assessment,
+                    followUpQuestions: analysisResult.follow_up_questions
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    /**
+     * Find recommended doctors based on speciality from symptom analysis
+     */
+    async findRecommendedDoctors(req, res, next) {
+        try {
+            const { speciality } = req.params;
+            
+            if (!speciality) {
+                throw new ValidationError('Medical speciality is required');
+            }
+            
+            const doctors = await symptomAnalysisService.findRecommendedDoctors(speciality);
+            
+            res.status(200).json({
+                success: true,
+                message: 'Recommended doctors retrieved',
+                data: doctors
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /**
      * Get an appointment by ID
      */
