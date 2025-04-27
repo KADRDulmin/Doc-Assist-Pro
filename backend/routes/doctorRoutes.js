@@ -9,25 +9,19 @@ router.get('/', doctorController.getAllDoctors);
 router.get('/nearby', doctorController.getNearbyDoctors);
 router.get('/:doctorId', doctorController.getDoctorById);
 
+// Doctor registration endpoint
+router.post('/register', doctorController.registerDoctor);
+
+// Add debugging endpoints
+router.get('/debug/current-user', authenticate, doctorController.getCurrentUser);
+
+// User-specific endpoints to bypass middleware issues
+router.get('/dashboard/user/:userId', authenticate, doctorController.getUserDashboard);
+router.get('/appointments/user/:userId', authenticate, doctorController.getUserAppointments);
+router.get('/patients/user/:userId', authenticate, doctorController.getUserPatients);
+
 // Add a specializations endpoint to help with doctor registration
-router.get('/specializations/list', (req, res) => {
-    try {
-        const DoctorProfile = require('../models/doctor-profile');
-        const specializations = DoctorProfile.getSpecializations();
-        
-        res.json({
-            success: true,
-            data: specializations
-        });
-    } catch (error) {
-        console.error('Error fetching specializations:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch specializations',
-            message: error.message
-        });
-    }
-});
+router.get('/specializations/list', doctorController.getSpecializations);
 
 // Doctor-only routes
 router.get('/profile/me', authenticate, requireDoctor, doctorController.getMyProfile);

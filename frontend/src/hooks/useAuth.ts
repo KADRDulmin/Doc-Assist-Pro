@@ -6,18 +6,34 @@ import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { authController } from '../controllers/auth.controller';
 import { LoginCredentials, RegisterCredentials, PatientRegisterData } from '../models/auth.model';
+import { User } from '../models/user.model'; // Fix: Import User directly from user.model
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  // Check authentication status
+  // Check authentication status and fetch user if authenticated
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const authenticated = await authController.isAuthenticated();
         setIsAuthenticated(authenticated);
+        
+        // If authenticated, try to fetch user data
+        if (authenticated) {
+          try {
+            const userResponse = await authController.getCurrentUser();
+            // Handle the response format correctly
+            if (userResponse && userResponse.success) {
+              setUser(userResponse.data?.user || null);
+            }
+          } catch (userErr) {
+            console.error('Error fetching user data:', userErr);
+            // Don't reset authentication on user fetch error
+          }
+        }
       } catch (err) {
         console.error('Error checking auth status:', err);
         setIsAuthenticated(false);
@@ -33,7 +49,10 @@ export const useAuth = () => {
     setError(null);
     
     try {
-      await authController.login(credentials);
+      const response = await authController.login(credentials);
+      if (response.success && response.data) {
+        setUser(response.data.user || null);
+      }
       setIsAuthenticated(true);
       return true;
     } catch (err) {
@@ -87,6 +106,7 @@ export const useAuth = () => {
     try {
       await authController.logout();
       setIsAuthenticated(false);
+      setUser(null);
       
       // Handle platform-specific navigation after logout
       if (Platform.OS === 'web') {
@@ -111,6 +131,7 @@ export const useAuth = () => {
     isLoading,
     isAuthenticated,
     error,
+    user,
     login,
     register,
     registerPatient,

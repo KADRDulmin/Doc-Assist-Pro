@@ -8,6 +8,20 @@ const appointmentScheduler = require('./services/appointmentScheduler');
 
 // Load environment variables
 dotenv.config();
+
+// Check for critical environment variables and set defaults if needed
+if (!process.env.JWT_SECRET) {
+    console.warn('⚠️ WARNING: JWT_SECRET environment variable not set!');
+    console.warn('⚠️ Using a default secret for development. DO NOT USE IN PRODUCTION!');
+    process.env.JWT_SECRET = 'dev-secret-key-change-me-in-production';
+}
+
+// Set JWT expiry if not defined
+if (!process.env.JWT_EXPIRY) {
+    console.log('Setting default JWT expiry to 24h');
+    process.env.JWT_EXPIRY = '24h';
+}
+
 const app = express();
 
 // Configure CORS

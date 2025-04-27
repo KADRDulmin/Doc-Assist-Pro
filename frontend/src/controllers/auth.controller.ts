@@ -6,20 +6,21 @@ import { Platform } from 'react-native';
 // Fix the import path
 import { authApiService } from '../services/api/auth-api.service';
 import { tokenService } from '../services/token.service';
-import { LoginCredentials, RegisterCredentials, PatientRegisterData } from '../models/auth.model';
+import { LoginCredentials, RegisterCredentials, PatientRegisterData, AuthResponse } from '../models/auth.model';
+import { ApiResponse } from '../services/api/base-api.service';
 
 class AuthController {
   /**
    * Handle user login
    * @param credentials - User login credentials
    */
-  async login(credentials: LoginCredentials) {
+  async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
     try {
       const response = await authApiService.login(credentials);
       
       // Store the authentication token
-      if (response.token) {
-        await tokenService.storeToken(response.token);
+      if (response.data && response.data.token) {
+        await tokenService.storeToken(response.data.token);
         console.log('Token stored successfully');
       }
       
@@ -96,7 +97,7 @@ class AuthController {
   /**
    * Get current user profile
    */
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<ApiResponse<AuthResponse>> {
     try {
       return await authApiService.getCurrentUser();
     } catch (error) {

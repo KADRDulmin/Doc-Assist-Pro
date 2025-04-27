@@ -45,17 +45,54 @@ class AuthController {
      */
     async login(req, res, next) {
         try {
+            console.log('[AUTH CONTROLLER] Login request received');
             const { email, password } = req.body;
             
-            // Attempt to login user
-            const { token, user } = await authService.login(email, password);
+            console.log(`[AUTH CONTROLLER] Attempting login for email: ${email}`);
             
-            res.json({ 
-                success: true,
-                token,
-                user
-            });
+            // Validate input on controller level first
+            if (!email || !password) {
+                console.log('[AUTH CONTROLLER] Login failed: Missing email or password');
+                return res.status(400).json({
+                    success: false,
+                    error: 'Email and password are required'
+                });
+            }
+            
+            try {
+                // Attempt to login user
+                const { token, user } = await authService.login(email, password);
+                
+                console.log(`[AUTH CONTROLLER] Login successful for user: ${user.id}`);
+                
+                return res.json({ 
+                    success: true,
+                    token,
+                    user
+                });
+            } catch (authError) {
+                console.error('[AUTH CONTROLLER] Authentication error:', authError.message);
+                
+                // Provide specific status codes for different error types
+                if (authError.message.includes('Invalid credentials')) {
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Invalid credentials. Please check your email and password.'
+                    });
+                } else if (authError.message.includes('inactive')) {
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Account is inactive. Please contact support.'
+                    });
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        error: authError.message
+                    });
+                }
+            }
         } catch (error) {
+            console.error('[AUTH CONTROLLER] Unexpected error in login:', error);
             next(error);
         }
     }

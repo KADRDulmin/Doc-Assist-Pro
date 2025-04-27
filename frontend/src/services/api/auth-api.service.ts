@@ -2,7 +2,7 @@
  * Authentication API Service
  * Handles all authentication-related API requests
  */
-import { BaseApiService, HttpMethod } from './base-api.service';
+import { BaseApiService, HttpMethod, ApiResponse } from './base-api.service';
 import { 
   LoginCredentials, 
   RegisterCredentials,
@@ -23,9 +23,9 @@ class AuthApiService extends BaseApiService {
    * Send login request to API
    * @param credentials - Login credentials
    */
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
     // Login doesn't require auth token
-    return this.request<AuthResponse>(
+    return this.request<ApiResponse<AuthResponse>>(
       this.AUTH_ENDPOINTS.LOGIN,
       HttpMethod.POST,
       credentials,
@@ -37,9 +37,9 @@ class AuthApiService extends BaseApiService {
    * Send registration request to API
    * @param credentials - Registration credentials
    */
-  async register(credentials: RegisterCredentials): Promise<RegisterResponse> {
+  async register(credentials: RegisterCredentials): Promise<ApiResponse<RegisterResponse>> {
     // Registration doesn't require auth token
-    return this.request<RegisterResponse>(
+    return this.request<ApiResponse<RegisterResponse>>(
       this.AUTH_ENDPOINTS.REGISTER,
       HttpMethod.POST,
       credentials,
@@ -51,9 +51,9 @@ class AuthApiService extends BaseApiService {
    * Register a new patient with profile data
    * @param patientData - Patient registration data
    */
-  async registerPatient(patientData: PatientRegisterData): Promise<RegisterResponse> {
+  async registerPatient(patientData: PatientRegisterData): Promise<ApiResponse<RegisterResponse>> {
     // Patient registration doesn't require auth token
-    return this.request<RegisterResponse>(
+    return this.request<ApiResponse<RegisterResponse>>(
       this.AUTH_ENDPOINTS.REGISTER_PATIENT,
       HttpMethod.POST,
       patientData,
@@ -64,9 +64,9 @@ class AuthApiService extends BaseApiService {
   /**
    * Get current user profile
    */
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<ApiResponse<AuthResponse>> {
     // This endpoint requires authentication
-    return this.request(
+    return this.request<ApiResponse<AuthResponse>>(
       this.AUTH_ENDPOINTS.ME,
       HttpMethod.GET,
       undefined,

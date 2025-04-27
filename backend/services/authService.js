@@ -111,34 +111,49 @@ class AuthService {
      * Login a user
      */
     async login(email, password) {
+        console.log(`[AUTH] Login attempt for email: ${email}`);
+        
         if (!email || !password) {
+            console.log('[AUTH] Login failed: Email or password missing');
             throw new Error('Email and password are required');
         }
         
         // Email validation for login
         if (!User.isValidEmail(email)) {
+            console.log('[AUTH] Login failed: Invalid email format');
             throw new Error('Invalid email format');
         }
         
         const user = await userRepository.findByEmail(email);
         if (!user) {
+            console.log(`[AUTH] Login failed: No user found with email: ${email}`);
             throw new Error('Invalid credentials');
         }
+        
+        console.log(`[AUTH] User found: ${user.id} (${user.email})`);
         
         // Check if user is active
         if (!user.is_active) {
+            console.log(`[AUTH] Login failed: Account inactive for user: ${user.id}`);
             throw new Error('Account is inactive. Please contact support.');
         }
         
-        const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) {
-            throw new Error('Invalid credentials');
+        try {
+            const validPassword = await bcrypt.compare(password, user.password_hash);
+            if (!validPassword) {
+                console.log(`[AUTH] Login failed: Invalid password for user: ${user.id}`);
+                throw new Error('Invalid credentials');
+            }
+            
+            // Generate JWT token with role
+            const token = this.generateToken(user);
+            console.log(`[AUTH] Login successful for user: ${user.id}`);
+            
+            return { user: user.toJSON(), token };
+        } catch (error) {
+            console.error(`[AUTH] Error during login process:`, error);
+            throw error;
         }
-        
-        // Generate JWT token with role
-        const token = this.generateToken(user);
-        
-        return { user: user.toJSON(), token };
     }
     
     /**

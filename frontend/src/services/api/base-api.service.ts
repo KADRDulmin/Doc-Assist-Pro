@@ -19,6 +19,15 @@ export enum HttpMethod {
 }
 
 /**
+ * Standard API response interface
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+/**
  * Get the appropriate API URL based on environment and platform
  */
 const getApiUrl = (): string => {
