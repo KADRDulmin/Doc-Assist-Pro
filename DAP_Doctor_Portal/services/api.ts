@@ -5,6 +5,15 @@ import { Platform } from 'react-native';
 const getApiBaseUrl = () => {
   // Check if running in Expo development
   if (__DEV__) {
+    // First, check for our custom environment variable set by start-with-device-ip.js
+    // @ts-ignore - Expo constants typing may not include our custom variable
+    const deviceIp = process.env.EXPO_PUBLIC_API_IP || Constants.expoConfig?.extra?.apiIp;
+    
+    if (deviceIp) {
+      console.log(`Using device IP: ${deviceIp}`);
+      return `http://${deviceIp}:3000/api`;
+    }
+    
     // For Android emulators, use 10.0.2.2 to access host machine's localhost
     // For iOS simulators, localhost actually works
     const isAndroid = Platform.OS === 'android';
