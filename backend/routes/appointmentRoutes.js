@@ -13,6 +13,12 @@ router.get('/types', (req, res) => {
     });
 });
 
+// Get today's appointments (doctors only)
+router.get('/today', authenticate, requireDoctor, appointmentController.getTodaysAppointments);
+
+// Get doctor's today appointments (must be before the '/doctor/:doctorId' route to avoid conflict)
+router.get('/doctor/today', authenticate, requireDoctor, appointmentController.getTodaysAppointments);
+
 // Create new appointment (requires authentication)
 router.post('/', authenticate, appointmentController.createAppointment);
 

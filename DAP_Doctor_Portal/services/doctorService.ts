@@ -188,6 +188,17 @@ const doctorService = {
     booked_slots: string[];
   }>> => {
     return api.get<any>(`/appointments/doctors/${doctorId}/availability?date=${date}`, token);
+  },
+  
+  // Get today's appointments for the authenticated doctor
+  getTodayAppointments: async (token: string, userId?: number): Promise<ApiResponse<AppointmentData[]>> => {
+    try {
+      // Use the specific endpoint for today's appointments - use 'today' route instead of 'doctor/today' to avoid conflict with admin routes
+      return api.get<AppointmentData[]>('/appointments/today', token);
+    } catch (error) {
+      console.error(`API Error for today's appointments:`, error);
+      throw error;
+    }
   }
 };
 

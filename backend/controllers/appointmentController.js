@@ -873,6 +873,51 @@ class AppointmentController {
             res.status(500).json({ message: 'Internal server error' });
         }
     }
+
+    /**
+     * Get today's appointments for the authenticated doctor
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     * @param {Function} next - Express next function
+     */
+    async getTodaysAppointments(req, res, next) {
+        try {
+            // Make sure req.user exists and is a doctor
+            if (!req.user || req.user.role !== 'doctor') {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Only doctors can access this endpoint'
+                });
+            }
+
+            const doctorRepository = require('../repositories/doctorRepository');
+            const doctorProfile = await doctorRepository.getProfileByUserId(req.user.id);
+            
+            if (!doctorProfile) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Doctor profile not found'
+                });
+            }
+            
+            // Get today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Fetch only upcoming appointments for today
+            const appointments = await appointmentRepository.getDoctorAppointments(
+                doctorProfile.id, 
+                { date: today, status: 'upcoming' }
+            );
+            
+            res.json({
+                success: true,
+                data: appointments
+            });
+        } catch (error) {
+            console.error('getTodaysAppointments error:', error);
+            next(error);
+        }
+    }
 }
 
 module.exports = new AppointmentController();

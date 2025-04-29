@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { Text, Card, Title, Paragraph, Avatar, Button, ActivityIndicator, Divider } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
-import doctorService, { DashboardData } from '../../services/doctorService';
+import doctorService, { DashboardData, AppointmentData } from '../../services/doctorService';
 import authService from '../../services/authService';
 import Colors from '../../constants/Colors';
 
@@ -11,6 +11,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [todayAppointments, setTodayAppointments] = useState<AppointmentData[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const loadDashboard = async () => {
@@ -25,15 +26,29 @@ export default function DashboardScreen() {
         return;
       }
       
-      // Pass the user ID to use the user-specific endpoint
-      const response = await doctorService.getDashboard(token, user?.id);
+      // Load dashboard data
+      const dashboardResponse = await doctorService.getDashboard(token, user?.id);
       
-      if (response.success && response.data) {
+      if (dashboardResponse.success && dashboardResponse.data) {
         console.log('Dashboard data loaded successfully');
-        setDashboardData(response.data);
+        setDashboardData(dashboardResponse.data);
+        
+        // Use the new endpoint to get today's appointments
+        const appointmentsResponse = await doctorService.getTodayAppointments(token);
+        
+        if (appointmentsResponse.success && appointmentsResponse.data) {
+          console.log('Today\'s appointments loaded successfully');
+          setTodayAppointments(appointmentsResponse.data);
+        } else {
+          console.error('Failed to load today\'s appointments:', appointmentsResponse.error);
+          // If the today's appointments endpoint fails, fall back to dashboard data
+          if (dashboardResponse.data.todayAppointments) {
+            setTodayAppointments(dashboardResponse.data.todayAppointments);
+          }
+        }
       } else {
-        console.error('Failed to load dashboard:', response.error);
-        setError(response.error || 'Failed to load dashboard data');
+        console.error('Failed to load dashboard:', dashboardResponse.error);
+        setError(dashboardResponse.error || 'Failed to load dashboard data');
       }
     } catch (err: any) {
       console.error('Dashboard error:', err);
@@ -136,8 +151,8 @@ export default function DashboardScreen() {
           <Card style={styles.sectionCard}>
             <Card.Title title="Today's Appointments" />
             <Card.Content>
-              {dashboardData?.todayAppointments && dashboardData.todayAppointments.length > 0 ? (
-                dashboardData.todayAppointments.map((appointment, index) => (
+              {todayAppointments && todayAppointments.length > 0 ? (
+                todayAppointments.map((appointment, index) => (
                   <React.Fragment key={appointment.id}>
                     <View style={styles.appointmentItem}>
                       <View style={styles.appointmentTimeContainer}>
@@ -173,7 +188,7 @@ export default function DashboardScreen() {
                           : 'Cancelled'}
                       </Button>
                     </View>
-                    {index < dashboardData.todayAppointments.length - 1 && <Divider style={styles.divider} />}
+                    {index < todayAppointments.length - 1 && <Divider style={styles.divider} />}
                   </React.Fragment>
                 ))
               ) : (
