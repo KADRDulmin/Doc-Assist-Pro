@@ -3,6 +3,7 @@
  * Handles all authentication-related API requests
  */
 import { BaseApiService, HttpMethod, ApiResponse } from './base-api.service';
+import { tokenService } from '../token.service';
 import { 
   LoginCredentials, 
   RegisterCredentials,
@@ -24,13 +25,42 @@ class AuthApiService extends BaseApiService {
    * @param credentials - Login credentials
    */
   async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
-    // Login doesn't require auth token
-    return this.request<ApiResponse<AuthResponse>>(
-      this.AUTH_ENDPOINTS.LOGIN,
-      HttpMethod.POST,
-      credentials,
-      false // No auth required for login
-    );
+    try {
+      console.log('[AuthApiService] Sending login request...');
+      
+      // Login doesn't require auth token
+      const response = await this.request<ApiResponse<AuthResponse>>(
+        this.AUTH_ENDPOINTS.LOGIN,
+        HttpMethod.POST,
+        credentials,
+        false // No auth required for login
+      );
+      
+      console.log('[AuthApiService] Login response received:', 
+        response?.success === true ? 'success' : 'failed');
+      
+      // Attempt to extract and store token directly from the response
+      let token = null;
+      
+      if (response?.data?.token) {
+        token = response.data.token;
+      } else if (response?.token) {
+        token = response.token;
+      } else if (response?.data?.data?.token) {
+        token = response.data.data.token;
+      }
+      
+      // Store token if found
+      if (token) {
+        console.log('[AuthApiService] Found token in response, storing...');
+        await tokenService.storeToken(token);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('[AuthApiService] Login request failed:', error);
+      throw error;
+    }
   }
 
   /**

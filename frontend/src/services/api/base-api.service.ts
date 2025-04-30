@@ -102,16 +102,19 @@ export class BaseApiService {
 
     // Add auth token if required
     if (includeAuth) {
-      const token = await tokenService.getToken();
-      if (token) {
-        // Ensure the token is properly formatted with 'Bearer ' prefix
-        headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      // More robust token retrieval
+      try {
+        const token = await tokenService.getToken();
         
-        if (__DEV__) {
-          console.log('Adding auth token to request headers');
+        if (token) {
+          // Ensure the token is properly formatted with 'Bearer ' prefix
+          headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+          console.log('Added auth token to request headers');
+        } else {
+          console.warn('Authentication required but no token found - request may fail');
         }
-      } else if (__DEV__) {
-        console.warn('Authentication required but no token found');
+      } catch (error) {
+        console.error('Error retrieving token for request headers:', error);
       }
     }
 
@@ -134,6 +137,15 @@ export class BaseApiService {
     const url = `${this.baseUrl}${endpoint}`;
     
     console.log(`Making ${method} request to: ${url}`);
+    
+    // If authentication is required, verify token before proceeding
+    if (requiresAuth) {
+      const token = await tokenService.getToken();
+      if (!token) {
+        console.error(`Authentication required for ${endpoint} but no token available`);
+        throw new Error('Authentication required. Please login.');
+      }
+    }
     
     const options: RequestInit = {
       method,
@@ -163,15 +175,31 @@ export class BaseApiService {
         }
       }
       
+      // Handle response content based on Content-Type
+      const contentType = response.headers.get('content-type');
+      let responseData;
+      
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+      } else {
+        const text = await response.text();
+        if (__DEV__) {
+          console.log('Non-JSON response:', text);
+        }
+        responseData = { message: text };
+      }
+      
       // If token expired but we have valid credentials, retry the request once
       if (response.status === 401 && requiresAuth) {
-        const responseData = await response.json();
-        
-        // Check if this is a token expiration error
-        if (responseData.error && responseData.error.includes('Token expired')) {
-          console.log('Token expired, attempting to refresh and retry request');
+        // Check if we should try token refresh
+        const shouldTryRefresh = responseData.error && 
+          (responseData.error.includes('Token expired') || 
+           responseData.error.includes('invalid token') ||
+           responseData.error.includes('jwt'));
+           
+        if (shouldTryRefresh) {
+          console.log('Token appears expired, attempting to refresh');
           
-          // Try refreshing the token
           try {
             const refreshResponse = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
               method: 'POST',
@@ -194,32 +222,31 @@ export class BaseApiService {
                 
                 // Handle retry response
                 if (retryResponse.ok) {
-                  return await retryResponse.json();
+                  if (retryResponse.headers.get('content-type')?.includes('application/json')) {
+                    return await retryResponse.json();
+                  } else {
+                    const text = await retryResponse.text();
+                    return { message: text } as unknown as T;
+                  }
                 }
               }
+            } else {
+              // If refresh failed, clear token as it's likely invalid
+              console.log('Token refresh failed, clearing invalid token');
+              await tokenService.clearToken();
             }
           } catch (refreshError) {
             console.error('Failed to refresh token:', refreshError);
           }
+        } else {
+          // If there was no indication this was a token expiry issue, clear token
+          console.log('Authentication failed with 401 but no token expiry message, clearing token');
+          await tokenService.clearToken();
         }
-      }
-      
-      // Handle response content based on Content-Type
-      const contentType = response.headers.get('content-type');
-      let responseData;
-      
-      if (contentType && contentType.includes('application/json')) {
-        responseData = await response.json();
-      } else {
-        const text = await response.text();
-        if (__DEV__) {
-          console.log('Non-JSON response:', text);
-        }
-        responseData = { message: text };
       }
 
       if (!response.ok) {
-        throw new Error(responseData.error || `Request failed with status ${response.status}`);
+        throw new Error(responseData.error || responseData.message || `Request failed with status ${response.status}`);
       }
 
       return responseData;
@@ -229,7 +256,6 @@ export class BaseApiService {
       // Improve CORS error handling
       if (error instanceof TypeError && error.message.includes('Network')) {
         console.error('This appears to be a CORS or network issue. Check backend CORS configuration.');
-        throw new Error(`CORS or Network error: Check if the server is running and CORS is properly configured. Original error: ${error.message}`);
       }
       
       throw error;

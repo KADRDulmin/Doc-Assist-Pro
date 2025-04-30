@@ -67,5 +67,6 @@ class ApiClient extends BaseApiService {
   }
 }
 
-// Export a singleton instance
-export default new ApiClient();
+// Create and export a singleton instance
+const api = new ApiClient();
+export default api;

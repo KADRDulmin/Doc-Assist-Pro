@@ -9,6 +9,9 @@ const TOKEN_KEY = 'auth_token';
 // For web, keep a memory reference as a fallback
 let memoryToken: string | null = null;
 
+// Check if running in browser environment
+const isBrowser = typeof window !== 'undefined';
+
 class TokenService {
   /**
    * Store authentication token
@@ -21,16 +24,30 @@ class TokenService {
         return;
       }
       
-      // For web, store in memory as well
-      if (Platform.OS === 'web') {
-        memoryToken = token;
+      // Make sure token has Bearer prefix
+      const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      
+      // Store in memory for immediate access
+      memoryToken = formattedToken;
+      
+      // For web, use localStorage directly as well for better reliability
+      if (Platform.OS === 'web' && isBrowser) {
+        window.localStorage.setItem(TOKEN_KEY, formattedToken);
+        console.log('Token stored in localStorage');
       }
       
-      await AsyncStorage.setItem(TOKEN_KEY, token);
-      console.log('Token stored successfully');
+      // Also store in AsyncStorage for cross-platform compatibility
+      await AsyncStorage.setItem(TOKEN_KEY, formattedToken);
+      console.log('Token stored successfully in AsyncStorage');
+      
+      // Verify token was stored (debug only)
+      if (__DEV__) {
+        const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        console.log('Token storage verification:', storedToken ? 'success' : 'failed');
+      }
     } catch (error) {
       console.error('Error storing token:', error);
-      throw new Error('Failed to store authentication token');
+      // Even if AsyncStorage fails, we still have the memory token
     }
   }
 
@@ -40,19 +57,38 @@ class TokenService {
    */
   async getToken(): Promise<string | null> {
     try {
-      // For web, check memory first
-      if (Platform.OS === 'web' && memoryToken) {
+      // Check memory first for best performance
+      if (memoryToken) {
         return memoryToken;
       }
       
+      // For web, try localStorage next
+      if (Platform.OS === 'web' && isBrowser) {
+        const localToken = window.localStorage.getItem(TOKEN_KEY);
+        if (localToken) {
+          // Update memory cache
+          memoryToken = localToken;
+          return localToken;
+        }
+      }
+      
+      // Finally, try AsyncStorage
       const token = await AsyncStorage.getItem(TOKEN_KEY);
+      
+      // Update memory cache if found
+      if (token) {
+        memoryToken = token;
+      }
+      
       if (__DEV__) {
         console.log('Token status:', token ? 'exists' : 'not found');
       }
+      
       return token;
     } catch (error) {
       console.error('Error retrieving token:', error);
-      return null;
+      // Fall back to memory token if AsyncStorage fails
+      return memoryToken;
     }
   }
 
@@ -61,36 +97,64 @@ class TokenService {
    */
   async clearToken(): Promise<void> {
     try {
-      console.log('Clearing token...');
+      console.log('Clearing token from all storage mechanisms...');
       
-      // For web, clear memory reference first
-      if (Platform.OS === 'web') {
-        memoryToken = null;
+      // Clear memory reference first
+      memoryToken = null;
+      
+      // For web, clear localStorage
+      if (Platform.OS === 'web' && isBrowser) {
+        window.localStorage.removeItem(TOKEN_KEY);
+        console.log('Cleared token from localStorage');
         
-        // For web, use localStorage directly as a fallback
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.removeItem(TOKEN_KEY);
-          console.log('Cleared token from localStorage');
+        // Double check
+        if (window.localStorage.getItem(TOKEN_KEY)) {
+          window.localStorage.clear(); // More aggressive clearing if needed
         }
       }
       
+      // Clear from AsyncStorage
       await AsyncStorage.removeItem(TOKEN_KEY);
       console.log('Token cleared from AsyncStorage');
       
-      // Verify token is cleared
-      const token = await AsyncStorage.getItem(TOKEN_KEY);
-      if (token) {
-        console.warn('Token still exists after clearing, trying again...');
-        await AsyncStorage.removeItem(TOKEN_KEY);
-      } else {
-        console.log('Token verified as cleared');
+      // Verify token is completely cleared
+      if (__DEV__) {
+        let stillExists = false;
+        
+        // Check AsyncStorage
+        const asyncToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (asyncToken) {
+          stillExists = true;
+          console.warn('Token still exists in AsyncStorage after clearing, trying again...');
+          await AsyncStorage.removeItem(TOKEN_KEY);
+        }
+        
+        // Check localStorage
+        if (Platform.OS === 'web' && isBrowser && window.localStorage.getItem(TOKEN_KEY)) {
+          stillExists = true;
+          console.warn('Token still exists in localStorage after clearing, trying again...');
+          window.localStorage.removeItem(TOKEN_KEY);
+        }
+        
+        if (!stillExists) {
+          console.log('Token verified as cleared from all storage');
+        }
       }
     } catch (error) {
       console.error('Error clearing token:', error);
-      throw new Error('Failed to clear authentication token');
+      // Still make sure memory token is cleared even if other methods fail
+      memoryToken = null;
     }
+  }
+
+  /**
+   * Check if token exists without retrieving its value
+   */
+  async hasToken(): Promise<boolean> {
+    return !!(await this.getToken());
   }
 }
 
-// Create a singleton instance
+// Export a singleton instance
 export const tokenService = new TokenService();
+export default tokenService;

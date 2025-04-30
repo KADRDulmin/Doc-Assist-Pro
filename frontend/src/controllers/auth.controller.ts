@@ -3,7 +3,6 @@
  * Handles business logic for authentication
  */
 import { Platform } from 'react-native';
-// Fix the import path
 import { authApiService } from '../services/api/auth-api.service';
 import { tokenService } from '../services/token.service';
 import { LoginCredentials, RegisterCredentials, PatientRegisterData, AuthResponse } from '../models/auth.model';
@@ -16,12 +15,35 @@ class AuthController {
    */
   async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
     try {
+      console.log('Auth controller: Attempting login...');
       const response = await authApiService.login(credentials);
+      console.log('Auth controller: Login response received');
       
-      // Store the authentication token
-      if (response.data && response.data.token) {
-        await tokenService.storeToken(response.data.token);
-        console.log('Token stored successfully');
+      // Enhanced token extraction and storage
+      let token = null;
+      
+      // Check all possible locations for the token
+      if (response.data?.token) {
+        token = response.data.token;
+        console.log('Auth controller: Found token in response.data.token');
+      } else if (response.token) {
+        token = response.token;
+        console.log('Auth controller: Found token in response.token');
+      } else if (response.data?.data?.token) {
+        token = response.data.data.token;
+        console.log('Auth controller: Found token in response.data.data.token');
+      }
+      
+      // Store token if found
+      if (token) {
+        console.log('Auth controller: Storing token...');
+        await tokenService.storeToken(token);
+        
+        // Verify token was stored correctly
+        const storedToken = await tokenService.getToken();
+        console.log('Auth controller: Token stored successfully:', !!storedToken);
+      } else {
+        console.error('Auth controller: No token found in login response!', response);
       }
       
       return response;
@@ -90,8 +112,14 @@ class AuthController {
    * Check if user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
-    const token = await tokenService.getToken();
-    return !!token;
+    try {
+      const token = await tokenService.getToken();
+      console.log('Auth check: Token exists =', !!token);
+      return !!token;
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      return false;
+    }
   }
 
   /**
@@ -103,6 +131,17 @@ class AuthController {
     } catch (error) {
       console.error('Failed to get current user:', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Debug: Print token to console
+   * For debugging purposes only
+   */
+  async debugToken(): Promise<void> {
+    if (__DEV__) {
+      const token = await tokenService.getToken();
+      console.log('DEBUG - Current token:', token ? 'Token exists' : 'No token');
     }
   }
 }

@@ -1,4 +1,5 @@
 import api from '../config/api';
+import { tokenService } from './token.service';
 
 export interface PatientProfileData {
   id: number;
@@ -54,40 +55,84 @@ class PatientService {
    * Get the profile of the authenticated patient
    */
   async getMyProfile(): Promise<ApiResponse<PatientProfileData>> {
-    const response = await api.get('/api/patients/profile/me');
-    return response as ApiResponse<PatientProfileData>;
+    try {
+      const token = await tokenService.getToken();
+      if (!token) {
+        console.error('[PatientService] No auth token available for getMyProfile request');
+        throw new Error('Authentication required. Please login again.');
+      }
+
+      console.log('[PatientService] Fetching patient profile...');
+      const response = await api.get('/api/patients/profile/me');
+      return response as ApiResponse<PatientProfileData>;
+    } catch (error) {
+      console.error('[PatientService] Failed to fetch patient profile:', error);
+      throw error;
+    }
   }
 
   /**
    * Update the profile of the authenticated patient
    */
   async updateProfile(profileData: PatientProfileUpdateData): Promise<ApiResponse<PatientProfileData>> {
-    const response = await api.put('/api/patients/profile/me', profileData);
-    return response as ApiResponse<PatientProfileData>;
+    try {
+      const token = await tokenService.getToken();
+      if (!token) {
+        console.error('[PatientService] No auth token available for updateProfile request');
+        throw new Error('Authentication required. Please login again.');
+      }
+
+      const response = await api.put('/api/patients/profile/me', profileData);
+      return response as ApiResponse<PatientProfileData>;
+    } catch (error) {
+      console.error('[PatientService] Failed to update profile:', error);
+      throw error;
+    }
   }
 
   /**
    * Get dashboard statistics and information for the patient
    */
   async getDashboardData(): Promise<ApiResponse<PatientDashboardData>> {
-    const response = await api.get('/api/patients/dashboard');
-    return response as ApiResponse<PatientDashboardData>;
+    try {
+      const token = await tokenService.getToken();
+      if (!token) {
+        console.error('[PatientService] No auth token available for getDashboardData request');
+        throw new Error('Authentication required. Please login again.');
+      }
+
+      const response = await api.get('/api/patients/dashboard');
+      return response as ApiResponse<PatientDashboardData>;
+    } catch (error) {
+      console.error('[PatientService] Failed to get dashboard data:', error);
+      throw error;
+    }
   }
 
   /**
    * Get medical records for the authenticated patient
    */
   async getMedicalRecords(): Promise<ApiResponse<any[]>> {
-    const response = await api.get('/api/patients/medical-records');
-    return response as ApiResponse<any[]>;
+    try {
+      const response = await api.get('/api/patients/medical-records');
+      return response as ApiResponse<any[]>;
+    } catch (error) {
+      console.error('[PatientService] Failed to get medical records:', error);
+      throw error;
+    }
   }
 
   /**
    * Get a specific medical record by ID
    */
   async getMedicalRecordById(recordId: number): Promise<ApiResponse<any>> {
-    const response = await api.get(`/api/patients/medical-records/${recordId}`);
-    return response as ApiResponse<any>;
+    try {
+      const response = await api.get(`/api/patients/medical-records/${recordId}`);
+      return response as ApiResponse<any>;
+    } catch (error) {
+      console.error(`[PatientService] Failed to get medical record ${recordId}:`, error);
+      throw error;
+    }
   }
 }
 

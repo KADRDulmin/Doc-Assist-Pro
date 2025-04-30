@@ -82,10 +82,6 @@ export default function TabLayout() {
             height: 56 + insets.top,
             paddingTop: insets.top,
           },
-          // Preserve safe area at the top for all screens
-          contentStyle: {
-            paddingTop: insets.top,
-          },
           tabBarStyle: {
             ...Platform.select({
               ios: {
@@ -93,12 +89,10 @@ export default function TabLayout() {
                 height: 80 + insets.bottom,
                 paddingBottom: 20 + insets.bottom,
                 borderTopWidth: 0,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: -3 },
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
                 backgroundColor: colorScheme === 'dark' ? 'rgba(18, 18, 18, 0.85)' : 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(10px)',
+                // Replace shadow* props with boxShadow for web compatibility
+                boxShadow: '0px -3px 3px rgba(0, 0, 0, 0.1)',
               },
               android: {
                 height: 60 + insets.bottom,
@@ -259,11 +253,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a7ea4',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    ...Platform.select({
+      ios: {
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.3)',
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.3)',
+      }
+    }),
     borderWidth: Platform.OS === 'ios' ? 0 : 0, // Add border for better visibility on light backgrounds
   },
   fabMenuContainer: {
@@ -282,11 +282,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    ...Platform.select({
+      ios: {
+        boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)',
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)',
+      }
+    }),
   },
   fabMenuLabel: {
     paddingHorizontal: 12,
@@ -294,11 +300,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 10,
     backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.95)' : '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
+    ...Platform.select({
+      ios: {
+        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.2)',
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.2)',
+      }
+    }),
   },
   fabMenuLabelText: {
     fontSize: 13,
