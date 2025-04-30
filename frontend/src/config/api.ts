@@ -1,4 +1,4 @@
-import { BaseApiService, HttpMethod } from '../services/api/base-api.service';
+import BaseApiService, { HttpMethod } from '../services/api/base-api.service';
 
 /**
  * API client for making HTTP requests

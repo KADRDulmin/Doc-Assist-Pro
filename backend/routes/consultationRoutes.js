@@ -56,24 +56,24 @@ router.post('/:consultationId/medical-record', authenticate, requireRole(['docto
     consultationController.addMedicalRecord(req, res, next);
 });
 
+// Get medical records for a consultation
+router.get('/:consultationId/medical-records', authenticate, (req, res, next) => {
+    consultationController.getConsultationMedicalRecords(req, res, next);
+});
+
 // Add prescription to a consultation (doctors only)
 router.post('/:consultationId/prescription', authenticate, requireRole(['doctor']), (req, res, next) => {
     consultationController.addPrescription(req, res, next);
 });
 
-// Submit complete consultation data (doctors only)
-router.post('/:consultationId/submit', authenticate, requireRole(['doctor']), (req, res, next) => {
-    consultationController.submitConsultation(req, res, next);
-});
-
-// Get all medical records for a consultation
-router.get('/:consultationId/medical-records', authenticate, (req, res, next) => {
-    consultationController.getConsultationMedicalRecords(req, res, next);
-});
-
-// Get all prescriptions for a consultation
+// Get prescriptions for a consultation
 router.get('/:consultationId/prescriptions', authenticate, (req, res, next) => {
     consultationController.getConsultationPrescriptions(req, res, next);
+});
+
+// Submit consultation data with medical records and prescriptions (doctors only)
+router.post('/:consultationId/submit', authenticate, requireRole(['doctor']), (req, res, next) => {
+    consultationController.submitConsultation(req, res, next);
 });
 
 module.exports = router;

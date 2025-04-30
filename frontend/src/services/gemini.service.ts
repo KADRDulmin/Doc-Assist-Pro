@@ -1,5 +1,4 @@
-import { API_URL } from "./api/base-api.service";
-import { BaseApiService, HttpMethod } from "./api/base-api.service";
+import BaseApiService, { API_URL, HttpMethod } from "./api/base-api.service";
 
 // Gemini API key - IMPORTANT: Avoid hardcoding keys directly in source code for production. Consider environment variables.
 const GEMINI_API_KEY = 'AIzaSyCEibIAu1vBrMGXLlo4l-b-ylWSoTyI2E8'; 

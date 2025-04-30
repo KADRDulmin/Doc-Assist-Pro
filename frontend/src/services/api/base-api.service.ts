@@ -88,14 +88,19 @@ if (isBrowser || Platform.OS !== 'web') {
   console.log('Development mode:', __DEV__ ? 'Yes' : 'No');
 }
 
-export class BaseApiService {
+class BaseApiService {
   protected baseUrl: string = API_URL;
+  protected endpoint: string;
   
+  constructor(endpoint: string = '') {
+    this.endpoint = endpoint;
+  }
+
   /**
    * Get common headers for API requests
    * @param includeAuth - Whether to include authentication token
    */
-  protected async getHeaders(includeAuth = false): Promise<Record<string, string>> {
+  protected async getHeaders(includeAuth = true): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -132,7 +137,7 @@ export class BaseApiService {
     endpoint: string,
     method: HttpMethod = HttpMethod.GET,
     data?: any,
-    requiresAuth: boolean = false
+    requiresAuth: boolean = true
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -261,4 +266,46 @@ export class BaseApiService {
       throw error;
     }
   }
+
+  /**
+   * Make a GET request
+   */
+  protected async get<T>(path: string = '', requiresAuth: boolean = true): Promise<T> {
+    const endpoint = this.endpoint + path;
+    return this.request<T>(endpoint, HttpMethod.GET, undefined, requiresAuth);
+  }
+
+  /**
+   * Make a POST request
+   */
+  protected async post<T>(path: string = '', data: any, requiresAuth: boolean = true): Promise<T> {
+    const endpoint = this.endpoint + path;
+    return this.request<T>(endpoint, HttpMethod.POST, data, requiresAuth);
+  }
+
+  /**
+   * Make a PUT request
+   */
+  protected async put<T>(path: string = '', data?: any, requiresAuth: boolean = true): Promise<T> {
+    const endpoint = this.endpoint + path;
+    return this.request<T>(endpoint, HttpMethod.PUT, data, requiresAuth);
+  }
+
+  /**
+   * Make a DELETE request
+   */
+  protected async delete<T>(path: string = '', requiresAuth: boolean = true): Promise<T> {
+    const endpoint = this.endpoint + path;
+    return this.request<T>(endpoint, HttpMethod.DELETE, undefined, requiresAuth);
+  }
+
+  /**
+   * Make a PATCH request
+   */
+  protected async patch<T>(path: string = '', data: any, requiresAuth: boolean = true): Promise<T> {
+    const endpoint = this.endpoint + path;
+    return this.request<T>(endpoint, HttpMethod.PATCH, data, requiresAuth);
+  }
 }
+
+export default BaseApiService;

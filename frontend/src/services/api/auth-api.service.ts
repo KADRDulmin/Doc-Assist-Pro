@@ -2,7 +2,8 @@
  * Authentication API Service
  * Handles all authentication-related API requests
  */
-import { BaseApiService, HttpMethod, ApiResponse } from './base-api.service';
+import BaseApiService, { HttpMethod } from './base-api.service';
+import { ApiResponse } from './base-api.service';
 import { tokenService } from '../token.service';
 import { 
   LoginCredentials, 

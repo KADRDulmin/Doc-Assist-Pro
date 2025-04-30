@@ -321,13 +321,33 @@ export default function AppointmentDetailsScreen() {
 
           {/* Leave Feedback Button for completed appointments */}
           {appointment.status === 'completed' && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.feedbackButton]}
-              onPress={() => router.push(`/feedback/${appointmentId}`)}
-            >
-              <Ionicons name="star" size={20} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Leave Feedback</ThemedText>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.feedbackButton]}
+                onPress={() => router.push(`/feedback/${appointmentId}`)}
+              >
+                <Ionicons name="star" size={20} color="#fff" />
+                <ThemedText style={styles.actionButtonText}>Leave Feedback</ThemedText>
+              </TouchableOpacity>
+              
+              {/* Medical Records Button */}
+              <TouchableOpacity
+                style={[styles.actionButton, styles.medicalRecordsButton]}
+                onPress={() => router.push(`/appointments/${appointmentId}/medical-records`)}
+              >
+                <Ionicons name="document-text" size={20} color="#fff" />
+                <ThemedText style={styles.actionButtonText}>Medical Records</ThemedText>
+              </TouchableOpacity>
+              
+              {/* Prescriptions Button */}
+              <TouchableOpacity
+                style={[styles.actionButton, styles.prescriptionsButton]}
+                onPress={() => router.push(`/appointments/${appointmentId}/prescriptions`)}
+              >
+                <Ionicons name="medical" size={20} color="#fff" />
+                <ThemedText style={styles.actionButtonText}>Prescriptions</ThemedText>
+              </TouchableOpacity>
+            </>
           )}
 
           {/* Contact Doctor Button */}
@@ -491,9 +511,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFC107',
     width: '100%',
   },
+  medicalRecordsButton: {
+    backgroundColor: '#4CAF50',
+    width: '100%',
+    marginTop: 15,
+  },
+  prescriptionsButton: {
+    backgroundColor: '#9C27B0',
+    width: '100%',
+    marginTop: 15,
+  },
   contactButton: {
     backgroundColor: '#0a7ea4',
     width: '100%',
+    marginTop: 15,
   },
   actionButtonText: {
     color: '#fff',

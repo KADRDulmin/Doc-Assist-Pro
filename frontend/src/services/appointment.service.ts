@@ -1,5 +1,5 @@
-import api from '../config/api';
-import { SymptomAnalysisResult } from './symptomAnalysis.service';
+import BaseApiService from './api/base-api.service';
+import { ApiResponse } from './api/api-response.type';
 
 export interface AppointmentData {
   id: number;
@@ -7,146 +7,121 @@ export interface AppointmentData {
   doctor_id: number;
   appointment_date: string;
   appointment_time: string;
+  status: 'upcoming' | 'completed' | 'cancelled' | 'missed';
   appointment_type: string;
-  status: string;
-  notes: string;
-  location: string;
-  symptoms?: string;
-  possible_illness_1?: string;
-  possible_illness_2?: string;
-  recommended_doctor_speciality_1?: string;
-  recommended_doctor_speciality_2?: string;
-  criticality?: string;
+  notes?: string;
+  location?: string;
   created_at: string;
   updated_at: string;
   doctor?: {
     id: number;
     specialization: string;
     user: {
+      id: number;
       first_name: string;
       last_name: string;
       email: string;
-      phone: string;
-    }
+      phone?: string;
+    };
   };
   patient?: {
     id: number;
     user: {
+      id: number;
       first_name: string;
       last_name: string;
       email: string;
-      phone: string;
-    }
+      phone?: string;
+    };
   };
 }
 
-export interface NewAppointment {
+export interface ConsultationData {
+  id: number;
+  appointment_id: number;
   doctor_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  appointment_type: string;
+  patient_id: number;
+  status: 'in_progress' | 'completed' | 'missed';
+  actual_start_time: string;
+  actual_end_time?: string;
+  created_at: string;
+  updated_at: string;
+  doctor?: any;
+  patient?: any;
+}
+
+export interface MedicalRecordData {
+  id: number;
+  consultation_id: number;
+  patient_id: number;
+  doctor_id: number;
+  record_date: string;
+  diagnosis: string;
+  diagnosis_image_url?: string;
+  treatment_plan?: string;
   notes?: string;
-  location?: string;
-  symptoms?: string;
-  possible_illness_1?: string;
-  possible_illness_2?: string;
-  recommended_doctor_speciality_1?: string;
-  recommended_doctor_speciality_2?: string;
-  criticality?: string;
+  created_at: string;
+  updated_at: string;
+  doctor?: any;
+  patient?: any;
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
+export interface PrescriptionData {
+  id: number;
+  consultation_id: number;
+  patient_id: number;
+  doctor_id: number;
+  prescription_date: string;
+  prescription_text?: string;
+  prescription_image_url?: string;
+  status: 'active' | 'completed' | 'cancelled';
+  duration_days?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  doctor?: any;
+  patient?: any;
 }
 
-class AppointmentService {
-  /**
-   * Get all appointments for the authenticated user
-   */
+class AppointmentService extends BaseApiService {
+  constructor() {
+    super('/api/appointments');
+  }
+
   async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
-    const response = await api.get('/api/appointments/my-appointments');
-    return response as ApiResponse<AppointmentData[]>;
+    return this.get('/my-appointments');
   }
 
-  /**
-   * Create a new appointment
-   */
-  async createAppointment(appointmentData: NewAppointment): Promise<ApiResponse<AppointmentData>> {
-    const response = await api.post('/api/appointments', appointmentData);
-    return response as ApiResponse<AppointmentData>;
+  async getAppointmentById(id: number): Promise<ApiResponse<AppointmentData>> {
+    return this.get(`/${id}`);
   }
 
-  /**
-   * Create a new appointment with symptom analysis
-   */
-  async createAppointmentWithSymptomAnalysis(appointmentData: {
-    doctor_id: number;
-    appointment_date: string;
-    appointment_time: string;
-    appointment_type: string;
-    notes?: string;
-    location?: string;
-    symptoms: string;
-    symptomAnalysis: SymptomAnalysisResult;
-  }): Promise<ApiResponse<AppointmentData>> {
-    // Map the symptom analysis result to the appointment data format
-    const appointmentWithAnalysis = {
-      ...appointmentData,
-      possible_illness_1: appointmentData.symptomAnalysis.possibleIllness1,
-      possible_illness_2: appointmentData.symptomAnalysis.possibleIllness2,
-      recommended_doctor_speciality_1: appointmentData.symptomAnalysis.recommendedDoctorSpeciality1,
-      recommended_doctor_speciality_2: appointmentData.symptomAnalysis.recommendedDoctorSpeciality2,
-      criticality: appointmentData.symptomAnalysis.criticality,
-      // Add the explanation to the notes if provided
-      notes: appointmentData.notes 
-        ? `${appointmentData.notes}\n\nAI Analysis: ${appointmentData.symptomAnalysis.explanation}`
-        : `AI Analysis: ${appointmentData.symptomAnalysis.explanation}`
-    };
-    
-    // Remove the symptomAnalysis property as it's not needed in the API call
-    const { symptomAnalysis, ...appointmentToSubmit } = appointmentWithAnalysis;
-    
-    const response = await api.post('/api/appointments', appointmentToSubmit);
-    return response as ApiResponse<AppointmentData>;
+  async createAppointment(appointmentData: any): Promise<ApiResponse<AppointmentData>> {
+    return this.post('', appointmentData);
   }
 
-  /**
-   * Get appointment by ID
-   */
-  async getAppointmentById(appointmentId: number): Promise<ApiResponse<AppointmentData>> {
-    const response = await api.get(`/api/appointments/${appointmentId}`);
-    return response as ApiResponse<AppointmentData>;
+  async updateAppointment(id: number, appointmentData: any): Promise<ApiResponse<AppointmentData>> {
+    return this.put(`/${id}`, appointmentData);
   }
 
-  /**
-   * Update an appointment
-   */
-  async updateAppointment(appointmentId: number, updateData: Partial<AppointmentData>): Promise<ApiResponse<AppointmentData>> {
-    const response = await api.put(`/api/appointments/${appointmentId}`, updateData);
-    return response as ApiResponse<AppointmentData>;
+  async cancelAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
+    return this.put(`/${id}/cancel`);
   }
 
-  /**
-   * Cancel an appointment
-   */
-  async cancelAppointment(appointmentId: number): Promise<ApiResponse<AppointmentData>> {
-    const response = await api.post(`/api/appointments/${appointmentId}/cancel`);
-    return response as ApiResponse<AppointmentData>;
+  async completeAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
+    return this.put(`/${id}/complete`);
   }
 
-  /**
-   * Get doctor availability for a specific date
-   */
-  async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<{
-    available_slots: string[];
-    booked_slots: string[];
-  }>> {
-    const response = await api.get(`/api/appointments/availability/${doctorId}`, {
-      params: { date }
-    });
-    return response as ApiResponse<{ available_slots: string[]; booked_slots: string[] }>;
+  async getConsultationByAppointment(appointmentId: number): Promise<ApiResponse<ConsultationData>> {
+    return this.get(`/${appointmentId}/consultation`);
+  }
+
+  async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<any>> {
+    return this.get(`/doctors/${doctorId}/availability?date=${date}`);
+  }
+
+  async getTodaysAppointments(): Promise<ApiResponse<AppointmentData[]>> {
+    return this.get('/today');
   }
 }
 
