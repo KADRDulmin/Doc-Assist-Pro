@@ -1,5 +1,9 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Auth token key
+export const AUTH_TOKEN_KEY = 'doctor_auth_token';
 
 // Get the API URL from environment or use a default that works on both emulators and devices
 const getApiBaseUrl = () => {
@@ -51,6 +55,24 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+// Function to handle unauthorized errors (401) - will be set by the AuthContext
+let handleUnauthorizedError: (() => void) | null = null;
+
+// Function to register the unauthorized error handler
+export const registerUnauthorizedHandler = (handler: () => void) => {
+  handleUnauthorizedError = handler;
+};
+
+// Helper function to get token from AsyncStorage
+const getStoredToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+  } catch (error) {
+    console.error('Error retrieving auth token:', error);
+    return null;
+  }
+};
+
 // Generic fetch function with enhanced error handling
 const fetchAPI = async <T>(
   endpoint: string,
@@ -64,11 +86,21 @@ const fetchAPI = async <T>(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
+    // Get stored token if not explicitly provided in headers
+    const headers = options.headers as Record<string, string> || {};
+    if (!headers['Authorization']) {
+      const token = await getStoredToken();
+      if (token) {
+        console.log('Using stored auth token for request');
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    
     const fetchOptions = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(options.headers || {}),
+        ...headers,
       },
       signal: controller.signal
     };
@@ -109,6 +141,15 @@ const fetchAPI = async <T>(
     console.log('API Response data:', data);
     
     if (!response.ok) {
+      // Handle 401 Unauthorized errors specifically for "User not found" messages
+      if (response.status === 401 && data?.error === 'User not found. Please login again.') {
+        console.log('Authentication error: User not found. Logging out...');
+        // Call the registered unauthorized handler if it exists
+        if (handleUnauthorizedError) {
+          handleUnauthorizedError();
+        }
+      }
+      
       // Extract error message from response if available
       const errorMessage = data?.error || data?.message || `HTTP Error: ${response.status} ${response.statusText}`;
       throw new Error(errorMessage);

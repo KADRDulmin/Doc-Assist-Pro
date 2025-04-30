@@ -126,12 +126,58 @@ export default function SignupScreen() {
   };
 
   const nextStep = (validateForm: () => Promise<any>, values: any) => {
-    validateForm().then((errors) => {
-      if (Object.keys(errors).length === 0) {
+    // For step 1, we only validate email, password, and confirm_password
+    if (step === 1) {
+      // Validate only the account info fields
+      const accountErrors: Record<string, string> = {};
+      
+      if (!values.email) {
+        accountErrors['email'] = 'Email is required';
+      } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
+        accountErrors['email'] = 'Invalid email address';
+      }
+      
+      if (!values.password) {
+        accountErrors['password'] = 'Password is required';
+      } else if (values.password.length < 6) {
+        accountErrors['password'] = 'Password must be at least 6 characters';
+      }
+      
+      if (!values.confirm_password) {
+        accountErrors['confirm_password'] = 'Please confirm your password';
+      } else if (values.password !== values.confirm_password) {
+        accountErrors['confirm_password'] = 'Passwords must match';
+      }
+      
+      if (Object.keys(accountErrors).length === 0) {
         setStep(step + 1);
         setError(null);
+      } else {
+        // Display the first error
+        const firstError = Object.values(accountErrors)[0];
+        setError(firstError);
       }
-    });
+    } 
+    // For step 2, we validate personal info
+    else if (step === 2) {
+      validateForm().then((errors: any) => {
+        const relevantErrors: Record<string, string> = {};
+        
+        // Only check errors for fields in step 2
+        if (errors.first_name) relevantErrors['first_name'] = errors.first_name;
+        if (errors.last_name) relevantErrors['last_name'] = errors.last_name;
+        if (errors.phone) relevantErrors['phone'] = errors.phone;
+        
+        if (Object.keys(relevantErrors).length === 0) {
+          setStep(step + 1);
+          setError(null);
+        } else {
+          // Display the first error
+          const firstError = Object.values(relevantErrors)[0];
+          setError(firstError);
+        }
+      });
+    }
   };
 
   const prevStep = () => {

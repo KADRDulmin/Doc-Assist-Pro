@@ -16,6 +16,76 @@ export interface AppointmentData {
     name: string;
     email: string;
   };
+  symptoms?: string;
+  possible_illness_1?: string;
+  possible_illness_2?: string;
+  recommended_doctor_speciality_1?: string;
+  recommended_doctor_speciality_2?: string;
+  criticality?: string;
+  symptom_analysis_json?: string;
+}
+
+export interface ConsultationData {
+  id: number;
+  appointment_id: number;
+  doctor_id: number;
+  patient_id: number;
+  status: 'in_progress' | 'completed' | 'missed';
+  actual_start_time: string;
+  actual_end_time?: string;
+  created_at: string;
+  updated_at: string;
+  patient?: {
+    id: number;
+    user?: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone?: string;
+    };
+  };
+  doctor?: {
+    id: number;
+    specialization: string;
+    user?: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone?: string;
+    };
+  };
+  appointment?: AppointmentData;
+  medical_records?: MedicalRecordData[];
+  prescriptions?: PrescriptionData[];
+}
+
+export interface MedicalRecordData {
+  id: number;
+  consultation_id: number;
+  patient_id: number;
+  doctor_id: number;
+  record_date: string;
+  diagnosis: string;
+  diagnosis_image_url?: string;
+  treatment_plan?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrescriptionData {
+  id: number;
+  consultation_id: number;
+  patient_id: number;
+  doctor_id: number;
+  prescription_date: string;
+  prescription_text: string;
+  prescription_image_url?: string;
+  status: 'active' | 'completed' | 'cancelled';
+  duration_days?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DashboardData {
@@ -44,6 +114,20 @@ export interface PatientData {
   upcoming_appointments: number;
 }
 
+// Helper function to get current user ID
+const getCurrentUserId = async (token: string): Promise<number | undefined> => {
+  try {
+    const userResponse = await api.get<any>('/doctors/debug/current-user', token);
+    if (userResponse.success && userResponse.data?.id) {
+      return userResponse.data.id;
+    }
+    return undefined;
+  } catch (err) {
+    console.error('Failed to get current user ID:', err);
+    return undefined;
+  }
+};
+
 const doctorService = {
   // Get doctor's profile
   getProfile: async (token: string): Promise<ApiResponse<DoctorProfile>> => {
@@ -55,111 +139,68 @@ const doctorService = {
     return api.put<DoctorProfile>('/doctors/profile/me', profileData, token);
   },
   
-  // Get doctor's dashboard data - Now with user ID support
+  // Get doctor's dashboard data - Now always gets user ID first
   getDashboard: async (token: string, userId?: number): Promise<ApiResponse<DashboardData>> => {
-    // If userId is provided, use the user-specific endpoint
-    if (userId) {
-      return api.get<DashboardData>(`/doctors/dashboard/user/${userId}`, token);
-    }
-    
-    // Try the standard endpoint first
-    const response = await api.get<DashboardData>('/doctors/dashboard', token);
-    
-    // If the standard endpoint returns an error, try to get the user ID from the token
-    if (!response.success && response.error === 'Doctor not found') {
-      try {
-        // Get user info to extract ID
-        const userResponse = await api.get<any>('/doctors/debug/current-user', token);
-        
-        if (userResponse.success && userResponse.data?.id) {
-          // Try the user-specific endpoint
-          return api.get<DashboardData>(`/doctors/dashboard/user/${userResponse.data.id}`, token);
+    try {
+      // If userId is not provided, get it first
+      if (!userId) {
+        userId = await getCurrentUserId(token);
+        if (!userId) {
+          // If we couldn't get the user ID, try the original endpoint as fallback
+          return await api.get<DashboardData>('/doctors/dashboard', token);
         }
-      } catch (err) {
-        console.error('Failed to get user ID for dashboard fallback', err);
       }
+      
+      // Use the user-specific endpoint
+      return await api.get<DashboardData>(`/doctors/dashboard/user/${userId}`, token);
+    } catch (error) {
+      console.error(`API Error for dashboard:`, error);
+      throw error;
     }
-    
-    // Return the original response if fallback doesn't work or is not needed
-    return response;
   },
   
-  // Get doctor's appointments - Now with user ID support
+  // Get doctor's appointments - Now always gets user ID first
   getAppointments: async (token: string, userId?: number, status?: string): Promise<ApiResponse<AppointmentData[]>> => {
     try {
-      // If userId is provided, use the user-specific endpoint
-      if (userId) {
-        const endpoint = status 
-          ? `/doctors/appointments/user/${userId}?status=${status}` 
-          : `/doctors/appointments/user/${userId}`;
-        return api.get<AppointmentData[]>(endpoint, token);
-      }
-      
-      // Try the standard endpoint
-      const endpoint = status ? `/doctors/appointments?status=${status}` : '/doctors/appointments';
-      const response = await api.get<AppointmentData[]>(endpoint, token);
-      
-      // If standard endpoint fails, try to get the user ID
-      if (!response.success && response.error === 'Doctor not found') {
-        try {
-          // Get user info to extract ID
-          const userResponse = await api.get<any>('/doctors/debug/current-user', token);
-          
-          if (userResponse.success && userResponse.data?.id) {
-            // Try the user-specific endpoint
-            const userId = userResponse.data.id;
-            const userEndpoint = status 
-              ? `/doctors/appointments/user/${userId}?status=${status}` 
-              : `/doctors/appointments/user/${userId}`;
-            return api.get<AppointmentData[]>(userEndpoint, token);
-          }
-        } catch (err) {
-          console.error('Failed to get user ID for appointments fallback', err);
+      // If userId is not provided, get it first
+      if (!userId) {
+        userId = await getCurrentUserId(token);
+        if (!userId) {
+          // If we couldn't get the user ID, try the original endpoint as fallback
+          const endpoint = status ? `/doctors/appointments?status=${status}` : '/doctors/appointments';
+          return await api.get<AppointmentData[]>(endpoint, token);
         }
       }
       
-      return response;
+      // Use the user-specific endpoint
+      const endpoint = status 
+        ? `/doctors/appointments/user/${userId}?status=${status}` 
+        : `/doctors/appointments/user/${userId}`;
+      return await api.get<AppointmentData[]>(endpoint, token);
     } catch (error) {
       console.error(`API Error for appointments:`, error);
       throw error;
     }
   },
   
-  // Get doctor's patients - Now with user ID support
+  // Get doctor's patients - Now always gets user ID first
   getPatients: async (token: string, userId?: number, search?: string): Promise<ApiResponse<PatientData[]>> => {
     try {
-      // If userId is provided, use the user-specific endpoint
-      if (userId) {
-        const endpoint = search 
-          ? `/doctors/patients/user/${userId}?search=${search}` 
-          : `/doctors/patients/user/${userId}`;
-        return api.get<PatientData[]>(endpoint, token);
-      }
-      
-      // Try the standard endpoint
-      const endpoint = search ? `/doctors/patients?search=${search}` : '/doctors/patients';
-      const response = await api.get<PatientData[]>(endpoint, token);
-      
-      // If standard endpoint fails, try to get the user ID
-      if (!response.success && response.error === 'Doctor not found') {
-        try {
-          // Get user info to extract ID
-          const userResponse = await api.get<any>('/doctors/debug/current-user', token);
-          
-          if (userResponse.success && userResponse.data?.id) {
-            // Try the user-specific endpoint
-            const userId = userResponse.data.id;
-            const userEndpoint = search 
-              ? `/doctors/patients/user/${userId}?search=${search}` 
-              : `/doctors/patients/user/${userId}`;
-            return api.get<PatientData[]>(userEndpoint, token);
-          }
-        } catch (err) {
-          console.error('Failed to get user ID for patients fallback', err);
+      // If userId is not provided, get it first
+      if (!userId) {
+        userId = await getCurrentUserId(token);
+        if (!userId) {
+          // If we couldn't get the user ID, try the original endpoint as fallback
+          const endpoint = search ? `/doctors/patients?search=${search}` : '/doctors/patients';
+          return await api.get<PatientData[]>(endpoint, token);
         }
       }
       
-      return response;
+      // Use the user-specific endpoint
+      const endpoint = search 
+        ? `/doctors/patients/user/${userId}?search=${search}` 
+        : `/doctors/patients/user/${userId}`;
+      return await api.get<PatientData[]>(endpoint, token);
     } catch (error) {
       console.error(`API Error for patients:`, error);
       throw error;
@@ -193,12 +234,105 @@ const doctorService = {
   // Get today's appointments for the authenticated doctor
   getTodayAppointments: async (token: string, userId?: number): Promise<ApiResponse<AppointmentData[]>> => {
     try {
-      // Use the specific endpoint for today's appointments - use 'today' route instead of 'doctor/today' to avoid conflict with admin routes
       return api.get<AppointmentData[]>('/appointments/today', token);
     } catch (error) {
       console.error(`API Error for today's appointments:`, error);
       throw error;
     }
+  },
+
+  // Consultation API methods
+  
+  // Start a new consultation for an appointment
+  startConsultation: async (appointmentId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
+    return api.post<ConsultationData>(`/consultations/appointment/${appointmentId}/start`, {}, token);
+  },
+  
+  // Get consultation by ID
+  getConsultation: async (consultationId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
+    return api.get<ConsultationData>(`/consultations/${consultationId}`, token);
+  },
+  
+  // Get consultation by appointment ID
+  getConsultationByAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
+    return api.get<ConsultationData>(`/consultations/appointment/${appointmentId}`, token);
+  },
+  
+  // Complete a consultation
+  completeConsultation: async (consultationId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
+    return api.post<ConsultationData>(`/consultations/${consultationId}/complete`, {}, token);
+  },
+  
+  // Mark a consultation as missed
+  markConsultationAsMissed: async (consultationId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
+    return api.post<ConsultationData>(`/consultations/${consultationId}/missed`, {}, token);
+  },
+  
+  // Add medical record to a consultation
+  addMedicalRecord: async (
+    consultationId: number, 
+    medicalRecordData: {
+      diagnosis: string;
+      diagnosis_image_url?: string;
+      treatment_plan?: string;
+      notes?: string;
+    },
+    token: string
+  ): Promise<ApiResponse<MedicalRecordData>> => {
+    return api.post<MedicalRecordData>(`/consultations/${consultationId}/medical-record`, medicalRecordData, token);
+  },
+  
+  // Add prescription to a consultation
+  addPrescription: async (
+    consultationId: number,
+    prescriptionData: {
+      prescription_text: string;
+      prescription_image_url?: string;
+      duration_days?: number;
+      notes?: string;
+    },
+    token: string
+  ): Promise<ApiResponse<PrescriptionData>> => {
+    return api.post<PrescriptionData>(`/consultations/${consultationId}/prescription`, prescriptionData, token);
+  },
+  
+  // Submit complete consultation data
+  submitConsultation: async (
+    consultationId: number,
+    consultationData: {
+      diagnosis?: string;
+      diagnosis_image_url?: string;
+      treatment_plan?: string;
+      medical_notes?: string;
+      prescription_text?: string;
+      prescription_image_url?: string;
+      duration_days?: number;
+      prescription_notes?: string;
+      complete_consultation?: boolean;
+    },
+    token: string
+  ): Promise<ApiResponse<{
+    consultation: ConsultationData;
+    medicalRecord?: MedicalRecordData;
+    prescription?: PrescriptionData;
+  }>> => {
+    return api.post(`/consultations/${consultationId}/submit`, consultationData, token);
+  },
+  
+  // Get all medical records for a consultation
+  getConsultationMedicalRecords: async (consultationId: number, token: string): Promise<ApiResponse<MedicalRecordData[]>> => {
+    return api.get<MedicalRecordData[]>(`/consultations/${consultationId}/medical-records`, token);
+  },
+  
+  // Get all prescriptions for a consultation
+  getConsultationPrescriptions: async (consultationId: number, token: string): Promise<ApiResponse<PrescriptionData[]>> => {
+    return api.get<PrescriptionData[]>(`/consultations/${consultationId}/prescriptions`, token);
+  },
+  
+  // Get all consultations for the authenticated doctor
+  getMyConsultations: async (token: string, status?: string): Promise<ApiResponse<ConsultationData[]>> => {
+    const endpoint = status ? `/consultations/doctor/my-consultations?status=${status}` : '/consultations/doctor/my-consultations';
+    return api.get<ConsultationData[]>(endpoint, token);
   }
 };
 

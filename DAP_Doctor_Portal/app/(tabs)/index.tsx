@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import doctorService, { DashboardData, AppointmentData } from '../../services/doctorService';
 import authService from '../../services/authService';
 import Colors from '../../constants/Colors';
+import { router } from 'expo-router';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -57,6 +58,10 @@ export default function DashboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const handleStartConsultation = (appointmentId: number) => {
+    router.push(`/consultation/${appointmentId}` as any);
   };
 
   useEffect(() => {
@@ -168,25 +173,37 @@ export default function DashboardScreen() {
                           {appointment.appointment_type || appointment.type || 'General'}
                         </Text>
                       </View>
-                      <Button
-                        mode="contained"
-                        compact
-                        style={[
-                          styles.statusButton,
-                          appointment.status === 'upcoming'
-                            ? styles.upcomingButton
+                      <View style={styles.buttonsContainer}>
+                        <Button
+                          mode="contained"
+                          compact
+                          style={[
+                            styles.statusButton,
+                            appointment.status === 'upcoming'
+                              ? styles.upcomingButton
+                              : appointment.status === 'completed'
+                              ? styles.completedButton
+                              : styles.cancelledButton,
+                          ]}
+                        >
+                          {appointment.status === 'upcoming'
+                            ? 'Upcoming'
                             : appointment.status === 'completed'
-                            ? styles.completedButton
-                            : styles.cancelledButton,
-                        ]}
-                        onPress={() => Alert.alert('Appointment Details', `View details for appointment with ${appointment.patient?.name || 'Unknown Patient'}`)}
-                      >
-                        {appointment.status === 'upcoming'
-                          ? 'Upcoming'
-                          : appointment.status === 'completed'
-                          ? 'Completed'
-                          : 'Cancelled'}
-                      </Button>
+                            ? 'Completed'
+                            : 'Cancelled'}
+                        </Button>
+                        
+                        {appointment.status === 'upcoming' && (
+                          <Button
+                            mode="contained"
+                            compact
+                            style={styles.consultButton}
+                            onPress={() => handleStartConsultation(appointment.id)}
+                          >
+                            Consult
+                          </Button>
+                        )}
+                      </View>
                     </View>
                     {index < todayAppointments.length - 1 && <Divider style={styles.divider} />}
                   </React.Fragment>
@@ -198,7 +215,7 @@ export default function DashboardScreen() {
             <Card.Actions>
               <Button
                 mode="text"
-                onPress={() => Alert.alert('View All Appointments', 'Navigate to appointments screen')}
+                onPress={() => router.push('/(tabs)/appointments')}
               >
                 View All
               </Button>
@@ -293,7 +310,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   appointmentDetails: {
-    flex:1,
+    flex: 1,
     marginLeft: 8,
   },
   patientName: {
@@ -304,7 +321,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  buttonsContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 6,
+  },
   statusButton: {
+    borderRadius: 5,
+    marginBottom: 4,
+  },
+  consultButton: {
+    backgroundColor: '#4CAF50',
     borderRadius: 5,
   },
   upcomingButton: {

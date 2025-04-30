@@ -134,6 +134,69 @@ CREATE INDEX IF NOT EXISTS idx_appointments_doctor_id ON appointments(doctor_id)
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 
+-- Create consultations table for doctor consultations
+CREATE TABLE IF NOT EXISTS consultations (
+    id SERIAL PRIMARY KEY,
+    appointment_id INTEGER NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id),
+    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id),
+    status VARCHAR(20) DEFAULT 'in_progress', -- in_progress, completed, missed
+    actual_start_time TIMESTAMP WITH TIME ZONE,
+    actual_end_time TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for consultations
+CREATE INDEX IF NOT EXISTS idx_consultations_appointment_id ON consultations(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_doctor_id ON consultations(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_patient_id ON consultations(patient_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
+
+-- Create medical_records table for patient medical records
+CREATE TABLE IF NOT EXISTS medical_records (
+    id SERIAL PRIMARY KEY,
+    consultation_id INTEGER NOT NULL REFERENCES consultations(id) ON DELETE CASCADE,
+    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id),
+    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id),
+    record_date DATE NOT NULL,
+    diagnosis TEXT NOT NULL,
+    diagnosis_image_url TEXT,
+    treatment_plan TEXT,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for medical_records
+CREATE INDEX IF NOT EXISTS idx_medical_records_consultation_id ON medical_records(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_medical_records_patient_id ON medical_records(patient_id);
+CREATE INDEX IF NOT EXISTS idx_medical_records_doctor_id ON medical_records(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_medical_records_record_date ON medical_records(record_date);
+
+-- Create prescriptions table for patient prescriptions
+CREATE TABLE IF NOT EXISTS prescriptions (
+    id SERIAL PRIMARY KEY,
+    consultation_id INTEGER NOT NULL REFERENCES consultations(id) ON DELETE CASCADE,
+    patient_id INTEGER NOT NULL REFERENCES patient_profiles(id),
+    doctor_id INTEGER NOT NULL REFERENCES doctor_profiles(id),
+    prescription_date DATE NOT NULL,
+    prescription_text TEXT,
+    prescription_image_url TEXT,
+    status VARCHAR(20) DEFAULT 'active', -- active, completed, cancelled
+    duration_days INTEGER,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for prescriptions
+CREATE INDEX IF NOT EXISTS idx_prescriptions_consultation_id ON prescriptions(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_patient_id ON prescriptions(patient_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_doctor_id ON prescriptions(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_prescription_date ON prescriptions(prescription_date);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_status ON prescriptions(status);
+
 -- Create feedback table
 CREATE TABLE IF NOT EXISTS feedback (
     id SERIAL PRIMARY KEY,

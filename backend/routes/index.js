@@ -6,6 +6,7 @@ const patientRoutes = require('./patientRoutes');
 const appointmentRoutes = require('./appointmentRoutes');
 const feedbackRoutes = require('./feedbackRoutes');
 const healthTipRoutes = require('./healthTipRoutes');
+const consultationRoutes = require('./consultationRoutes');
 const { checkConnection } = require('../config/database');
 
 // API info route
@@ -19,6 +20,7 @@ router.get('/', (req, res) => {
             doctors: '/api/doctors',
             patients: '/api/patients',
             appointments: '/api/appointments',
+            consultations: '/api/consultations',
             feedback: '/api/feedback',
             healthTips: '/api/health-tips',
             health: '/api/health'
@@ -155,6 +157,7 @@ router.use('/auth', authRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/patients', patientRoutes);
 router.use('/appointments', appointmentRoutes);
+router.use('/consultations', consultationRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/health-tips', healthTipRoutes);
 

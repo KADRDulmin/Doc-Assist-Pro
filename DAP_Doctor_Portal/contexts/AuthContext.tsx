@@ -1,20 +1,23 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import authService, { DoctorUser } from '../services/authService';
+import { registerUnauthorizedHandler } from '../services/api';
 
 // Define the shape of our authentication context
 interface AuthContextType {
   user: DoctorUser | null;
   isLoading: boolean;
+  token: string | null; // Add token to the context
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   authError: string | null;
 }
 
 // Create the auth context with default values
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  token: null, // Default token value
   signIn: async () => false,
   signOut: async () => {},
   authError: null,
@@ -26,10 +29,25 @@ export const useAuth = () => useContext(AuthContext);
 // Provider component that wraps the app and makes auth data available
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DoctorUser | null>(null);
+  const [token, setToken] = useState<string | null>(null); // Add token state
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const segments = useSegments();
+
+  // Register the unauthorized error handler
+  useEffect(() => {
+    // Register a handler for 401 unauthorized errors
+    registerUnauthorizedHandler(() => {
+      console.log('AuthContext: Handling unauthorized error - logging out user');
+      // Call our signOut function to clear the auth state and redirect
+      authService.logout().finally(() => {
+        setUser(null);
+        setToken(null);
+        router.replace('/auth/login');
+      });
+    });
+  }, [router]);
 
   // Check if user is authenticated
   useEffect(() => {
@@ -40,13 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (isAuthenticated) {
           const userData = await authService.getCurrentUser();
+          const authToken = await authService.getToken();
           setUser(userData);
+          setToken(authToken); // Store token in state
         } else {
           setUser(null);
+          setToken(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
         setUser(null);
+        setToken(null);
       } finally {
         setIsLoading(false);
       }
@@ -90,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('AuthContext: Setting authenticated user state');
         setUser(response.data.user);
+        setToken(response.data.token); // Store token when signing in
         
         // Force navigation to the tabs
         setTimeout(() => {
@@ -115,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authService.logout();
       setUser(null);
+      setToken(null); // Clear token when signing out
       router.replace('/auth/login');
     } catch (error) {
       console.error('Sign out error:', error);
@@ -125,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authContextValue: AuthContextType = {
     user,
     isLoading,
+    token, // Include token in context value
     signIn,
     signOut,
     authError,
