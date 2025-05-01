@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, Button, ActivityIndicator, Chip, Searchbar, FAB, Dialog, Portal } from 'react-native-paper';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
 import doctorService, { AppointmentData } from '../../services/doctorService';
@@ -35,8 +36,27 @@ export default function AppointmentsScreen() {
       
       if (response.success && response.data) {
         console.log(`Loaded ${response.data.length} appointments successfully`);
-        setAppointments(response.data);
-        setFilteredAppointments(response.data);
+        
+        // For completed appointments, fetch feedback data
+        const appointmentsWithFeedback = await Promise.all(
+          response.data.map(async (appointment) => {
+            if (appointment.status === 'completed') {
+              try {
+                // Fetch feedback for this appointment
+                const feedbackResponse = await doctorService.getFeedbackByAppointment(appointment.id, token);
+                if (feedbackResponse.success && feedbackResponse.data) {
+                  return { ...appointment, feedback: feedbackResponse.data };
+                }
+              } catch (err) {
+                console.log(`No feedback found for appointment ${appointment.id}`);
+              }
+            }
+            return appointment;
+          })
+        );
+        
+        setAppointments(appointmentsWithFeedback);
+        setFilteredAppointments(appointmentsWithFeedback);
       } else {
         console.error('Failed to load appointments:', response.error);
         setError(response.error || 'Failed to load appointments');
@@ -193,9 +213,27 @@ export default function AppointmentsScreen() {
           <View style={styles.divider} />
 
           <View style={styles.patientInfo}>
-            <Text style={styles.patientName}>
-              {appointment.patient?.name || 'Unknown Patient'}
-            </Text>
+            <View style={styles.patientNameRow}>
+              <Text style={styles.patientName}>
+                {appointment.patient?.name || 'Unknown Patient'}
+              </Text>
+              
+              {/* Display star rating if feedback exists */}
+              {appointment.feedback && (
+                <View style={styles.ratingContainer}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <MaterialIcons 
+                      key={star}
+                      name={star <= appointment.feedback!.rating ? "star" : "star-border"} 
+                      size={16} 
+                      color="#FFD700" 
+                      style={{ marginHorizontal: 1 }}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+            
             <Text style={styles.appointmentType}>
               {appointment.appointment_type || 'General Consultation'}
             </Text>
@@ -350,6 +388,37 @@ export default function AppointmentsScreen() {
                     {selectedAppointment.notes}
                   </Text>
                 )}
+                
+                {/* Patient Feedback Section */}
+                {selectedAppointment.feedback && (
+                  <>
+                    <View style={styles.divider} />
+                    <Text style={[styles.dialogText, styles.feedbackTitle]}>Patient Feedback</Text>
+                    
+                    <View style={styles.dialogRatingContainer}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <MaterialIcons 
+                          key={star}
+                          name={star <= selectedAppointment.feedback!.rating ? "star" : "star-border"} 
+                          size={20} 
+                          color="#FFD700" 
+                          style={{ marginRight: 2 }}
+                        />
+                      ))}
+                      <Text style={styles.ratingText}>
+                        ({selectedAppointment.feedback.rating}/5)
+                      </Text>
+                    </View>
+                    
+                    {selectedAppointment.feedback.comment && (
+                      <View style={styles.feedbackCommentContainer}>
+                        <Text style={styles.feedbackComment}>
+                          "{selectedAppointment.feedback.comment}"
+                        </Text>
+                      </View>
+                    )}
+                  </>
+                )}
               </Dialog.Content>
               <Dialog.Actions>
                 <Button onPress={hideDialog}>Close</Button>
@@ -467,9 +536,18 @@ const styles = StyleSheet.create({
   patientInfo: {
     marginTop: 5,
   },
+  patientNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   patientName: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   appointmentType: {
     fontSize: 14,
@@ -526,5 +604,27 @@ const styles = StyleSheet.create({
   },
   dialogLabel: {
     fontWeight: 'bold',
+  },
+  feedbackTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  dialogRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ratingText: {
+    marginLeft: 4,
+    fontSize: 16,
+    color: '#555',
+  },
+  feedbackCommentContainer: {
+    marginTop: 8,
+  },
+  feedbackComment: {
+    fontStyle: 'italic',
+    color: '#555',
   },
 });

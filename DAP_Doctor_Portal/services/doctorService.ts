@@ -1,6 +1,25 @@
 import api, { ApiResponse, BASE_URL } from './api';
 import { DoctorProfile } from './authService';
 
+export interface FeedbackData {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  appointment_id: number;
+  rating: number;
+  comment?: string;
+  created_at: string;
+  updated_at: string;
+  patient?: {
+    id: number;
+    name?: string;
+    user?: {
+      first_name: string;
+      last_name: string;
+    }
+  };
+}
+
 export interface AppointmentData {
   id: number;
   patient_id: number;
@@ -23,6 +42,7 @@ export interface AppointmentData {
   recommended_doctor_speciality_2?: string;
   criticality?: string;
   symptom_analysis_json?: string;
+  feedback?: FeedbackData; // Add feedback data to appointments
 }
 
 export interface ConsultationData {
@@ -336,7 +356,12 @@ const doctorService = {
   getMyConsultations: async (token: string, status?: string): Promise<ApiResponse<ConsultationData[]>> => {
     const endpoint = status ? `/consultations/doctor/my-consultations?status=${status}` : '/consultations/doctor/my-consultations';
     return api.get<ConsultationData[]>(endpoint, token);
-  }
+  },
+
+  // Get feedback for an appointment
+  getFeedbackByAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<FeedbackData>> => {
+    return api.get<FeedbackData>(`/feedback/appointment/${appointmentId}`, token);
+  },
 };
 
 export default doctorService;
