@@ -20,6 +20,7 @@ import doctorService, {
   ConsultationData, 
   AppointmentData 
 } from '../../services/doctorService';
+import uploadService from '../../services/uploadService';
 
 enum ConsultationStep {
   LOADING,
@@ -43,13 +44,15 @@ export default function ConsultationScreen() {
   
   // Diagnosis states
   const [diagnosis, setDiagnosis] = useState('');
-  const [diagnosisImage, setDiagnosisImage] = useState<string | undefined>(null);
+  const [diagnosisImage, setDiagnosisImage] = useState<string | undefined>(undefined);
+  const [uploadingDiagnosisImage, setUploadingDiagnosisImage] = useState(false);
   const [treatmentPlan, setTreatmentPlan] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
   
   // Prescription states
   const [prescription, setPrescription] = useState('');
-  const [prescriptionImage, setPrescriptionImage] = useState<string | undefined>(null);
+  const [prescriptionImage, setPrescriptionImage] = useState<string | undefined>(undefined);
+  const [uploadingPrescriptionImage, setUploadingPrescriptionImage] = useState(false);
   const [durationDays, setDurationDays] = useState('');
   const [prescriptionNotes, setPrescriptionNotes] = useState('');
   
@@ -134,9 +137,16 @@ export default function ConsultationScreen() {
   };
 
   const pickImage = async (
-    setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>
+    setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>,
+    isForDiagnosis: boolean = false
   ) => {
     try {
+      // Check if token is available
+      if (!token) {
+        Alert.alert('Authentication Error', 'You are not authenticated. Please log in again.');
+        return;
+      }
+
       // Request permissions first
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -152,20 +162,45 @@ export default function ConsultationScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const selectedImage = result.assets[0];
-        if (selectedImage.base64) {
-          setImageFunction(`data:image/jpeg;base64,${selectedImage.base64}`);
-        } else if (selectedImage.uri) {
-          setImageFunction(selectedImage.uri);
+        
+        if (isForDiagnosis) {
+          setUploadingDiagnosisImage(true);
+        } else {
+          setUploadingPrescriptionImage(true);
+        }
+        
+        try {
+          // Upload the image directly - token is guaranteed to be a string here
+          const uploadResponse = isForDiagnosis
+            ? await uploadService.uploadMedicalRecordImage(selectedImage.uri, token)
+            : await uploadService.uploadPrescriptionImage(selectedImage.uri, token);
+          
+          if (!uploadResponse.success || !uploadResponse.data) {
+            throw new Error(uploadResponse.error || 'Failed to upload image');
+          }
+          
+          // Set the image URL returned from the server
+          setImageFunction(uploadResponse.data.fileUrl);
+        } catch (error: unknown) {
+          console.error('Error uploading image:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to upload the image';
+          Alert.alert('Upload Error', errorMessage);
+        } finally {
+          if (isForDiagnosis) {
+            setUploadingDiagnosisImage(false);
+          } else {
+            setUploadingPrescriptionImage(false);
+          }
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error picking image:', err);
-      Alert.alert('Error', 'Failed to select image');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to select image';
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -401,17 +436,34 @@ export default function ConsultationScreen() {
         <Text style={styles.inputLabel}>Upload Diagnosis Image (Optional)</Text>
         <TouchableOpacity 
           style={styles.uploadButton}
-          onPress={() => pickImage(setDiagnosisImage)}
+          onPress={() => pickImage(setDiagnosisImage, true)}
+          disabled={uploadingDiagnosisImage}
         >
-          <Ionicons name="cloud-upload" size={24} color="#0466C8" />
-          <Text style={styles.uploadText}>
-            {diagnosisImage ? 'Change Image' : 'Upload Image'}
-          </Text>
+          {uploadingDiagnosisImage ? (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <ActivityIndicator size="small" color="#0466C8" />
+              <Text style={styles.uploadText}>Uploading...</Text>
+            </View>
+          ) : (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Ionicons name="cloud-upload" size={24} color="#0466C8" />
+              <Text style={styles.uploadText}>
+                {diagnosisImage ? 'Change Image' : 'Upload Image'}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
         
         {diagnosisImage && (
           <View style={styles.imageContainer}>
-            <Image source={{ uri: diagnosisImage }} style={styles.previewImage} />
+            <Image 
+              source={{ 
+                uri: diagnosisImage.startsWith('http') 
+                  ? diagnosisImage 
+                  : `${doctorService.BASE_URL}${diagnosisImage}`
+              }} 
+              style={styles.previewImage} 
+            />
             <TouchableOpacity 
               style={styles.removeImageButton}
               onPress={() => setDiagnosisImage(undefined)}
@@ -462,17 +514,34 @@ export default function ConsultationScreen() {
         <Text style={styles.inputLabel}>Upload Prescription Image (Optional)</Text>
         <TouchableOpacity 
           style={styles.uploadButton}
-          onPress={() => pickImage(setPrescriptionImage)}
+          onPress={() => pickImage(setPrescriptionImage, false)}
+          disabled={uploadingPrescriptionImage}
         >
-          <Ionicons name="cloud-upload" size={24} color="#0466C8" />
-          <Text style={styles.uploadText}>
-            {prescriptionImage ? 'Change Image' : 'Upload Image'}
-          </Text>
+          {uploadingPrescriptionImage ? (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <ActivityIndicator size="small" color="#0466C8" />
+              <Text style={styles.uploadText}>Uploading...</Text>
+            </View>
+          ) : (
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Ionicons name="cloud-upload" size={24} color="#0466C8" />
+              <Text style={styles.uploadText}>
+                {prescriptionImage ? 'Change Image' : 'Upload Image'}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
         
         {prescriptionImage && (
           <View style={styles.imageContainer}>
-            <Image source={{ uri: prescriptionImage }} style={styles.previewImage} />
+            <Image 
+              source={{ 
+                uri: prescriptionImage.startsWith('http') 
+                  ? prescriptionImage 
+                  : `${doctorService.BASE_URL}${prescriptionImage}`
+              }} 
+              style={styles.previewImage} 
+            />
             <TouchableOpacity 
               style={styles.removeImageButton}
               onPress={() => setPrescriptionImage(undefined)}

@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
     
     if (deviceIp) {
       console.log(`Using device IP: ${deviceIp}`);
-      return `http://${deviceIp}:3000/api`;
+      return `http://${deviceIp}:3000`;
     }
     
     // For Android emulators, use 10.0.2.2 to access host machine's localhost
@@ -27,24 +27,25 @@ const getApiBaseUrl = () => {
     
     if (devServerHost) {
       console.log(`Using development server IP: ${devServerHost}`);
-      return `http://${devServerHost}:3000/api`;
+      return `http://${devServerHost}:3000`;
     }
     
     if (isAndroid) {
       // Android emulator special case
-      return 'http://10.0.2.2:3000/api';
+      return 'http://10.0.2.2:3000';
     }
     
     // iOS simulator or web
-    return 'http://localhost:3000/api';
+    return 'http://localhost:3000';
   }
   
   // Production environment would use a real domain
-  return 'https://api.docassistpro.com/api'; // Replace with your actual production API URL
+  return 'https://api.docassistpro.com'; // Replace with your actual production API URL
 };
 
 // Base API URL determination
-const API_BASE_URL = getApiBaseUrl();
+export const BASE_URL = getApiBaseUrl();
+const API_BASE_URL = `${BASE_URL}/api`;
 console.log(`API_BASE_URL configured as: ${API_BASE_URL}`);
 
 // Types for API responses
@@ -53,6 +54,7 @@ export interface ApiResponse<T = any> {
   message?: string;
   data?: T;
   error?: string;
+  status?: number;
 }
 
 // Function to handle unauthorized errors (401) - will be set by the AuthContext
@@ -186,7 +188,8 @@ export const addAuthToken = (token: string): Record<string, string> => ({
 });
 
 // API methods
-export const api = {
+const api = {
+  BASE_URL,
   get: <T>(endpoint: string, token?: string): Promise<ApiResponse<T>> => {
     // Create headers object explicitly with type assertion
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };

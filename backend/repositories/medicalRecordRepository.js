@@ -8,6 +8,7 @@ const MedicalRecord = require('../models/medical-record');
 const User = require('../models/user');
 const PatientProfile = require('../models/patient-profile');
 const DoctorProfile = require('../models/doctor-profile');
+const { saveBase64Image, deleteImage } = require('../utils/fileStorage');
 
 class MedicalRecordRepository {
     /**
@@ -62,6 +63,14 @@ class MedicalRecordRepository {
                     throw new Error(`Patient with ID ${patient_id} not found`);
                 }
                 
+                // Process image if provided (convert base64 to file)
+                let savedImageUrl = null;
+                if (diagnosis_image_url && diagnosis_image_url.startsWith('data:image')) {
+                    savedImageUrl = saveBase64Image(diagnosis_image_url, 'medical_record');
+                } else if (diagnosis_image_url) {
+                    savedImageUrl = diagnosis_image_url; // Keep existing URL if not base64
+                }
+                
                 const result = await client.query(
                     `INSERT INTO medical_records (
                         consultation_id, patient_id, doctor_id, record_date,
@@ -73,7 +82,7 @@ class MedicalRecordRepository {
                         doctor_id,
                         record_date,
                         diagnosis || '',
-                        diagnosis_image_url,
+                        savedImageUrl,
                         treatment_plan || '',
                         notes || ''
                     ]
@@ -258,6 +267,30 @@ class MedicalRecordRepository {
                     notes
                 } = recordData;
                 
+                // Get current medical record to check if we need to delete an image
+                const currentResult = await client.query(
+                    'SELECT diagnosis_image_url FROM medical_records WHERE id = $1',
+                    [id]
+                );
+                
+                if (currentResult.rows.length === 0) {
+                    throw new Error(`Medical record with ID ${id} not found`);
+                }
+                
+                // Process image if provided
+                let savedImageUrl = currentResult.rows[0].diagnosis_image_url;
+                if (diagnosis_image_url && diagnosis_image_url.startsWith('data:image')) {
+                    // Delete old image if exists
+                    if (savedImageUrl) {
+                        deleteImage(savedImageUrl);
+                    }
+                    
+                    // Save new image
+                    savedImageUrl = saveBase64Image(diagnosis_image_url, 'medical_record');
+                } else if (diagnosis_image_url) {
+                    savedImageUrl = diagnosis_image_url; // Keep existing URL if not base64
+                }
+                
                 const result = await client.query(
                     `UPDATE medical_records SET
                         diagnosis = COALESCE($1, diagnosis),
@@ -267,7 +300,7 @@ class MedicalRecordRepository {
                         updated_at = CURRENT_TIMESTAMP
                      WHERE id = $5
                      RETURNING *`,
-                    [diagnosis, diagnosis_image_url, treatment_plan, notes, id]
+                    [diagnosis, savedImageUrl, treatment_plan, notes, id]
                 );
                 
                 if (result.rows.length === 0) {
@@ -294,16 +327,26 @@ class MedicalRecordRepository {
             const client = await pool.connect();
             
             try {
-                const result = await client.query(
-                    `DELETE FROM medical_records
-                     WHERE id = $1
-                     RETURNING id`,
+                // Get current medical record to check if we need to delete an image
+                const currentResult = await client.query(
+                    'SELECT diagnosis_image_url FROM medical_records WHERE id = $1',
                     [id]
                 );
                 
-                if (result.rows.length === 0) {
+                if (currentResult.rows.length === 0) {
                     throw new Error(`Medical record with ID ${id} not found`);
                 }
+                
+                // Delete image file if exists
+                if (currentResult.rows[0].diagnosis_image_url) {
+                    deleteImage(currentResult.rows[0].diagnosis_image_url);
+                }
+                
+                // Delete record from database
+                await client.query(
+                    'DELETE FROM medical_records WHERE id = $1',
+                    [id]
+                );
                 
                 return true;
             } finally {

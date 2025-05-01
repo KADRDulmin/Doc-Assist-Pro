@@ -28,9 +28,13 @@ router.get('/by-appointment/:appointmentId', authenticate, async (req, res, next
         // Access control - only the patient, doctor, or admin can view the records
         const isAdmin = req.user.role === 'admin';
         const isDoctorForConsultation = req.user.role === 'doctor' && 
-                                      consultation.doctor?.user?.id === req.user.id;
+                                      consultation && consultation.doctor && 
+                                      consultation.doctor.user && 
+                                      consultation.doctor.user.id === req.user.id;
         const isPatientForConsultation = req.user.role === 'patient' && 
-                                      consultation.patient?.user?.id === req.user.id;
+                                      consultation && consultation.patient && 
+                                      consultation.patient.user && 
+                                      consultation.patient.user.id === req.user.id;
                                       
         if (!isAdmin && !isDoctorForConsultation && !isPatientForConsultation) {
             return res.status(403).json({
@@ -75,9 +79,13 @@ router.get('/by-consultation/:consultationId', authenticate, async (req, res, ne
         // Access control
         const isAdmin = req.user.role === 'admin';
         const isDoctorForConsultation = req.user.role === 'doctor' && 
-                                      consultation.doctor?.user?.id === req.user.id;
+                                      consultation && consultation.doctor && 
+                                      consultation.doctor.user && 
+                                      consultation.doctor.user.id === req.user.id;
         const isPatientForConsultation = req.user.role === 'patient' && 
-                                      consultation.patient?.user?.id === req.user.id;
+                                      consultation && consultation.patient && 
+                                      consultation.patient.user && 
+                                      consultation.patient.user.id === req.user.id;
                                       
         if (!isAdmin && !isDoctorForConsultation && !isPatientForConsultation) {
             return res.status(403).json({
@@ -128,9 +136,13 @@ router.get('/:id', authenticate, async (req, res, next) => {
         // Access control
         const isAdmin = req.user.role === 'admin';
         const isDoctorForConsultation = req.user.role === 'doctor' && 
-                                      consultation.doctor?.user?.id === req.user.id;
+                                      consultation && consultation.doctor && 
+                                      consultation.doctor.user && 
+                                      consultation.doctor.user.id === req.user.id;
         const isPatientForConsultation = req.user.role === 'patient' && 
-                                      consultation.patient?.user?.id === req.user.id;
+                                      consultation && consultation.patient && 
+                                      consultation.patient.user && 
+                                      consultation.patient.user.id === req.user.id;
                                       
         if (!isAdmin && !isDoctorForConsultation && !isPatientForConsultation) {
             return res.status(403).json({

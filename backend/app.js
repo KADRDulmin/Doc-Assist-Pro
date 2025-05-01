@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { initializeDatabase } = require('./database/init');
@@ -94,6 +96,36 @@ app.use(cors({
 // Increase JSON request body limit to handle larger payloads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Debug logging for static file serving
+console.log(`Static files directory configured:`, path.join(__dirname, 'uploads'));
+// Log the directory contents to verify structure
+try {
+    if (fs.existsSync(path.join(__dirname, 'uploads'))) {
+        const mainDirContents = fs.readdirSync(path.join(__dirname, 'uploads'));
+        console.log(`Uploads directory contents:`, mainDirContents);
+        
+        // Check subdirectories
+        const subDirs = ['medical_records', 'prescriptions'];
+        subDirs.forEach(subDir => {
+            const fullPath = path.join(__dirname, 'uploads', subDir);
+            if (fs.existsSync(fullPath)) {
+                console.log(`${subDir} directory exists and contains: `, 
+                    fs.readdirSync(fullPath).slice(0, 5).join(', ') + 
+                    (fs.readdirSync(fullPath).length > 5 ? '...' : ''));
+            } else {
+                console.log(`${subDir} directory does not exist or is not accessible at: ${fullPath}`);
+            }
+        });
+    } else {
+        console.log(`Uploads directory does not exist at: ${path.join(__dirname, 'uploads')}`);
+    }
+} catch (error) {
+    console.error(`Error checking uploads directory: ${error.message}`);
+}
 
 // Request logging middleware with request body
 app.use((req, res, next) => {

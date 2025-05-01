@@ -8,6 +8,7 @@ const Prescription = require('../models/prescription');
 const User = require('../models/user');
 const PatientProfile = require('../models/patient-profile');
 const DoctorProfile = require('../models/doctor-profile');
+const { saveBase64Image, deleteImage } = require('../utils/fileStorage');
 
 class PrescriptionRepository {
     /**
@@ -68,6 +69,14 @@ class PrescriptionRepository {
                     throw new Error('Either prescription text or image URL must be provided');
                 }
                 
+                // Process image if provided (convert base64 to file)
+                let savedImageUrl = null;
+                if (prescription_image_url && prescription_image_url.startsWith('data:image')) {
+                    savedImageUrl = saveBase64Image(prescription_image_url, 'prescription');
+                } else if (prescription_image_url) {
+                    savedImageUrl = prescription_image_url; // Keep existing URL if not base64
+                }
+                
                 const result = await client.query(
                     `INSERT INTO prescriptions (
                         consultation_id, patient_id, doctor_id, prescription_date,
@@ -79,7 +88,7 @@ class PrescriptionRepository {
                         doctor_id,
                         prescription_date,
                         prescription_text || '',
-                        prescription_image_url,
+                        savedImageUrl,
                         status,
                         duration_days || null,
                         notes || ''
@@ -296,6 +305,30 @@ class PrescriptionRepository {
                     notes
                 } = prescriptionData;
                 
+                // Get current prescription to check if we need to delete an image
+                const currentResult = await client.query(
+                    'SELECT prescription_image_url FROM prescriptions WHERE id = $1',
+                    [id]
+                );
+                
+                if (currentResult.rows.length === 0) {
+                    throw new Error(`Prescription with ID ${id} not found`);
+                }
+                
+                // Process image if provided
+                let savedImageUrl = currentResult.rows[0].prescription_image_url;
+                if (prescription_image_url && prescription_image_url.startsWith('data:image')) {
+                    // Delete old image if exists
+                    if (savedImageUrl) {
+                        deleteImage(savedImageUrl);
+                    }
+                    
+                    // Save new image
+                    savedImageUrl = saveBase64Image(prescription_image_url, 'prescription');
+                } else if (prescription_image_url) {
+                    savedImageUrl = prescription_image_url; // Keep existing URL if not base64
+                }
+                
                 const result = await client.query(
                     `UPDATE prescriptions SET
                         prescription_text = COALESCE($1, prescription_text),
@@ -306,7 +339,7 @@ class PrescriptionRepository {
                         updated_at = CURRENT_TIMESTAMP
                      WHERE id = $6
                      RETURNING *`,
-                    [prescription_text, prescription_image_url, status, duration_days, notes, id]
+                    [prescription_text, savedImageUrl, status, duration_days, notes, id]
                 );
                 
                 if (result.rows.length === 0) {
@@ -333,16 +366,26 @@ class PrescriptionRepository {
             const client = await pool.connect();
             
             try {
-                const result = await client.query(
-                    `DELETE FROM prescriptions
-                     WHERE id = $1
-                     RETURNING id`,
+                // Get current prescription to check if we need to delete an image
+                const currentResult = await client.query(
+                    'SELECT prescription_image_url FROM prescriptions WHERE id = $1',
                     [id]
                 );
                 
-                if (result.rows.length === 0) {
+                if (currentResult.rows.length === 0) {
                     throw new Error(`Prescription with ID ${id} not found`);
                 }
+                
+                // Delete image file if exists
+                if (currentResult.rows[0].prescription_image_url) {
+                    deleteImage(currentResult.rows[0].prescription_image_url);
+                }
+                
+                // Delete prescription from database
+                await client.query(
+                    'DELETE FROM prescriptions WHERE id = $1',
+                    [id]
+                );
                 
                 return true;
             } finally {

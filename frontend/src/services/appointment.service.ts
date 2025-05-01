@@ -117,7 +117,7 @@ class AppointmentService extends BaseApiService {
   }
 
   async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<any>> {
-    return this.get(`/doctors/${doctorId}/availability?date=${date}`);
+    return this.get(`/availability/${doctorId}?date=${date}`);
   }
 
   async getTodaysAppointments(): Promise<ApiResponse<AppointmentData[]>> {

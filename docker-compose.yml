@@ -21,6 +21,8 @@ services:
       FRONTEND_URL: http://localhost:19006  # Public frontend URL
       CORS_ALLOW_CREDENTIALS: "true"
       CORS_ALLOWED_ORIGINS: "http://localhost:19006,http://frontend:19006,http://localhost:8081"
+    volumes:
+      - ./backend/uploads:/app/uploads  # Add this line to persist uploads
     depends_on:
       db:
         condition: service_healthy

@@ -1,4 +1,4 @@
-import api, { ApiResponse } from './api';
+import api, { ApiResponse, BASE_URL } from './api';
 import { DoctorProfile } from './authService';
 
 export interface AppointmentData {
@@ -129,6 +129,9 @@ const getCurrentUserId = async (token: string): Promise<number | undefined> => {
 };
 
 const doctorService = {
+  // Include the BASE_URL for access in other components
+  BASE_URL,
+  
   // Get doctor's profile
   getProfile: async (token: string): Promise<ApiResponse<DoctorProfile>> => {
     return api.get<DoctorProfile>('/doctors/profile/me', token);
