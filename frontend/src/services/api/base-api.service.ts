@@ -194,59 +194,84 @@ class BaseApiService {
         responseData = { message: text };
       }
       
-      // If token expired but we have valid credentials, retry the request once
-      if (response.status === 401 && requiresAuth) {
-        // Check if we should try token refresh
-        const shouldTryRefresh = responseData.error && 
-          (responseData.error.includes('Token expired') || 
-           responseData.error.includes('invalid token') ||
-           responseData.error.includes('jwt'));
-           
-        if (shouldTryRefresh) {
-          console.log('Token appears expired, attempting to refresh');
-          
-          try {
-            const refreshResponse = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                token: await tokenService.getToken()
-              })
-            });
+      // Handle unauthorized (401) and forbidden (403) responses that indicate auth issues
+      if ((response.status === 401 || response.status === 403) && requiresAuth) {
+        const errorMessage = responseData.error || responseData.message || '';
+        
+        // Check if we should try token refresh for 401 unauthorized
+        if (response.status === 401) {
+          const shouldTryRefresh = errorMessage.includes('Token expired') || 
+            errorMessage.includes('invalid token') ||
+            errorMessage.includes('jwt');
             
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.token) {
-                // Save new token
-                await tokenService.storeToken(refreshData.token);
-                
-                // Retry original request with new token
-                console.log('Token refreshed successfully, retrying original request');
-                options.headers = await this.getHeaders(requiresAuth);
-                const retryResponse = await fetch(url, options);
-                
-                // Handle retry response
-                if (retryResponse.ok) {
-                  if (retryResponse.headers.get('content-type')?.includes('application/json')) {
-                    return await retryResponse.json();
-                  } else {
-                    const text = await retryResponse.text();
-                    return { message: text } as unknown as T;
+          if (shouldTryRefresh) {
+            console.log('Token appears expired, attempting to refresh');
+            
+            try {
+              const refreshResponse = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  token: await tokenService.getToken()
+                })
+              });
+              
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                if (refreshData.token) {
+                  // Save new token
+                  await tokenService.storeToken(refreshData.token);
+                  
+                  // Retry original request with new token
+                  console.log('Token refreshed successfully, retrying original request');
+                  options.headers = await this.getHeaders(requiresAuth);
+                  const retryResponse = await fetch(url, options);
+                  
+                  // Handle retry response
+                  if (retryResponse.ok) {
+                    if (retryResponse.headers.get('content-type')?.includes('application/json')) {
+                      return await retryResponse.json();
+                    } else {
+                      const text = await retryResponse.text();
+                      return { message: text } as unknown as T;
+                    }
                   }
                 }
+              } else {
+                // If refresh failed, clear token and trigger automatic logout
+                console.log('Token refresh failed, clearing invalid token');
+                await tokenService.clearToken();
+                this.triggerAutomaticLogout('Session expired. Please log in again.');
               }
-            } else {
-              // If refresh failed, clear token as it's likely invalid
-              console.log('Token refresh failed, clearing invalid token');
-              await tokenService.clearToken();
+            } catch (refreshError) {
+              console.error('Failed to refresh token:', refreshError);
+              this.triggerAutomaticLogout('Authentication error. Please log in again.');
             }
-          } catch (refreshError) {
-            console.error('Failed to refresh token:', refreshError);
+          } else {
+            // If there was no indication this was a token expiry issue, clear token
+            console.log('Authentication failed with 401 but no token expiry message, clearing token');
+            await tokenService.clearToken();
+            this.triggerAutomaticLogout('Authentication required. Please log in again.');
           }
-        } else {
-          // If there was no indication this was a token expiry issue, clear token
-          console.log('Authentication failed with 401 but no token expiry message, clearing token');
-          await tokenService.clearToken();
+        }
+        
+        // For 403 Forbidden responses related to authentication/authorization
+        if (response.status === 403) {
+          console.log('Authentication failed with 403:', errorMessage);
+          
+          // Check if the error is related to permissions or authorization
+          const isAuthError = 
+            errorMessage.includes('access required') || 
+            errorMessage.includes('not authorized') || 
+            errorMessage.includes('permission') ||
+            errorMessage.includes('forbidden');
+            
+          if (isAuthError) {
+            // Clear token and trigger automatic logout for auth-related 403 errors
+            await tokenService.clearToken();
+            this.triggerAutomaticLogout('Your session has expired or you don\'t have permission for this action. Please log in again.');
+            throw new Error(errorMessage || 'Access denied. Please log in again.');
+          }
         }
       }
 
@@ -264,6 +289,31 @@ class BaseApiService {
       }
       
       throw error;
+    }
+  }
+  
+  /**
+   * Trigger automatic logout and redirect to login screen when token is invalid
+   * This uses a custom event to communicate with the auth context
+   */
+  private triggerAutomaticLogout(message: string): void {
+    console.log('Triggering automatic logout due to auth error:', message);
+    
+    // Use a global event to communicate with AuthContext from any service
+    if (typeof window !== 'undefined') {
+      // For web environment
+      const logoutEvent = new CustomEvent('auth:forcedLogout', { 
+        detail: { message } 
+      });
+      window.dispatchEvent(logoutEvent);
+    } else {
+      // For React Native environment, we'll use a global event emitter
+      // This will be listened to by the AuthContext
+      if (global.authEventEmitter) {
+        global.authEventEmitter.emit('forcedLogout', { message });
+      } else {
+        console.error('Auth event emitter not found, cannot trigger automatic logout');
+      }
     }
   }
 

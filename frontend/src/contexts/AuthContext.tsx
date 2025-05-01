@@ -1,8 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import { router } from 'expo-router';
+import { EventEmitter } from 'events';
 import { authController } from '../controllers/auth.controller';
 import { tokenService } from '../services/token.service';
 import { LoginCredentials, RegisterCredentials, PatientRegisterData } from '../models/auth.model';
+
+// Create a global event emitter for auth events (accessible by services)
+if (!global.authEventEmitter) {
+  global.authEventEmitter = new EventEmitter();
+}
 
 // Define the shape of the authentication context
 interface AuthContextType {
@@ -68,7 +75,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     checkAuth();
+    
+    // Set up listener for forced logout events from API services
+    const handleForcedLogout = async (data: { message: string }) => {
+      console.log('[AuthContext] Forced logout triggered:', data.message);
+      try {
+        // Clear authentication state
+        await tokenService.clearToken();
+        setIsAuthenticated(false);
+        
+        // Show alert with the error message
+        Alert.alert('Session Expired', data.message || 'Your session has expired. Please log in again.');
+        
+        // Redirect to login screen
+        router.replace('/auth/login');
+      } catch (err) {
+        console.error('[AuthContext] Error during forced logout:', err);
+      }
+    };
+    
+    // Add event listeners based on platform
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // Web platform uses window events
+      window.addEventListener('auth:forcedLogout', ((e: CustomEvent) => {
+        handleForcedLogout(e.detail);
+      }) as EventListener);
+      
+      return () => {
+        window.removeEventListener('auth:forcedLogout', ((e: CustomEvent) => {
+          handleForcedLogout(e.detail);
+        }) as EventListener);
+      };
+    } else {
+      // React Native uses the global event emitter
+      global.authEventEmitter.on('forcedLogout', handleForcedLogout);
+      
+      return () => {
+        global.authEventEmitter.off('forcedLogout', handleForcedLogout);
+      };
+    }
   }, []);
+
+  // Watch authentication state changes to handle navigation
+  useEffect(() => {
+    // When auth state changes from authenticated to not authenticated, redirect to login
+    if (isAuthenticated === false && !isLoading) {
+      // Small delay to ensure context updates propagate
+      const redirectTimer = setTimeout(() => {
+        router.replace('/auth/login');
+      }, 100);
+      
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [isAuthenticated, isLoading]);
 
   // Function to refresh auth state
   const refreshAuthState = async (): Promise<void> => {
@@ -176,11 +235,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     try {
       await authController.logout();
+      await tokenService.clearToken(); // Ensure token is cleared
       setIsAuthenticated(false);
+      
+      // Explicit navigation to login screen
+      router.replace('/auth/login');
     } catch (err: any) {
       const errorMessage = err.message || 'Logout failed. Please try again.';
       setError(errorMessage);
       Alert.alert('Logout Error', errorMessage);
+      
+      // Even if logout fails, we should clear token and redirect
+      await tokenService.clearToken();
+      setIsAuthenticated(false);
+      router.replace('/auth/login');
     } finally {
       setIsLoading(false);
     }

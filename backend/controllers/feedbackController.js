@@ -256,6 +256,36 @@ class FeedbackController {
             next(error);
         }
     }
+
+    /**
+     * Get feedback for a specific appointment
+     */
+    async getAppointmentFeedback(req, res, next) {
+        try {
+            const { appointmentId } = req.params;
+            
+            // Check if appointment exists
+            const appointmentRepository = require('../repositories/appointmentRepository');
+            const appointment = await appointmentRepository.getAppointmentById(appointmentId);
+            
+            if (!appointment) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Appointment not found'
+                });
+            }
+            
+            // Get feedback associated with this appointment
+            const feedback = await feedbackRepository.getFeedbackByAppointmentId(appointmentId);
+            
+            res.json({
+                success: true,
+                data: feedback || null // Return null if no feedback exists
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new FeedbackController();

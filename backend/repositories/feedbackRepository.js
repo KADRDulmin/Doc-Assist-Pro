@@ -305,6 +305,39 @@ class FeedbackRepository {
     }
     
     /**
+     * Get feedback for a specific appointment
+     */
+    async getFeedbackByAppointmentId(appointmentId) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                const result = await client.query(
+                    `SELECT f.*
+                     FROM feedback f
+                     WHERE f.appointment_id = $1
+                     LIMIT 1`,
+                    [appointmentId]
+                );
+                
+                if (result.rows.length === 0) {
+                    return null;
+                }
+                
+                return await this._populateFeedbackWithDetails(client, result.rows[0]);
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            if (this._isConnectionError(error)) {
+                console.warn('Database connection failed, using in-memory storage');
+                return this._getFeedbackByAppointmentIdInMemory(appointmentId);
+            }
+            throw error;
+        }
+    }
+    
+    /**
      * Helper method to populate feedback with doctor and patient details
      */
     async _populateFeedbackWithDetails(client, feedbackRow) {
@@ -671,6 +704,42 @@ class FeedbackRepository {
             average_rating: Number(averageRating.toFixed(1)),
             total_reviews: doctorFeedback.length
         };
+    }
+
+    /**
+     * Get feedback for a specific appointment from memory
+     */
+    _getFeedbackByAppointmentIdInMemory(appointmentId) {
+        if (!memoryStore.feedback) return null;
+        
+        const feedback = memoryStore.feedback.find(f => f.appointment_id === parseInt(appointmentId));
+        if (!feedback) return null;
+        
+        const result = new Feedback(feedback);
+        
+        // Add related patient data
+        const patient = memoryStore.patientProfiles.find(p => p.id === feedback.patient_id);
+        if (patient) {
+            const patientUser = memoryStore.users.find(u => u.id === patient.user_id);
+            if (patientUser) {
+                const patientProfile = new PatientProfile(patient);
+                patientProfile.user = new User(patientUser);
+                result.patient = patientProfile;
+            }
+        }
+        
+        // Add related doctor data
+        const doctor = memoryStore.doctorProfiles.find(d => d.id === feedback.doctor_id);
+        if (doctor) {
+            const doctorUser = memoryStore.users.find(u => u.id === doctor.user_id);
+            if (doctorUser) {
+                const doctorProfile = new DoctorProfile(doctor);
+                doctorProfile.user = new User(doctorUser);
+                result.doctor = doctorProfile;
+            }
+        }
+        
+        return result;
     }
 }
 
