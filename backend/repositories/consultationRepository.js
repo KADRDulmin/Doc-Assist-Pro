@@ -507,6 +507,35 @@ class ConsultationRepository {
             throw error;
         }
     }
+
+    /**
+     * Check if a doctor has had any consultations with a specific patient
+     * @param {number} doctorId - Doctor ID
+     * @param {number} patientId - Patient ID
+     * @returns {Promise<boolean>} True if doctor has treated this patient
+     */
+    async doctorHasConsultationWithPatient(doctorId, patientId) {
+        try {
+            const client = await pool.connect();
+            
+            try {
+                const result = await client.query(
+                    `SELECT 1
+                     FROM consultations c
+                     WHERE c.doctor_id = $1 AND c.patient_id = $2
+                     LIMIT 1`,
+                    [doctorId, patientId]
+                );
+                
+                return result.rows.length > 0;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error('Error checking doctor-patient consultation history:', error);
+            return false;
+        }
+    }
 }
 
 module.exports = new ConsultationRepository();

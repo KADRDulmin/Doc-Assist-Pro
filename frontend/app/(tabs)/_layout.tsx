@@ -45,10 +45,6 @@ export default function TabLayout() {
     inputRange: [0, 1],
     outputRange: [0, 1]
   });
-  const checkupScale = fabMenuAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1]
-  });
 
   const fabRotation = fabMenuAnimation.interpolate({
     inputRange: [0, 1],
@@ -63,11 +59,6 @@ export default function TabLayout() {
   const handleFollowUpAppointment = () => {
     toggleFabMenu();
     router.push('/appointments/follow-up');
-  };
-
-  const handleCheckUpAppointment = () => {
-    toggleFabMenu();
-    router.push('/appointments/checkup');
   };
 
   return (
@@ -199,23 +190,6 @@ export default function TabLayout() {
               </TouchableOpacity>
               <View style={styles.fabMenuLabel}>
                 <Animated.Text style={styles.fabMenuLabelText}>Follow-up Appointment</Animated.Text>
-              </View>
-            </Animated.View>
-            
-            <Animated.View 
-              style={[
-                styles.fabMenuItem,
-                { transform: [{ scale: checkupScale }] }
-              ]}
-            >
-              <TouchableOpacity
-                style={[styles.fabMenuButton, { backgroundColor: '#6abf8a' }]}
-                onPress={handleCheckUpAppointment}
-              >
-                <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="#fff" />
-              </TouchableOpacity>
-              <View style={styles.fabMenuLabel}>
-                <Animated.Text style={styles.fabMenuLabelText}>Schedule Check-up</Animated.Text>
               </View>
             </Animated.View>
           </View>

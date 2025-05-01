@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const doctorController = require('../controllers/doctorController');
+const appointmentController = require('../controllers/appointmentController'); // Added import
 const { authenticate } = require('../middleware/auth');
 const { requireRole, requireDoctor, requireAdmin } = require('../middleware/roleAuth');
 
 // Public routes
 router.get('/', doctorController.getAllDoctors);
 router.get('/nearby', doctorController.getNearbyDoctors);
+router.get('/:doctorId/availability', appointmentController.getDoctorAvailability); // Added route
 router.get('/:doctorId', doctorController.getDoctorById);
 
 // Doctor registration endpoint

@@ -44,6 +44,31 @@ export interface PatientDashboardData {
   medicalRecordsCount: number;
 }
 
+export interface ConsultedDoctor {
+  id: number;
+  name: string;
+  specialization: string;
+  lastConsultationDate: string;
+  imageUrl?: string;
+}
+
+export interface BookAppointmentData {
+  doctor_id: number;
+  appointment_date: string;
+  appointment_time: string;
+  appointment_type: string;
+  notes?: string;
+  symptoms?: string;
+  possible_illness_1?: string;
+  possible_illness_2?: string;
+  parent_appointment_id?: number;
+}
+
+export interface DoctorAvailability {
+  available_slots: string[];
+  unavailable_slots?: string[];
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -131,6 +156,47 @@ class PatientService {
       return response as ApiResponse<any>;
     } catch (error) {
       console.error(`[PatientService] Failed to get medical record ${recordId}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all doctors the patient has consulted with
+   */
+  async getConsultedDoctors(): Promise<ApiResponse<ConsultedDoctor[]>> {
+    try {
+      const response = await api.get('/api/patients/consulted-doctors');
+      return response as ApiResponse<ConsultedDoctor[]>;
+    } catch (error) {
+      console.error('[PatientService] Failed to get consulted doctors:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get available time slots for a doctor on a specific date
+   */
+  async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<DoctorAvailability>> {
+    try {
+      const response = await api.get(`/api/doctors/${doctorId}/availability`, {
+        params: { date }
+      });
+      return response as ApiResponse<DoctorAvailability>;
+    } catch (error) {
+      console.error(`[PatientService] Failed to get doctor ${doctorId} availability:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Book an appointment with a doctor
+   */
+  async bookAppointment(data: BookAppointmentData): Promise<ApiResponse<any>> {
+    try {
+      const response = await api.post('/api/appointments', data);
+      return response as ApiResponse<any>;
+    } catch (error) {
+      console.error('[PatientService] Failed to book appointment:', error);
       throw error;
     }
   }

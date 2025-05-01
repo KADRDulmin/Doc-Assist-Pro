@@ -91,6 +91,27 @@ export interface MedicalRecordData {
   notes?: string;
   created_at: string;
   updated_at: string;
+  doctor?: {
+    id: number;
+    specialization?: string;
+    user?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+      email?: string;
+      phone?: string;
+    }
+  };
+  patient?: {
+    id: number;
+    user?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+      email?: string;
+      phone?: string;
+    }
+  };
 }
 
 export interface PrescriptionData {
@@ -130,7 +151,8 @@ export interface PatientData {
   };
   appointment_count: number;
   completed_appointments: number;
-  cancelled_appointments: number;
+  missed_appointments: number;
+  cancelled_appointments: number; // Added for backward compatibility
   upcoming_appointments: number;
 }
 
@@ -361,6 +383,16 @@ const doctorService = {
   // Get feedback for an appointment
   getFeedbackByAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<FeedbackData>> => {
     return api.get<FeedbackData>(`/feedback/appointment/${appointmentId}`, token);
+  },
+
+  // Get all medical records for a patient
+  getPatientMedicalRecords: async (patientId: number, token: string): Promise<ApiResponse<MedicalRecordData[]>> => {
+    return api.get<MedicalRecordData[]>(`/medical-records/patient/${patientId}`, token);
+  },
+
+  // Get all prescriptions for a patient
+  getPatientPrescriptions: async (patientId: number, token: string): Promise<ApiResponse<PrescriptionData[]>> => {
+    return api.get<PrescriptionData[]>(`/prescriptions/patient/${patientId}`, token);
   },
 };
 
