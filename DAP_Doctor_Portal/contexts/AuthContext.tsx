@@ -4,6 +4,38 @@ import authService, { DoctorUser } from '../services/authService';
 import { registerUnauthorizedHandler, registerDoctorAccessRequiredHandler } from '../services/api';
 import { Alert } from 'react-native';
 
+// Simple custom EventEmitter for React Native that doesn't rely on Node.js
+class SimpleEventEmitter {
+  private listeners: Record<string, Function[]> = {};
+
+  on(event: string, listener: Function): void {
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
+    }
+    this.listeners[event].push(listener);
+  }
+
+  off(event: string, listener: Function): void {
+    if (!this.listeners[event]) return;
+    this.listeners[event] = this.listeners[event].filter(l => l !== listener);
+  }
+
+  emit(event: string, ...args: any[]): void {
+    if (!this.listeners[event]) return;
+    this.listeners[event].forEach(listener => listener(...args));
+  }
+}
+
+// Create a global object for event handling that doesn't rely on Node.js EventEmitter
+if (!global.authEventEmitter) {
+  global.authEventEmitter = new SimpleEventEmitter();
+}
+
+// Make TypeScript aware of our global addition
+declare global {
+  var authEventEmitter: SimpleEventEmitter;
+}
+
 // Define the shape of our authentication context
 interface AuthContextType {
   user: DoctorUser | null;
