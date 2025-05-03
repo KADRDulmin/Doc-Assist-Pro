@@ -136,44 +136,6 @@ router.get('/patient/:patientId/active', authenticate, async (req, res, next) =>
     }
 });
 
-// Get all prescriptions for a patient
-router.get('/patient/:patientId', authenticate, requireRole(['doctor', 'admin', 'patient']), async (req, res, next) => {
-    try {
-        const { patientId } = req.params;
-        
-        // Access control - only the patient themselves, their doctor, or admin can view prescriptions
-        const isAdmin = req.user.role === 'admin';
-        const isPatient = req.user.role === 'patient' && req.user.patient_profile_id === parseInt(patientId);
-        const isDoctor = req.user.role === 'doctor';
-
-        // If patient, they can only view their own prescriptions
-        if (req.user.role === 'patient' && !isPatient) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only view your own prescriptions',
-                data: []
-            });
-        }
-        
-        // For development purposes, allow all doctors to view any patient's prescriptions
-        // In production, implement proper checks to verify the doctor has treated this patient
-        
-        const prescriptions = await prescriptionRepository.getPatientPrescriptions(patientId);
-        
-        return res.json({
-            success: true,
-            data: prescriptions
-        });
-    } catch (error) {
-        console.error('Error getting patient prescriptions:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching prescriptions',
-            data: []
-        });
-    }
-});
-
 // Get a specific prescription by ID
 router.get('/:id', authenticate, async (req, res, next) => {
     try {

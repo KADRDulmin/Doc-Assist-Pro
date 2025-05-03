@@ -15,9 +15,6 @@ router.get('/dashboard', authenticate, requirePatient, patientController.getDash
 router.get('/medical-records', authenticate, requirePatient, patientController.getMedicalRecords);
 router.get('/medical-records/:recordId', authenticate, requirePatient, patientController.getMedicalRecordById);
 
-// Route for follow-up appointments - get doctors the patient has consulted with
-router.get('/consulted-doctors', authenticate, requirePatient, patientController.getConsultedDoctors);
-
 // Doctor and admin routes
 router.get('/:patientId', authenticate, requireRole(['doctor', 'admin']), patientController.getPatientById);
 

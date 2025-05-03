@@ -321,65 +321,6 @@ class PatientRepository {
     }
     
     /**
-     * Get all doctors a patient has consulted with
-     * @param {number} patientId - Patient ID
-     * @returns {Promise<Array>} List of doctors the patient has consulted with
-     */
-    async getConsultedDoctors(patientId) {
-        const client = await pool.connect();
-        try {
-            // Get doctors from completed consultations
-            const query = `
-                SELECT DISTINCT 
-                    dp.id, 
-                    u.first_name,
-                    u.last_name,
-                    dp.specialization,
-                    (
-                        SELECT c.created_at 
-                        FROM consultations c 
-                        WHERE c.doctor_id = dp.id AND c.patient_id = $1 AND c.status = 'completed'
-                        ORDER BY c.created_at DESC
-                        LIMIT 1
-                    ) as last_consultation_date
-                FROM consultations c
-                JOIN doctor_profiles dp ON c.doctor_id = dp.id
-                JOIN users u ON dp.user_id = u.id
-                WHERE c.patient_id = $1 AND c.status = 'completed'
-                ORDER BY last_consultation_date DESC
-            `;
-            
-            const result = await client.query(query, [patientId]);
-            
-            return result.rows.map(row => ({
-                id: row.id,
-                name: `${row.first_name} ${row.last_name}`,
-                specialization: row.specialization,
-                lastConsultationDate: this.formatDate(row.last_consultation_date)
-            }));
-        } catch (error) {
-            console.error('Error getting consulted doctors:', error);
-            throw error;
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * Format a date to a readable string
-     * @param {Date} date - The date to format
-     * @returns {string} Formatted date string
-     */
-    formatDate(date) {
-        if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
-    
-    /**
      * Get patient prescriptions from memory store
      */
     _getPatientPrescriptionsInMemory(patientId) {

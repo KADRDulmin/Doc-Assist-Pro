@@ -265,33 +265,6 @@ class PatientController {
             next(error);
         }
     }
-
-    /**
-     * Get all doctors a patient has consulted with
-     */
-    async getConsultedDoctors(req, res, next) {
-        try {
-            // Get patient profile from authenticated user
-            const patientProfile = await patientRepository.getProfileByUserId(req.user.id);
-            
-            if (!patientProfile) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Patient profile not found'
-                });
-            }
-            
-            // Get all doctors the patient has consulted with
-            const consultedDoctors = await patientRepository.getConsultedDoctors(patientProfile.id);
-            
-            res.json({
-                success: true,
-                data: consultedDoctors
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
 }
 
 module.exports = new PatientController();

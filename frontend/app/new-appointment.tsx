@@ -185,23 +185,14 @@ export default function NewAppointmentScreen() {
       // Submit the appointment
       const response = await appointmentService.createAppointment(appointmentData);
       
-      if (response.success && response.data) {
-        // Verify the appointment was created by checking the response data
-        const createdAppointment = response.data;
-        
-        // Store appointment ID for reference (you might want to use this elsewhere)
-        const newAppointmentId = createdAppointment.id;
-        
-        // Show success message with verification
+      if (response.success) {
         Alert.alert(
-          'Appointment Confirmed', 
-          `Your ${appointmentType} appointment has been successfully created and scheduled for ${formattedDate} at ${selectedTime}${
-            appointmentType === 'Follow-up' ? '\n\nYour follow-up appointment is now confirmed.' : ''
-          }`,
+          'Success', 
+          'Your appointment has been scheduled successfully',
           [
             { 
-              text: 'Go to Dashboard', 
-              onPress: () => router.push('/(tabs)/index')  // Direct to index/dashboard screen
+              text: 'View Appointments', 
+              onPress: () => router.push('/(tabs)/appointments') 
             }
           ]
         );

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, Card, Avatar, Badge, Button, ActivityIndicator, Searchbar, Portal, Dialog, Divider } from 'react-native-paper';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
 import doctorService, { PatientData } from '../../services/doctorService';
@@ -10,7 +9,6 @@ import Colors from '../../constants/Colors';
 
 export default function PatientsScreen() {
   const { user } = useAuth();
-  const router = useRouter();
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<PatientData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,8 +136,8 @@ export default function PatientsScreen() {
               <Text style={styles.statLabel}>Done</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{item.missed_appointments}</Text>
-              <Text style={styles.statLabel}>Missed</Text>
+              <Text style={styles.statNumber}>{item.cancelled_appointments}</Text>
+              <Text style={styles.statLabel}>Cancelled</Text>
             </View>
           </View>
         </Card.Content>
@@ -273,19 +271,12 @@ export default function PatientsScreen() {
                   mode="contained"
                   onPress={() => {
                     hideDialog();
-                    // Navigate to medical history screen
-                    const patientName = `${selectedPatient.user.first_name} ${selectedPatient.user.last_name}`;
-                    router.push({
-                      pathname: '/patient/medical-history',
-                      params: { 
-                        patientId: selectedPatient.id.toString(),
-                        patientName: patientName
-                      }
-                    });
+                    // Schedule new appointment
+                    console.log(`Schedule appointment for patient: ${selectedPatient.id}`);
                   }}
-                  style={styles.medicalHistoryButton}
+                  style={styles.scheduleButton}
                 >
-                  View Medical History
+                  Schedule Appointment
                 </Button>
               </Dialog.Actions>
             </>
@@ -476,7 +467,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     backgroundColor: Colors.light.primary,
   },
-  medicalHistoryButton: {
+  scheduleButton: {
     marginLeft: 8,
     backgroundColor: '#4CAF50',
   },
