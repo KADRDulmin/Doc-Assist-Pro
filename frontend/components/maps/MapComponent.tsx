@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Platform, Linking, Alert, ViewStyle } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/useThemeColor';
+// Import our safe map component instead of using react-native-maps directly
+import { SafeMapView, Marker, PROVIDER_GOOGLE } from '@/components/common';
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCzmBUcvmUy2bvfTASC90DtXWqQi9l84_4';
@@ -48,7 +49,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
     longitudeDelta: DEFAULT_DELTA,
   });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const mapRef = useRef<MapView | null>(null);
+  // Update ref type to SafeMapView
+  const mapRef = useRef<any>(null);
   const autocompleteRef = useRef<any>(null);
 
   useEffect(() => {
@@ -222,26 +224,26 @@ const MapComponent: React.FC<MapComponentProps> = ({
         </View>
       )}
       
-      <MapView
+      {/* Replace MapView with SafeMapView */}
+      <SafeMapView
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        region={currentRegion}
+        initialRegion={currentRegion}
+        onRegionChange={setCurrentRegion}
         onPress={handleMapPress}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-      >
-        {location && (
-          <Marker
-            coordinate={{
+        showUserLocation={true}
+        markers={location ? [
+          {
+            coordinate: {
               latitude: location.latitude,
               longitude: location.longitude,
-            }}
-            title={markerTitle}
-            description={location.address}
-          />
-        )}
-      </MapView>
+            },
+            title: markerTitle,
+            description: location.address,
+          }
+        ] : []}
+      />
       
       {editable && (
         <TouchableOpacity style={styles.currentLocationButton} onPress={getCurrentLocation}>

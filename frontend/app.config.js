@@ -17,6 +17,7 @@ export default {
   scheme: "myapp",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
+  platforms: ["ios", "android", "web"],
   ios: {
     supportsTablet: true,
     config: {
@@ -30,15 +31,19 @@ export default {
     },
     config: {
       googleMaps: {
-        apiKey: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_MAPS_API_KEY || "YOUR_ANDROID_API_KEY_HERE"
+        apiKey: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_MAPS_API_KEY || "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
       }
     },
-    package: "com.docassistpro.app"
+    package: "com.docassistpro.app",
+    permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
   },
   web: {
     bundler: "metro",
     output: "static",
-    favicon: "./assets/images/favicon.png"
+    favicon: "./assets/images/favicon.png",
+    config: {
+      googleMapsApiKey: process.env.EXPO_PUBLIC_WEB_GOOGLE_MAPS_API_KEY || "YOUR_WEB_API_KEY_HERE"
+    }
   },
   plugins: [
     "expo-router",
@@ -57,7 +62,7 @@ export default {
         "locationAlwaysAndWhenInUsePermission": "Allow DocAssistPro to use your location."
       }
     ],
-    "react-native-maps"
+    "@react-native-community/datetimepicker"
   ],
   experiments: {
     typedRoutes: true

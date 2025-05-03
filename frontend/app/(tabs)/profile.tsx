@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -20,8 +21,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
 import patientService, { PatientProfileData } from '@/src/services/patient.service';
+import SafeMapView from '@/components/common/SafeMapView';
 
-export default function ProfileScreen() {
+function ProfileScreen() {
   const colorScheme = useColorScheme();
   const { logout, user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -29,11 +31,20 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<PatientProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [locationPermission, setLocationPermission] = useState<boolean>(false);
+  const [updatingLocation, setUpdatingLocation] = useState<boolean>(false);
 
   // Fetch profile data when component mounts
   useEffect(() => {
     fetchProfileData();
+    checkLocationPermission();
   }, []);
+
+  // Check if app has location permission
+  const checkLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    setLocationPermission(status === 'granted');
+  };
 
   // Function to fetch patient profile data
   const fetchProfileData = async () => {
@@ -90,6 +101,63 @@ export default function ProfileScreen() {
     // This is just for UI demonstration purposes
   };
   
+  // Get current location and update profile
+  const handleUpdateLocation = async () => {
+    if (!locationPermission) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is needed to update your address. Please enable location services in your device settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      setLocationPermission(true);
+    }
+
+    try {
+      setUpdatingLocation(true);
+      const { coords } = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      });
+
+      // Get address from coordinates (reverse geocoding)
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      });
+
+      const formattedAddress = address ? 
+        `${address.street ? address.street + ', ' : ''}${address.city ? address.city + ', ' : ''}${address.region ? address.region + ', ' : ''}${address.country || ''}`.replace(/,\s*$/, '') : 
+        'Unknown location';
+
+      // Update profile with new location
+      const response = await patientService.updateProfile({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        address: formattedAddress
+      });
+
+      if (response.success) {
+        setProfileData(prev => prev ? { 
+          ...prev, 
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          address: formattedAddress
+        } : null);
+        Alert.alert('Success', 'Your location has been updated.');
+      } else {
+        Alert.alert('Error', 'Failed to update location. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error updating location:', err);
+      Alert.alert('Error', 'An error occurred while updating your location.');
+    } finally {
+      setUpdatingLocation(false);
+    }
+  };
+  
   // Define fixed gradient colors for LinearGradient
   const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
@@ -98,6 +166,26 @@ export default function ProfileScreen() {
   const allergiesList = profileData?.allergies ? 
     profileData.allergies.split(',').map(item => item.trim()).filter(item => item.length > 0) : 
     [];
+
+  // Prepare map data if location exists
+  const hasLocation = profileData?.latitude && profileData?.longitude;
+  const mapMarkers = hasLocation ? [
+    {
+      coordinate: {
+        latitude: profileData.latitude,
+        longitude: profileData.longitude
+      },
+      title: 'Your Location',
+      description: profileData.address || 'Your saved location'
+    }
+  ] : [];
+
+  const initialRegion = hasLocation ? {
+    latitude: profileData.latitude,
+    longitude: profileData.longitude,
+    latitudeDelta: 0.005,
+    longitudeDelta: 0.005
+  } : undefined;
 
   if (loading) {
     return (
@@ -186,6 +274,44 @@ export default function ProfileScreen() {
           </View>
         </ThemedView>
         
+        {/* Location Section */}
+        <ThemedView style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="location" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+            <ThemedText style={styles.sectionTitle}>Location</ThemedText>
+          </View>
+          
+          <View style={styles.mapContainer}>
+            <SafeMapView
+              style={styles.map}
+              initialRegion={initialRegion}
+              markers={mapMarkers}
+              showUserLocation={true}
+            />
+          </View>
+          
+          <ThemedText style={styles.addressText}>
+            {profileData?.address || 'No address saved yet'}
+          </ThemedText>
+          
+          <TouchableOpacity 
+            style={styles.updateLocationButton}
+            onPress={handleUpdateLocation}
+            disabled={updatingLocation}
+          >
+            {updatingLocation ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="locate" size={18} color="#fff" />
+                <ThemedText style={styles.updateLocationText}>
+                  {hasLocation ? 'Update My Location' : 'Set My Location'}
+                </ThemedText>
+              </>
+            )}
+          </TouchableOpacity>
+        </ThemedView>
+
         {/* Medical Information Section */}
         <ThemedView style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -508,4 +634,37 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 20,
   },
+  mapContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginVertical: 10,
+  },
+  map: {
+    height: 200,
+    width: '100%',
+    borderRadius: 12,
+  },
+  addressText: {
+    fontSize: 14,
+    marginVertical: 10,
+    textAlign: 'center',
+  },
+  updateLocationButton: {
+    backgroundColor: '#0a7ea4',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginTop: 5,
+    alignSelf: 'center',
+  },
+  updateLocationText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
 });
+
+export default ProfileScreen;

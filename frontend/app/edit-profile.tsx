@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// Replace DateTimePicker import with our safe version
+import { SafeDateTimePicker } from '@/components/common';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -136,7 +137,9 @@ export default function EditProfileScreen() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       setDateOfBirth(selectedDate);
     }
@@ -192,23 +195,38 @@ export default function EditProfileScreen() {
             {/* Date of Birth */}
             <View style={styles.inputContainer}>
               <ThemedText style={styles.label}>Date of Birth</ThemedText>
-              <TouchableOpacity 
-                style={styles.datePickerButton} 
-                onPress={() => setShowDatePicker(true)}
-              >
-                <ThemedText>
-                  {dateOfBirth ? dateOfBirth.toLocaleDateString() : 'Select Date of Birth'}
-                </ThemedText>
-                <Ionicons name="calendar" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
+              
+              {Platform.OS === 'ios' ? (
+                <SafeDateTimePicker
                   value={dateOfBirth || new Date()}
                   mode="date"
-                  display="default"
+                  display="spinner"
                   onChange={handleDateChange}
-                  maximumDate={new Date()} // Can't select future dates
+                  maximumDate={new Date()}
+                  style={styles.datePickerIOS}
                 />
+              ) : (
+                <>
+                  <TouchableOpacity 
+                    style={styles.datePickerButton} 
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <ThemedText>
+                      {dateOfBirth ? dateOfBirth.toLocaleDateString() : 'Select Date of Birth'}
+                    </ThemedText>
+                    <Ionicons name="calendar" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                  </TouchableOpacity>
+                  
+                  {showDatePicker && (
+                    <SafeDateTimePicker
+                      value={dateOfBirth || new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={handleDateChange}
+                      maximumDate={new Date()}
+                    />
+                  )}
+                </>
               )}
             </View>
 
@@ -436,6 +454,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 8,
     padding: 12,
+  },
+  datePickerIOS: {
+    width: '100%',
   },
   optionsContainer: {
     flexDirection: 'row',

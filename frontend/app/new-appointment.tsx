@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// Replace direct DateTimePicker import with our SafeDateTimePicker
+import { SafeDateTimePicker } from '@/components/common';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Picker } from '@react-native-picker/picker';
 
@@ -367,7 +368,7 @@ export default function NewAppointmentScreen() {
           </TouchableOpacity>
           
           {showDatePicker && (
-            <DateTimePicker
+            <SafeDateTimePicker
               value={selectedDate}
               mode="date"
               display="default"

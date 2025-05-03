@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
 import { View, Platform, TouchableOpacity, StyleSheet, Button, Alert, TextInput } from 'react-native';
 import { ThemedText } from '../../components/ThemedText';
-
-// For Android, we need to use a different approach since the DateTimePicker has issues
-// directly importing the module - it may cause "RNCMaterialDatePicker" errors
-let DateTimePicker: any = null;
-
-// Only try to import on native platforms
-if (Platform.OS !== 'web') {
-  try {
-    // Using require instead of import to handle conditional loading
-    DateTimePicker = require('@react-native-community/datetimepicker').default;
-    console.log('DateTimePicker module loaded successfully');
-  } catch (e) {
-    console.error('DateTimePicker module could not be loaded:', e);
-  }
-}
+import { SafeDateTimePicker } from '@/components/common';
 
 interface DatePickerProps {
   value: Date;
@@ -89,43 +75,13 @@ export const DatePicker = ({
   const showDatepicker = () => {
     console.log('Attempting to show date picker');
     
-    if (!DateTimePicker) {
-      console.warn('DateTimePicker is not available on this platform');
-      
-      // Fallback for when DateTimePicker is not available
-      if (Platform.OS === 'android') {
-        try {
-          // Try the alternative approach for Android
-          const { startActivityAsync, DatePickerAndroid } = require('expo-intent-launcher');
-          startActivityAsync('android.intent.action.VIEW', {
-            type: DatePickerAndroid,
-            extra: {
-              mode: 'spinner',
-              minDate: new Date(1920, 0, 1).getTime(),
-              maxDate: maximumDate?.getTime() || new Date().getTime()
-            }
-          }).then((result: any) => {
-            if (result && result.year && result.month && result.day) {
-              const selected = new Date(result.year, result.month, result.day);
-              onChange(selected);
-            }
-          }).catch((err: any) => {
-            console.error('Failed to show Android date picker:', err);
-            // Show manual input dialog instead
-            promptForManualDate();
-          });
-        } catch (e) {
-          console.error('Failed to use expo-intent-launcher for date picking:', e);
-          // Show manual input dialog instead
-          promptForManualDate();
-        }
-      } else {
-        // Simple alert for other platforms
-        promptForManualDate();
-      }
+    if (Platform.OS === 'web') {
+      // For web, just show the manual input
+      promptForManualDate();
       return;
     }
     
+    // For mobile platforms, show the picker
     setShow(true);
   };
 
@@ -142,9 +98,9 @@ export const DatePicker = ({
         <ThemedText>{formatDate(value)}</ThemedText>
       </TouchableOpacity>
 
-      {/* Only render DateTimePicker when show is true AND the component is available */}
-      {show && DateTimePicker ? (
-        <DateTimePicker
+      {/* Use our SafeDateTimePicker instead of direct DateTimePicker */}
+      {show && (
+        <SafeDateTimePicker
           testID="dateTimePicker"
           value={value}
           mode="date"
@@ -152,7 +108,7 @@ export const DatePicker = ({
           onChange={handleChange}
           maximumDate={maximumDate}
         />
-      ) : null}
+      )}
 
       {/* This input is just for state storage, not visible */}
       <TextInput
