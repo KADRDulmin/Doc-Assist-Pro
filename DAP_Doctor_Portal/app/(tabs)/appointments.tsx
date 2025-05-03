@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
 import doctorService, { AppointmentData } from '../../services/doctorService';
 import Colors from '../../constants/Colors';
+import { MapComponent, DirectionsButton } from '../../components/maps';
 
 export default function AppointmentsScreen() {
   const { user } = useAuth();
@@ -171,6 +172,26 @@ export default function AppointmentsScreen() {
       weekday: 'long'
     };
     return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  // Parse location string to extract latitude and longitude if they exist
+  const parseLocationString = (locationString?: string) => {
+    if (!locationString) return null;
+    
+    // Try to extract coordinates from the location string
+    // Common formats: "lat,lng" or "lat, lng" or "address (lat, lng)"
+    const coordsRegex = /(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/;
+    const match = locationString.match(coordsRegex);
+    
+    if (match && match.length >= 3) {
+      return {
+        latitude: parseFloat(match[1]),
+        longitude: parseFloat(match[2]),
+        address: locationString.replace(coordsRegex, '').trim()
+      };
+    }
+    
+    return null;
   };
 
   const renderAppointmentCard = (appointment: AppointmentData) => {
@@ -351,75 +372,130 @@ export default function AppointmentsScreen() {
       </ScrollView>
 
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={hideDialog}>
+        <Dialog visible={dialogVisible} onDismiss={hideDialog} style={styles.dialog}>
           {selectedAppointment && (
             <>
               <Dialog.Title>Appointment Details</Dialog.Title>
-              <Dialog.Content>
-                <Text style={styles.dialogText}>
-                  <Text style={styles.dialogLabel}>Patient: </Text>
-                  {selectedAppointment.patient?.name || 'Unknown Patient'}
-                </Text>
-                <Text style={styles.dialogText}>
-                  <Text style={styles.dialogLabel}>Date: </Text>
-                  {formatDateString(selectedAppointment.appointment_date)}
-                </Text>
-                <Text style={styles.dialogText}>
-                  <Text style={styles.dialogLabel}>Time: </Text>
-                  {selectedAppointment.appointment_time}
-                </Text>
-                <Text style={styles.dialogText}>
-                  <Text style={styles.dialogLabel}>Type: </Text>
-                  {selectedAppointment.appointment_type || 'General Consultation'}
-                </Text>
-                <Text style={styles.dialogText}>
-                  <Text style={styles.dialogLabel}>Status: </Text>
-                  {selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1)}
-                </Text>
-                {selectedAppointment.location && (
+              <Dialog.ScrollArea style={styles.dialogScrollArea}>
+                <ScrollView>
                   <Text style={styles.dialogText}>
-                    <Text style={styles.dialogLabel}>Location: </Text>
-                    {selectedAppointment.location}
+                    <Text style={styles.dialogLabel}>Patient: </Text>
+                    {selectedAppointment.patient?.name || 'Unknown Patient'}
                   </Text>
-                )}
-                {selectedAppointment.notes && (
                   <Text style={styles.dialogText}>
-                    <Text style={styles.dialogLabel}>Notes: </Text>
-                    {selectedAppointment.notes}
+                    <Text style={styles.dialogLabel}>Date: </Text>
+                    {formatDateString(selectedAppointment.appointment_date)}
                   </Text>
-                )}
-                
-                {/* Patient Feedback Section */}
-                {selectedAppointment.feedback && (
-                  <>
-                    <View style={styles.divider} />
-                    <Text style={[styles.dialogText, styles.feedbackTitle]}>Patient Feedback</Text>
-                    
-                    <View style={styles.dialogRatingContainer}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <MaterialIcons 
-                          key={star}
-                          name={star <= selectedAppointment.feedback!.rating ? "star" : "star-border"} 
-                          size={20} 
-                          color="#FFD700" 
-                          style={{ marginRight: 2 }}
-                        />
-                      ))}
-                      <Text style={styles.ratingText}>
-                        ({selectedAppointment.feedback.rating}/5)
+                  <Text style={styles.dialogText}>
+                    <Text style={styles.dialogLabel}>Time: </Text>
+                    {selectedAppointment.appointment_time}
+                  </Text>
+                  <Text style={styles.dialogText}>
+                    <Text style={styles.dialogLabel}>Type: </Text>
+                    {selectedAppointment.appointment_type || 'General Consultation'}
+                  </Text>
+                  <Text style={styles.dialogText}>
+                    <Text style={styles.dialogLabel}>Status: </Text>
+                    {selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1)}
+                  </Text>
+                  
+                  {/* Location and map section */}
+                  {selectedAppointment.location && (
+                    <>
+                      <Text style={styles.dialogText}>
+                        <Text style={styles.dialogLabel}>Location: </Text>
+                        {selectedAppointment.location}
                       </Text>
-                    </View>
-                    
-                    {selectedAppointment.feedback.comment && (
-                      <View style={styles.feedbackCommentContainer}>
-                        <Text style={styles.feedbackComment}>
-                          "{selectedAppointment.feedback.comment}"
+                      
+                      {/* Parse location string to check if it has coordinates */}
+                      {parseLocationString(selectedAppointment.location) && (
+                        <View style={styles.mapContainer}>
+                          <MapComponent
+                            initialLocation={parseLocationString(selectedAppointment.location)!}
+                            editable={false}
+                            showDirectionsButton={true}
+                            markerTitle={`Appointment with ${selectedAppointment.patient?.name || 'Patient'}`}
+                            height={200}
+                          />
+                          
+                          <View style={styles.directionsButtonContainer}>
+                            <DirectionsButton
+                              latitude={parseLocationString(selectedAppointment.location)!.latitude}
+                              longitude={parseLocationString(selectedAppointment.location)!.longitude}
+                              title={`Appointment with ${selectedAppointment.patient?.name || 'Patient'}`}
+                            />
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  )}
+                  
+                  {selectedAppointment.notes && (
+                    <Text style={styles.dialogText}>
+                      <Text style={styles.dialogLabel}>Notes: </Text>
+                      {selectedAppointment.notes}
+                    </Text>
+                  )}
+                  
+                  {/* Patient Symptoms Section (if available) */}
+                  {selectedAppointment.symptoms && (
+                    <>
+                      <View style={styles.divider} />
+                      <Text style={[styles.dialogText, styles.sectionTitle]}>Patient Symptoms</Text>
+                      <Text style={styles.dialogText}>{selectedAppointment.symptoms}</Text>
+                      
+                      {selectedAppointment.possible_illness_1 && (
+                        <Text style={styles.dialogText}>
+                          <Text style={styles.dialogLabel}>Possible Diagnosis: </Text>
+                          {selectedAppointment.possible_illness_1}
+                          {selectedAppointment.possible_illness_2 && `, ${selectedAppointment.possible_illness_2}`}
+                        </Text>
+                      )}
+                      
+                      {selectedAppointment.criticality && (
+                        <Text style={[
+                          styles.dialogText, 
+                          selectedAppointment.criticality.toLowerCase() === 'high' && styles.criticalText
+                        ]}>
+                          <Text style={styles.dialogLabel}>Criticality: </Text>
+                          {selectedAppointment.criticality}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Patient Feedback Section */}
+                  {selectedAppointment.feedback && (
+                    <>
+                      <View style={styles.divider} />
+                      <Text style={[styles.dialogText, styles.sectionTitle]}>Patient Feedback</Text>
+                      
+                      <View style={styles.dialogRatingContainer}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <MaterialIcons 
+                            key={star}
+                            name={star <= selectedAppointment.feedback!.rating ? "star" : "star-border"} 
+                            size={20} 
+                            color="#FFD700" 
+                            style={{ marginRight: 2 }}
+                          />
+                        ))}
+                        <Text style={styles.ratingText}>
+                          ({selectedAppointment.feedback.rating}/5)
                         </Text>
                       </View>
-                    )}
-                  </>
-                )}
-              </Dialog.Content>
+                      
+                      {selectedAppointment.feedback.comment && (
+                        <View style={styles.feedbackCommentContainer}>
+                          <Text style={styles.feedbackComment}>
+                            "{selectedAppointment.feedback.comment}"
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </ScrollView>
+              </Dialog.ScrollArea>
               <Dialog.Actions>
                 <Button onPress={hideDialog}>Close</Button>
                 {selectedAppointment.status === 'upcoming' && (
@@ -598,6 +674,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: Colors.light.primary,
   },
+  dialog: {
+    maxHeight: '80%',
+  },
+  dialogScrollArea: {
+    paddingHorizontal: 0,
+  },
   dialogText: {
     marginBottom: 8,
     fontSize: 16,
@@ -605,7 +687,7 @@ const styles = StyleSheet.create({
   dialogLabel: {
     fontWeight: 'bold',
   },
-  feedbackTitle: {
+  sectionTitle: {
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 8,
@@ -626,5 +708,18 @@ const styles = StyleSheet.create({
   feedbackComment: {
     fontStyle: 'italic',
     color: '#555',
+  },
+  mapContainer: {
+    marginVertical: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  directionsButtonContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  criticalText: {
+    color: '#F44336',
+    fontWeight: 'bold',
   },
 });

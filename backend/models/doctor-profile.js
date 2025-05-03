@@ -11,6 +11,9 @@ class DoctorProfile {
         this.education = data.education || '';
         this.bio = data.bio || '';
         this.consultation_fee = data.consultation_fee || 0;
+        this.latitude = data.latitude || null;
+        this.longitude = data.longitude || null;
+        this.address = data.address || '';
         this.created_at = data.created_at;
         this.updated_at = data.updated_at;
         
@@ -31,6 +34,9 @@ class DoctorProfile {
             education: this.education,
             bio: this.bio,
             consultation_fee: this.consultation_fee,
+            latitude: this.latitude,
+            longitude: this.longitude,
+            address: this.address,
             created_at: this.created_at,
             updated_at: this.updated_at,
             // Include user data if available

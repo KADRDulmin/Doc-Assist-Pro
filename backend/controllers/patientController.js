@@ -65,7 +65,8 @@ class PatientController {
             const userId = req.user.id;
             const { 
                 date_of_birth, gender, blood_group, allergies, medical_history,
-                emergency_contact_name, emergency_contact_phone 
+                emergency_contact_name, emergency_contact_phone,
+                latitude, longitude, address
             } = req.body;
             
             const updatedProfile = await patientRepository.updateProfile(userId, {
@@ -75,7 +76,10 @@ class PatientController {
                 allergies,
                 medical_history,
                 emergency_contact_name,
-                emergency_contact_phone
+                emergency_contact_phone,
+                latitude,
+                longitude,
+                address
             });
             
             res.json({

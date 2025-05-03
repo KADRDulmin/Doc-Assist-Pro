@@ -168,14 +168,26 @@ class DoctorController {
     async updateMyProfile(req, res, next) {
         try {
             const userId = req.user.id;
-            const { specialization, years_of_experience, education, bio, consultation_fee } = req.body;
+            const { 
+                specialization, 
+                years_of_experience, 
+                education, 
+                bio, 
+                consultation_fee,
+                latitude,
+                longitude,
+                address
+            } = req.body;
             
             const updatedProfile = await doctorRepository.updateProfile(userId, {
                 specialization, 
                 years_of_experience,
                 education,
                 bio,
-                consultation_fee
+                consultation_fee,
+                latitude,
+                longitude,
+                address
             });
             
             res.json({
@@ -244,17 +256,17 @@ class DoctorController {
      */
     async getNearbyDoctors(req, res, next) {
         try {
-            const { latitude, longitude, specialty, maxDistance } = req.query;
+            const { latitude, longitude, specialization, maxDistance = 30 } = req.query;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             
             // Get all doctors
             let doctors = await doctorRepository.getAllDoctors();
             
-            // Filter by specialty if provided
-            if (specialty) {
+            // Filter by specialization if provided
+            if (specialization) {
                 doctors = doctors.filter(doctor => 
-                    doctor.specialty && doctor.specialty.toLowerCase().includes(specialty.toLowerCase())
+                    doctor.specialization && doctor.specialization.toLowerCase().includes(specialization.toLowerCase())
                 );
             }
             
@@ -265,7 +277,7 @@ class DoctorController {
                     longitude: parseFloat(longitude)
                 };
                 
-                const distanceLimit = maxDistance ? parseFloat(maxDistance) : 50; // default to 50 miles/km
+                const distanceLimit = parseFloat(maxDistance); // default is 30km
                 
                 // Calculate distance for each doctor and filter by max distance
                 doctors = doctors
@@ -274,8 +286,8 @@ class DoctorController {
                             const distance = this._calculateDistance(
                                 userLocation.latitude, 
                                 userLocation.longitude,
-                                doctor.latitude,
-                                doctor.longitude
+                                parseFloat(doctor.latitude),
+                                parseFloat(doctor.longitude)
                             );
                             return { ...doctor, distance };
                         }
@@ -321,10 +333,13 @@ class DoctorController {
                     return {
                         id: doctor.id,
                         name: `${doctor.user?.first_name || ''} ${doctor.user?.last_name || ''}`.trim(),
-                        specialty: doctor.specialty || 'General Medicine',
+                        specialization: doctor.specialization || 'General Medicine',
                         rating: ratingsMap[doctor.id]?.averageRating || 0,
-                        distance: doctor.distance ? `${doctor.distance.toFixed(1)} mi` : 'Unknown',
+                        distance: doctor.distance ? `${doctor.distance.toFixed(1)} km` : 'Unknown',
                         availableToday,
+                        address: doctor.address || '',
+                        latitude: doctor.latitude,
+                        longitude: doctor.longitude,
                         imageUrl: doctor.profile_image || null
                     };
                 })

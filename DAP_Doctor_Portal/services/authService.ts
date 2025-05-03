@@ -1,5 +1,6 @@
 import api, { ApiResponse } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LocationData } from '../components/maps';
 
 // Auth token storage key
 const AUTH_TOKEN_KEY = 'doctor_auth_token';
@@ -26,6 +27,12 @@ export interface DoctorSignupData {
   education?: string;
   bio?: string;
   consultation_fee?: number;
+  
+  // Location data
+  location?: LocationData;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 export interface DoctorUser {
@@ -46,6 +53,9 @@ export interface DoctorProfile {
   education: string;
   bio: string;
   consultation_fee: number;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
   user?: DoctorUser;
 }
 

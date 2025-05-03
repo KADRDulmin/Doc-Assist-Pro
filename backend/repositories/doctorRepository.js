@@ -18,7 +18,10 @@ class DoctorRepository {
                 years_of_experience = 0,
                 education = '',
                 bio = '',
-                consultation_fee = 0
+                consultation_fee = 0,
+                latitude = null,
+                longitude = null,
+                address = ''
             } = profileData;
             
             const client = await pool.connect();
@@ -39,8 +42,9 @@ class DoctorRepository {
                 const result = await client.query(
                     `INSERT INTO doctor_profiles (
                         user_id, specialization, license_number, 
-                        years_of_experience, education, bio, consultation_fee
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+                        years_of_experience, education, bio, consultation_fee,
+                        latitude, longitude, address
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
                     [
                         userId, 
                         specialization, 
@@ -48,7 +52,10 @@ class DoctorRepository {
                         years_of_experience,
                         education,
                         bio,
-                        consultation_fee
+                        consultation_fee,
+                        latitude,
+                        longitude,
+                        address
                     ]
                 );
                 
@@ -251,7 +258,10 @@ class DoctorRepository {
                     years_of_experience,
                     education,
                     bio,
-                    consultation_fee
+                    consultation_fee,
+                    latitude,
+                    longitude,
+                    address
                 } = profileData;
                 
                 // Check if profile exists
@@ -271,8 +281,11 @@ class DoctorRepository {
                         education = COALESCE($3, education),
                         bio = COALESCE($4, bio),
                         consultation_fee = COALESCE($5, consultation_fee),
+                        latitude = COALESCE($6, latitude),
+                        longitude = COALESCE($7, longitude),
+                        address = COALESCE($8, address),
                         updated_at = CURRENT_TIMESTAMP
-                     WHERE user_id = $6
+                     WHERE user_id = $9
                      RETURNING *`,
                     [
                         specialization, 
@@ -280,6 +293,9 @@ class DoctorRepository {
                         education,
                         bio,
                         consultation_fee,
+                        latitude,
+                        longitude,
+                        address,
                         userId
                     ]
                 );

@@ -1,5 +1,6 @@
 const authService = require('../services/authService');
 const userRepository = require('../repositories/userRepository');
+const patientRepository = require('../repositories/patientRepository');
 
 // Optional email service
 let emailService;
@@ -19,7 +20,10 @@ class AuthController {
      */
     async register(req, res, next) {
         try {
-            const { email, password, first_name, last_name, role, phone } = req.body;
+            const { 
+                email, password, first_name, last_name, role, phone,
+                latitude, longitude, address
+            } = req.body;
             
             // Attempt to register user
             const user = await authService.register({ 
@@ -28,6 +32,21 @@ class AuthController {
             
             // Send verification email
             emailService.sendVerificationEmail && emailService.sendVerificationEmail(email);
+            
+            // If there's location data and user is a patient, create a basic patient profile
+            if ((!role || role === 'patient') && (latitude && longitude)) {
+                try {
+                    await patientRepository.createProfile(user.id, {
+                        latitude, 
+                        longitude, 
+                        address: address || ''
+                    });
+                    console.log(`Created initial patient profile with location for user: ${user.id}`);
+                } catch (profileError) {
+                    console.error(`Error creating initial patient profile: ${profileError.message}`);
+                    // Continue anyway since the user was created successfully
+                }
+            }
             
             console.log(`User registered successfully: ${email} (${role || 'patient'})`);
             res.status(201).json({ 

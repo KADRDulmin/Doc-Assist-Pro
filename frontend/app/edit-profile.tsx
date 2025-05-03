@@ -16,6 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { LocationSelector, LocationData } from '@/components/maps';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import patientService, { PatientProfileData, PatientProfileUpdateData } from '@/src/services/patient.service';
 
@@ -33,6 +34,7 @@ export default function EditProfileScreen() {
   const [medicalHistory, setMedicalHistory] = useState('');
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
+  const [location, setLocation] = useState<LocationData | null>(null);
   
   // Date picker
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -63,6 +65,15 @@ export default function EditProfileScreen() {
         setMedicalHistory(profile.medical_history || '');
         setEmergencyContactName(profile.emergency_contact_name || '');
         setEmergencyContactPhone(profile.emergency_contact_phone || '');
+        
+        // Set location data if available
+        if (profile.latitude && profile.longitude) {
+          setLocation({
+            latitude: profile.latitude,
+            longitude: profile.longitude,
+            address: profile.address || ''
+          });
+        }
       } else {
         setError('Failed to load profile data');
       }
@@ -72,6 +83,10 @@ export default function EditProfileScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLocationChange = (newLocation: LocationData) => {
+    setLocation(newLocation);
   };
 
   const handleSaveProfile = async () => {
@@ -89,6 +104,13 @@ export default function EditProfileScreen() {
         emergency_contact_name: emergencyContactName || undefined,
         emergency_contact_phone: emergencyContactPhone || undefined,
       };
+
+      // Add location data if available
+      if (location) {
+        updateData.latitude = location.latitude;
+        updateData.longitude = location.longitude;
+        updateData.address = location.address;
+      }
 
       // Send update request
       const response = await patientService.updateProfile(updateData);
@@ -244,6 +266,21 @@ export default function EditProfileScreen() {
             </View>
           </ThemedView>
 
+          {/* Location Section */}
+          <ThemedView style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Your Location</ThemedText>
+            <ThemedText style={styles.sectionDescription}>
+              This helps us find doctors near you
+            </ThemedText>
+            
+            <LocationSelector
+              initialLocation={location || undefined}
+              onLocationChange={handleLocationChange}
+              title=""
+              height={300}
+            />
+          </ThemedView>
+
           {/* Medical Information */}
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Medical Information</ThemedText>
@@ -366,6 +403,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    marginBottom: 10,
+    opacity: 0.7,
   },
   inputContainer: {
     marginBottom: 16,

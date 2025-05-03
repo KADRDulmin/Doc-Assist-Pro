@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
 import doctorService, { DashboardData } from '../../services/doctorService';
 import Colors from '../../constants/Colors';
+import { LocationSelector, LocationData } from '../../components/maps';
 
 // Profile validation schema
 const ProfileSchema = Yup.object().shape({
@@ -23,6 +24,11 @@ const ProfileSchema = Yup.object().shape({
   consultation_fee: Yup.number()
     .min(0, 'Fee cannot be negative')
     .required('Consultation fee is required'),
+  location: Yup.object().shape({
+    latitude: Yup.number(),
+    longitude: Yup.number(),
+    address: Yup.string()
+  })
 });
 
 export default function ProfileScreen() {
@@ -33,6 +39,7 @@ export default function ProfileScreen() {
   const [profileData, setProfileData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+  const [locationData, setLocationData] = useState<LocationData | undefined>(undefined);
 
   // Load doctor profile data
   const loadProfile = async () => {
@@ -50,6 +57,17 @@ export default function ProfileScreen() {
       const response = await doctorService.getProfile(token);
       
       if (response.success && response.data) {
+        // Check if location data exists
+        let location: LocationData | undefined;
+        if (response.data.latitude && response.data.longitude) {
+          location = {
+            latitude: response.data.latitude,
+            longitude: response.data.longitude,
+            address: response.data.address || ''
+          };
+          setLocationData(location);
+        }
+        
         setProfileData({
           ...response.data,
           // Include user details
@@ -57,6 +75,7 @@ export default function ProfileScreen() {
           last_name: response.data.user?.last_name || '',
           email: response.data.user?.email || '',
           phone: response.data.user?.phone || '',
+          location: location
         });
       } else {
         setError(response.error || 'Failed to load profile data');
@@ -85,7 +104,14 @@ export default function ProfileScreen() {
       }
       
       // Separate user data from profile data
-      const { first_name, last_name, phone, email, ...profileUpdateData } = values;
+      const { first_name, last_name, phone, email, location, ...profileUpdateData } = values;
+      
+      // If location exists, add it to profileUpdateData
+      if (location) {
+        profileUpdateData.latitude = location.latitude;
+        profileUpdateData.longitude = location.longitude;
+        profileUpdateData.address = location.address;
+      }
       
       // Update profile data
       const response = await doctorService.updateProfile(profileUpdateData, token);
@@ -103,6 +129,7 @@ export default function ProfileScreen() {
           last_name,
           email,
           phone,
+          location
         });
         
         setIsEditing(false);
@@ -183,6 +210,7 @@ export default function ProfileScreen() {
                 education: profileData.education || '',
                 bio: profileData.bio || '',
                 consultation_fee: profileData.consultation_fee?.toString() || '0',
+                location: profileData.location
               }}
               validationSchema={ProfileSchema}
               onSubmit={handleUpdateProfile}
@@ -334,6 +362,37 @@ export default function ProfileScreen() {
                       />
                       {touched.consultation_fee && errors.consultation_fee && (
                         <HelperText type="error">{errors.consultation_fee}</HelperText>
+                      )}
+                    </Card.Content>
+                  </Card>
+                  
+                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Practice Location</Text>
+                  <Card style={styles.formCard}>
+                    <Card.Content>
+                      {isEditing ? (
+                        <LocationSelector
+                          initialLocation={values.location}
+                          onLocationSelected={(location) => setFieldValue('location', location)}
+                          label="Practice Location"
+                          required={false}
+                        />
+                      ) : (
+                        values.location ? (
+                          <View>
+                            <Text style={styles.addressText}>{values.location.address}</Text>
+                            <View style={styles.staticMapContainer}>
+                              <LocationSelector
+                                initialLocation={values.location}
+                                editable={false}
+                                onLocationSelected={() => {}}
+                              />
+                            </View>
+                          </View>
+                        ) : (
+                          <Text style={styles.noLocationText}>
+                            No practice location set. Edit your profile to add your location.
+                          </Text>
+                        )
                       )}
                     </Card.Content>
                   </Card>
@@ -495,5 +554,22 @@ const styles = StyleSheet.create({
     marginTop: 30,
     borderColor: '#F44336',
     borderWidth: 1,
+  },
+  staticMapContainer: {
+    height: 200,
+    marginTop: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  addressText: {
+    fontSize: 16,
+    color: '#555',
+  },
+  noLocationText: {
+    fontSize: 16,
+    color: '#888',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20,
   },
 });

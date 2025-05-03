@@ -19,7 +19,10 @@ class PatientRepository {
                 allergies = '',
                 medical_history = '',
                 emergency_contact_name = '',
-                emergency_contact_phone = ''
+                emergency_contact_phone = '',
+                latitude = null,
+                longitude = null,
+                address = ''
             } = profileData;
             
             const client = await pool.connect();
@@ -41,8 +44,9 @@ class PatientRepository {
                     `INSERT INTO patient_profiles (
                         user_id, date_of_birth, gender, blood_group, 
                         allergies, medical_history, 
-                        emergency_contact_name, emergency_contact_phone
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+                        emergency_contact_name, emergency_contact_phone,
+                        latitude, longitude, address
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
                     [
                         userId, 
                         date_of_birth, 
@@ -51,7 +55,10 @@ class PatientRepository {
                         allergies, 
                         medical_history,
                         emergency_contact_name,
-                        emergency_contact_phone
+                        emergency_contact_phone,
+                        latitude,
+                        longitude,
+                        address
                     ]
                 );
                 
@@ -137,7 +144,10 @@ class PatientRepository {
                     allergies,
                     medical_history,
                     emergency_contact_name,
-                    emergency_contact_phone
+                    emergency_contact_phone,
+                    latitude,
+                    longitude,
+                    address
                 } = profileData;
                 
                 // Check if profile exists
@@ -159,8 +169,11 @@ class PatientRepository {
                         medical_history = COALESCE($5, medical_history),
                         emergency_contact_name = COALESCE($6, emergency_contact_name),
                         emergency_contact_phone = COALESCE($7, emergency_contact_phone),
+                        latitude = COALESCE($8, latitude),
+                        longitude = COALESCE($9, longitude),
+                        address = COALESCE($10, address),
                         updated_at = CURRENT_TIMESTAMP
-                     WHERE user_id = $8
+                     WHERE user_id = $11
                      RETURNING *`,
                     [
                         date_of_birth,
@@ -170,6 +183,9 @@ class PatientRepository {
                         medical_history,
                         emergency_contact_name,
                         emergency_contact_phone,
+                        latitude,
+                        longitude,
+                        address,
                         userId
                     ]
                 );

@@ -12,6 +12,9 @@ class PatientProfile {
         this.medical_history = data.medical_history || '';
         this.emergency_contact_name = data.emergency_contact_name || '';
         this.emergency_contact_phone = data.emergency_contact_phone || '';
+        this.latitude = data.latitude || null;
+        this.longitude = data.longitude || null;
+        this.address = data.address || '';
         this.created_at = data.created_at;
         this.updated_at = data.updated_at;
         
@@ -33,6 +36,9 @@ class PatientProfile {
             medical_history: this.medical_history,
             emergency_contact_name: this.emergency_contact_name,
             emergency_contact_phone: this.emergency_contact_phone,
+            latitude: this.latitude,
+            longitude: this.longitude,
+            address: this.address,
             created_at: this.created_at,
             updated_at: this.updated_at,
             // Include user data if available

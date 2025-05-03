@@ -18,13 +18,22 @@ export default {
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
-    supportsTablet: true
+    supportsTablet: true,
+    config: {
+      googleMapsApiKey: process.env.EXPO_PUBLIC_IOS_GOOGLE_MAPS_API_KEY || "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
+    }
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff"
-    }
+    },
+    config: {
+      googleMaps: {
+        apiKey: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_MAPS_API_KEY || "YOUR_ANDROID_API_KEY_HERE"
+      }
+    },
+    package: "com.docassistpro.app"
   },
   web: {
     bundler: "metro",
@@ -41,7 +50,14 @@ export default {
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       }
-    ]
+    ],
+    [
+      "expo-location",
+      {
+        "locationAlwaysAndWhenInUsePermission": "Allow DocAssistPro to use your location."
+      }
+    ],
+    "react-native-maps"
   ],
   experiments: {
     typedRoutes: true

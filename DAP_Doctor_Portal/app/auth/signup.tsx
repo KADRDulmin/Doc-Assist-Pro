@@ -6,6 +6,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import authService, { DoctorSignupData } from '../../services/authService';
 import Colors from '../../constants/Colors';
+import { LocationSelector, LocationData } from '../../components/maps';
 
 // Step 1 validation schema (user account information)
 const AccountInfoSchema = Yup.object().shape({
@@ -49,8 +50,19 @@ const DoctorInfoSchema = Yup.object().shape({
     .min(0, 'Fee cannot be negative'),
 });
 
+// Step 4 validation schema (location information)
+const LocationInfoSchema = Yup.object().shape({
+  location: Yup.object().shape({
+    latitude: Yup.number().required('Latitude is required'),
+    longitude: Yup.number().required('Longitude is required'),
+    address: Yup.string().required('Address is required'),
+  }).required('Location is required'),
+});
+
 // Combined schema
-const SignupSchema = AccountInfoSchema.concat(PersonalInfoSchema).concat(DoctorInfoSchema);
+const SignupSchema = AccountInfoSchema.concat(PersonalInfoSchema)
+  .concat(DoctorInfoSchema)
+  .concat(LocationInfoSchema);
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -100,6 +112,13 @@ export default function SignupScreen() {
       
       // Remove confirm_password before sending to API
       const { confirm_password, ...doctorData } = values;
+      
+      // Convert location object to expected format if needed by your API
+      if (doctorData.location) {
+        doctorData.latitude = doctorData.location.latitude;
+        doctorData.longitude = doctorData.location.longitude;
+        doctorData.address = doctorData.location.address;
+      }
       
       const response = await authService.signup(doctorData);
       
@@ -178,6 +197,27 @@ export default function SignupScreen() {
         }
       });
     }
+    // For step 3, we validate professional info
+    else if (step === 3) {
+      validateForm().then((errors: any) => {
+        const relevantErrors: Record<string, string> = {};
+        
+        // Only check errors for fields in step 3
+        if (errors.specialization) relevantErrors['specialization'] = errors.specialization;
+        if (errors.license_number) relevantErrors['license_number'] = errors.license_number;
+        if (errors.years_of_experience) relevantErrors['years_of_experience'] = errors.years_of_experience;
+        if (errors.consultation_fee) relevantErrors['consultation_fee'] = errors.consultation_fee;
+        
+        if (Object.keys(relevantErrors).length === 0) {
+          setStep(step + 1);
+          setError(null);
+        } else {
+          // Display the first error
+          const firstError = Object.values(relevantErrors)[0];
+          setError(firstError);
+        }
+      });
+    }
   };
 
   const prevStep = () => {
@@ -186,7 +226,7 @@ export default function SignupScreen() {
   };
 
   // Calculate progress based on current step
-  const progress = step / 3;
+  const progress = step / 4; // Now we have 4 steps
 
   return (
     <ScrollView 
@@ -200,6 +240,7 @@ export default function SignupScreen() {
           {step === 1 && 'Step 1: Account Information'}
           {step === 2 && 'Step 2: Personal Information'}
           {step === 3 && 'Step 3: Professional Information'}
+          {step === 4 && 'Step 4: Practice Location'}
         </Text>
       </View>
 
@@ -229,6 +270,7 @@ export default function SignupScreen() {
           education: '',
           bio: '',
           consultation_fee: 0,
+          location: undefined as LocationData | undefined,
         }}
         validationSchema={SignupSchema}
         onSubmit={handleSignup}
@@ -479,6 +521,42 @@ export default function SignupScreen() {
                   </Button>
                   <Button
                     mode="contained"
+                    onPress={() => nextStep(validateForm, values)}
+                    style={styles.nextButton}
+                  >
+                    Next
+                  </Button>
+                </View>
+              </>
+            )}
+
+            {step === 4 && (
+              <>
+                <Text style={styles.sectionTitle}>Practice Location</Text>
+                <Text style={styles.sectionDescription}>
+                  Please select your practice location. Patients will be able to find you based on this location.
+                </Text>
+                
+                <LocationSelector
+                  initialLocation={values.location}
+                  onLocationSelected={(location) => setFieldValue('location', location)}
+                  label="Practice Location"
+                  required={true}
+                  error={touched.location && errors.location ? 'Practice location is required' : undefined}
+                />
+                
+                {touched.location && errors.location && (
+                  <HelperText type="error" visible={!!errors.location}>
+                    Please select your practice location
+                  </HelperText>
+                )}
+
+                <View style={styles.buttonRow}>
+                  <Button mode="outlined" onPress={prevStep} style={styles.backButton}>
+                    Back
+                  </Button>
+                  <Button
+                    mode="contained"
                     onPress={() => handleSubmit()}
                     style={styles.nextButton}
                     disabled={loading}
@@ -576,6 +654,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: Colors.light.text,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    marginBottom: 15,
+    color: Colors.light.textDim,
   },
   specializationContainer: {
     flexDirection: 'row',

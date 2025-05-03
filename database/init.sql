@@ -94,6 +94,9 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     medical_history TEXT,
     emergency_contact_name VARCHAR(100),
     emergency_contact_phone VARCHAR(50),
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -11,6 +11,9 @@ export interface PatientProfileData {
   medical_history: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
   created_at: string;
   updated_at: string;
   user?: {
@@ -30,6 +33,9 @@ export interface PatientProfileUpdateData {
   medical_history?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 export interface PatientDashboardData {

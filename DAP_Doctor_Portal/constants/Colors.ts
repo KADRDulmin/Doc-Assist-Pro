@@ -17,6 +17,7 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    textDim: '#889096', // Added dim text color for light mode
   },
   dark: {
     text: '#ECEDEE',
@@ -26,6 +27,7 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    textDim: '#6E767E', // Added dim text color for dark mode
   },
 };
 
