@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
-import { Text, Card, Title, Paragraph, Avatar, Button, ActivityIndicator, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, Modal as RNModal } from 'react-native';
+import { Text, Card, Title, Paragraph, Avatar, Button, ActivityIndicator, Divider, Portal, Modal } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 import doctorService, { DashboardData, AppointmentData } from '../../services/doctorService';
 import authService from '../../services/authService';
 import Colors from '../../constants/Colors';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 export default function DashboardScreen() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<AppointmentData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   const loadDashboard = async () => {
     try {
@@ -64,6 +66,17 @@ export default function DashboardScreen() {
     router.push(`/consultation/${appointmentId}` as any);
   };
 
+  const handleShowLogoutModal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLogoutModalVisible(true);
+  };
+
+  const handleLogout = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setLogoutModalVisible(false);
+    await signOut();
+  };
+
   useEffect(() => {
     loadDashboard();
   }, []);
@@ -99,21 +112,23 @@ export default function DashboardScreen() {
         </View>
       ) : (
         <>
-          <Card style={styles.welcomeCard}>
-            <Card.Content>
-              <Title style={styles.welcomeTitle}>
-                Welcome, Dr. {user?.first_name} {user?.last_name}
-              </Title>
-              <Paragraph>
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Paragraph>
-            </Card.Content>
-          </Card>
+          <TouchableOpacity onPress={handleShowLogoutModal}>
+            <Card style={styles.welcomeCard}>
+              <Card.Content>
+                <Title style={styles.welcomeTitle}>
+                  Welcome, Dr. {user?.first_name} {user?.last_name}
+                </Title>
+                <Paragraph>
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Paragraph>
+              </Card.Content>
+            </Card>
+          </TouchableOpacity>
 
           <View style={styles.statsContainer}>
             <Card style={styles.statCard}>
@@ -162,7 +177,7 @@ export default function DashboardScreen() {
                     <View style={styles.appointmentItem}>
                       <View style={styles.appointmentTimeContainer}>
                         <Text style={styles.appointmentTime}>
-                          {appointment.appointment_time || appointment.time}
+                          {appointment.appointment_time}
                         </Text>
                       </View>
                       <View style={styles.appointmentDetails}>
@@ -170,7 +185,7 @@ export default function DashboardScreen() {
                           {appointment.patient?.name || 'Unknown Patient'}
                         </Text>
                         <Text style={styles.appointmentType}>
-                          {appointment.appointment_type || appointment.type || 'General'}
+                          {appointment.appointment_type || 'General'}
                         </Text>
                       </View>
                       <View style={styles.buttonsContainer}>
@@ -223,6 +238,48 @@ export default function DashboardScreen() {
           </Card>
         </>
       )}
+      
+      {/* Attractive Logout Modal */}
+      <Portal>
+        <Modal
+          visible={logoutModalVisible}
+          onDismiss={() => setLogoutModalVisible(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <View style={styles.modalContent}>
+            <Avatar.Icon 
+              size={80} 
+              icon="exit-to-app" 
+              style={styles.logoutIcon}
+              color="#fff" 
+            />
+            <Title style={styles.modalTitle}>Ready to leave?</Title>
+            <Paragraph style={styles.modalText}>
+              Thank you for your dedication, Dr. {user?.first_name}. 
+              Would you like to end your session now?
+            </Paragraph>
+            
+            <View style={styles.modalButtons}>
+              <Button 
+                mode="outlined" 
+                onPress={() => setLogoutModalVisible(false)}
+                style={styles.modalCancelButton}
+                labelStyle={styles.modalButtonLabel}
+              >
+                Stay
+              </Button>
+              <Button 
+                mode="contained" 
+                onPress={handleLogout}
+                style={styles.modalLogoutButton}
+                labelStyle={styles.modalButtonLabel}
+              >
+                Logout
+              </Button>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
     </ScrollView>
   );
 }
@@ -350,5 +407,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 10,
     fontStyle: 'italic',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginHorizontal: 20,
+    borderRadius: 10,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  logoutIcon: {
+    backgroundColor: Colors.light.primary,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalText: {
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalCancelButton: {
+    flex: 1,
+    marginRight: 8,
+  },
+  modalLogoutButton: {
+    flex: 1,
+    backgroundColor: Colors.light.primary,
+  },
+  modalButtonLabel: {
+    fontSize: 16,
   },
 });

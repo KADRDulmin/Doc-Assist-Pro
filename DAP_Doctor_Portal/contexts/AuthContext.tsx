@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import authService, { DoctorUser } from '../services/authService';
-import { registerUnauthorizedHandler } from '../services/api';
+import { registerUnauthorizedHandler, registerDoctorAccessRequiredHandler } from '../services/api';
+import { Alert } from 'react-native';
 
 // Define the shape of our authentication context
 interface AuthContextType {
@@ -46,6 +47,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(null);
         router.replace('/auth/login');
       });
+    });
+    
+    // Register a handler for 403 doctor access required errors
+    registerDoctorAccessRequiredHandler(() => {
+      console.log('AuthContext: Handling doctor access required error - logging out user');
+      Alert.alert(
+        "Access Denied",
+        "This portal is for doctors only. You will be redirected to the login screen.",
+        [
+          { 
+            text: "OK", 
+            onPress: () => {
+              // Log out the user
+              authService.logout().finally(() => {
+                setUser(null);
+                setToken(null);
+                router.replace('/auth/login');
+              });
+            } 
+          }
+        ]
+      );
     });
   }, [router]);
 

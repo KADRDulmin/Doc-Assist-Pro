@@ -59,10 +59,17 @@ export interface ApiResponse<T = any> {
 
 // Function to handle unauthorized errors (401) - will be set by the AuthContext
 let handleUnauthorizedError: (() => void) | null = null;
+// Function to handle doctor access required errors (403) - will be set by the AuthContext
+let handleDoctorAccessRequiredError: (() => void) | null = null;
 
 // Function to register the unauthorized error handler
 export const registerUnauthorizedHandler = (handler: () => void) => {
   handleUnauthorizedError = handler;
+};
+
+// Function to register the doctor access required error handler
+export const registerDoctorAccessRequiredHandler = (handler: () => void) => {
+  handleDoctorAccessRequiredError = handler;
 };
 
 // Helper function to get token from AsyncStorage
@@ -149,6 +156,15 @@ const fetchAPI = async <T>(
         // Call the registered unauthorized handler if it exists
         if (handleUnauthorizedError) {
           handleUnauthorizedError();
+        }
+      }
+
+      // Handle 403 Doctor Access Required errors
+      if (response.status === 403 && data?.error === 'Doctor access required.') {
+        console.log('Access error: Doctor access required. Redirecting...');
+        // Call the registered doctor access required handler if it exists
+        if (handleDoctorAccessRequiredError) {
+          handleDoctorAccessRequiredError();
         }
       }
       
