@@ -1,0 +1,145 @@
+<div class="admin-container">
+  <mat-sidenav-container class="sidenav-container">
+    <!-- Sidebar Navigation -->
+    <mat-sidenav #sidenav [mode]="isHandset ? 'over' : 'side'" 
+                [opened]="isSidenavOpen" 
+                class="sidenav" 
+                [fixedInViewport]="true">
+      <div class="sidenav-header">
+        <div class="app-logo">
+          <img src="assets/logo.png" alt="Doc Assist Pro">
+          <span class="app-name" *ngIf="isSidenavOpen">Doc Assist Pro</span>
+        </div>
+        <button mat-icon-button (click)="toggleSidenav()" *ngIf="isHandset">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-nav-list>
+        <ng-container *ngFor="let item of navItems">
+          <!-- If item has children, render as expandable menu -->
+          <mat-expansion-panel *ngIf="item.children" class="nav-expansion-panel" [expanded]="false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <div class="nav-item">
+                  <mat-icon *ngIf="item.icon">{{item.icon}}</mat-icon>
+                  <span *ngIf="isSidenavOpen">{{item.label}}</span>
+                  <span *ngIf="item.badge" class="badge">{{item.badge}}</span>
+                </div>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <mat-nav-list class="sub-nav-list">
+              <a mat-list-item *ngFor="let child of item.children" 
+                 [routerLink]="child.route" 
+                 routerLinkActive="active">
+                <span>{{child.label}}</span>
+              </a>
+            </mat-nav-list>
+          </mat-expansion-panel>
+
+          <!-- If item doesn't have children, render as a link -->
+          <a mat-list-item *ngIf="!item.children" 
+             [routerLink]="item.route" 
+             routerLinkActive="active">
+            <div class="nav-item">
+              <mat-icon *ngIf="item.icon">{{item.icon}}</mat-icon>
+              <span *ngIf="isSidenavOpen">{{item.label}}</span>
+              <span *ngIf="item.badge" class="badge">{{item.badge}}</span>
+            </div>
+          </a>
+        </ng-container>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <!-- Main Content Area -->
+    <mat-sidenav-content>
+      <!-- Top Header -->
+      <mat-toolbar color="primary" class="top-toolbar">
+        <button mat-icon-button (click)="toggleSidenav()">
+          <mat-icon>{{isSidenavOpen ? 'menu_open' : 'menu'}}</mat-icon>
+        </button>
+        
+        <span class="toolbar-spacer"></span>
+        
+        <div class="toolbar-actions">
+          <!-- Notifications -->
+          <button mat-icon-button [matMenuTriggerFor]="notificationsMenu" class="notification-btn">
+            <mat-icon [matBadge]="notificationCount" matBadgeColor="warn">notifications</mat-icon>
+          </button>
+          <mat-menu #notificationsMenu="matMenu" class="notifications-menu">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <button mat-button>Mark all as read</button>
+            </div>
+            <mat-divider></mat-divider>
+            <div class="notification-list">
+              <div class="notification-item">
+                <mat-icon class="notification-icon">person_add</mat-icon>
+                <div class="notification-content">
+                  <p><strong>New doctor registration</strong></p>
+                  <p>Dr. John Smith has registered and awaits approval</p>
+                  <small>20 minutes ago</small>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="notification-item">
+                <mat-icon class="notification-icon">warning</mat-icon>
+                <div class="notification-content">
+                  <p><strong>System alert</strong></p>
+                  <p>Database utilization above 80%</p>
+                  <small>1 hour ago</small>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="notification-item">
+                <mat-icon class="notification-icon">feedback</mat-icon>
+                <div class="notification-content">
+                  <p><strong>New feedback received</strong></p>
+                  <p>2 new patient feedback entries require review</p>
+                  <small>3 hours ago</small>
+                </div>
+              </div>
+            </div>
+            <mat-divider></mat-divider>
+            <div class="notification-footer">
+              <button mat-button routerLink="/notifications">View all notifications</button>
+            </div>
+          </mat-menu>
+          
+          <!-- User Profile Menu -->
+          <button mat-button [matMenuTriggerFor]="userMenu" class="user-profile-btn">
+            <div class="user-profile">
+              <div class="avatar" *ngIf="!currentUser?.profileImage">
+                {{currentUser?.fullName?.charAt(0) || 'A'}}
+              </div>
+              <img *ngIf="currentUser?.profileImage" [src]="currentUser?.profileImage" alt="Profile" class="avatar-img">
+              <span class="user-name" *ngIf="!isHandset">{{currentUser?.fullName || 'Admin'}}</span>
+              <mat-icon>arrow_drop_down</mat-icon>
+            </div>
+          </button>
+          <mat-menu #userMenu="matMenu">
+            <button mat-menu-item routerLink="/profile">
+              <mat-icon>account_circle</mat-icon>
+              <span>My Profile</span>
+            </button>
+            <button mat-menu-item routerLink="/settings">
+              <mat-icon>settings</mat-icon>
+              <span>Settings</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="logout()">
+              <mat-icon>exit_to_app</mat-icon>
+              <span>Logout</span>
+            </button>
+          </mat-menu>
+        </div>
+      </mat-toolbar>
+
+      <!-- Page Content -->
+      <div class="content-container">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

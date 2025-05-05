@@ -1,0 +1,180 @@
+<div class="verification-detail-container">
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading verification details...</p>
+  </div>
+
+  <div *ngIf="!isLoading && !verification" class="error-container">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <p>Verification details not found or an error occurred.</p>
+    <button mat-raised-button color="primary" routerLink="/verifications">Back to List</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading && verification">
+    <div class="header-container">
+      <h1>Doctor Verification Request</h1>
+      <div class="status-badge" [ngClass]="getStatusClass(verification.status)">
+        {{ verification.status | uppercase }}
+      </div>
+    </div>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Verification Details</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="detail-row">
+          <span class="label">Request ID:</span>
+          <span class="value">{{ verification._id }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Submitted Date:</span>
+          <span class="value">{{ verification.createdAt | date:'medium' }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Last Updated:</span>
+          <span class="value">{{ verification.updatedAt | date:'medium' }}</span>
+        </div>
+        <div *ngIf="verification.status === 'rejected'" class="detail-row">
+          <span class="label">Rejection Reason:</span>
+          <span class="value rejection-reason">{{ verification.rejectionReason }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card *ngIf="doctor" class="doctor-info-card">
+      <mat-card-header>
+        <div mat-card-avatar class="doctor-avatar" *ngIf="doctor.profileImage">
+          <img [src]="doctor.profileImage" alt="Doctor profile">
+        </div>
+        <mat-card-title>Dr. {{ doctor.firstName }} {{ doctor.lastName }}</mat-card-title>
+        <mat-card-subtitle>{{ doctor.specialization }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="detail-row">
+          <span class="label">Email:</span>
+          <span class="value">{{ doctor.email }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Phone:</span>
+          <span class="value">{{ doctor.phoneNumber }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Registration Number:</span>
+          <span class="value">{{ doctor.registrationNumber }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Hospital/Clinic:</span>
+          <span class="value">{{ doctor.hospitalAffiliation }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="label">Years of Experience:</span>
+          <span class="value">{{ doctor.yearsOfExperience }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="documents-card">
+      <mat-card-header>
+        <mat-card-title>Verification Documents</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="verification.documents && verification.documents.length === 0" class="no-documents">
+          No documents uploaded
+        </div>
+        <div class="documents-grid">
+          <div *ngFor="let doc of verification.documents" class="document-item">
+            <mat-card class="document-card">
+              <mat-card-header>
+                <mat-card-title>{{ doc.documentType }}</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="document-preview" (click)="viewDocument(doc.fileUrl)">
+                  <mat-icon *ngIf="doc.fileUrl.endsWith('.pdf')">picture_as_pdf</mat-icon>
+                  <mat-icon *ngIf="!doc.fileUrl.endsWith('.pdf') && !doc.fileUrl.includes('image')">insert_drive_file</mat-icon>
+                  <img *ngIf="doc.fileUrl.includes('image')" [src]="doc.fileUrl" alt="Document preview">
+                  <div class="preview-overlay">
+                    <mat-icon>visibility</mat-icon>
+                  </div>
+                </div>
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="viewDocument(doc.fileUrl)">
+                  <mat-icon>open_in_new</mat-icon> View
+                </button>
+                <a mat-button color="accent" [href]="doc.fileUrl" target="_blank" download>
+                  <mat-icon>download</mat-icon> Download
+                </a>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div *ngIf="verification.status === 'pending'" class="actions-container">
+      <button mat-raised-button color="primary" (click)="approveVerification()">
+        <mat-icon>check_circle</mat-icon> Approve Verification
+      </button>
+      <button mat-raised-button color="warn" data-toggle="modal" data-target="#rejectModal">
+        <mat-icon>cancel</mat-icon> Reject Verification
+      </button>
+    </div>
+
+    <div class="navigation-buttons">
+      <button mat-button color="primary" routerLink="/verifications">
+        <mat-icon>arrow_back</mat-icon> Back to List
+      </button>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Document Viewer Modal -->
+<div *ngIf="activeDocumentUrl" class="document-viewer-modal">
+  <div class="document-viewer-content">
+    <div class="document-viewer-header">
+      <h2>Document Viewer</h2>
+      <button mat-icon-button (click)="closeDocumentViewer()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="document-viewer-body">
+      <iframe *ngIf="activeDocumentUrl.endsWith('.pdf')" [src]="sanitizeUrl(activeDocumentUrl)" frameborder="0"></iframe>
+      <img *ngIf="!activeDocumentUrl.endsWith('.pdf')" [src]="activeDocumentUrl" alt="Document preview">
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div *ngIf="verification?.status === 'pending'" class="rejection-modal" id="rejectModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Reject Verification</h2>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="rejectForm">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Rejection Reason</mat-label>
+            <textarea matInput formControlName="rejectionReason" rows="5" placeholder="Please provide a detailed reason for rejection"></textarea>
+            <mat-error *ngIf="rejectForm.get('rejectionReason')?.hasError('required')">
+              Rejection reason is required
+            </mat-error>
+            <mat-error *ngIf="rejectForm.get('rejectionReason')?.hasError('minlength')">
+              Rejection reason must be at least 10 characters long
+            </mat-error>
+          </mat-form-field>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button mat-button data-dismiss="modal">Cancel</button>
+        <button mat-raised-button color="warn" (click)="rejectVerification()" [disabled]="rejectForm.invalid">
+          Reject
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

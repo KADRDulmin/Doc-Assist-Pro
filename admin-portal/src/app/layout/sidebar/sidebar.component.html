@@ -1,0 +1,54 @@
+<div class="sidebar-container">
+  <div class="logo-container">
+    <img src="assets/images/logo.png" alt="Doc-Assist Logo" class="logo">
+    <h2 class="logo-text">Doc-Assist</h2>
+  </div>
+  
+  <div class="nav-container">
+    <!-- Navigation Items -->
+    <div class="nav-items">
+      <!-- Single level nav items -->
+      @for (item of navItems; track item.label) {
+        @if (!item.children) {
+          <a mat-list-item 
+             [routerLink]="item.route" 
+             routerLinkActive="active-link" 
+             class="nav-item">
+            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        } @else {
+          <!-- Multi-level nav items -->
+          <mat-expansion-panel 
+            class="nav-expansion" 
+            [expanded]="item.expanded"
+            (opened)="item.expanded = true"
+            (closed)="item.expanded = false">
+            <mat-expansion-panel-header class="nav-expansion-header">
+              <mat-panel-title class="nav-expansion-title">
+                <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+                <span class="nav-label">{{ item.label }}</span>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            
+            @for (child of item.children; track child.label) {
+              <a mat-list-item 
+                [routerLink]="child.route" 
+                routerLinkActive="active-link"
+                class="nav-child-item">
+                <mat-icon class="nav-icon">{{ child.icon }}</mat-icon>
+                <span class="nav-label">{{ child.label }}</span>
+              </a>
+            }
+          </mat-expansion-panel>
+        }
+      }
+    </div>
+  </div>
+  
+  <div class="sidebar-footer">
+    <div class="version">
+      <span>Version 1.0.0</span>
+    </div>
+  </div>
+</div>
