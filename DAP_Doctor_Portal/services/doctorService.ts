@@ -373,36 +373,6 @@ const doctorService = {
   getFeedbackByAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<FeedbackData>> => {
     return api.get<FeedbackData>(`/feedback/appointment/${appointmentId}`, token);
   },
-
-  // Update doctor location
-  updateLocation: async (
-    locationData: LocationData,
-    token: string
-  ): Promise<ApiResponse<DoctorProfile>> => {
-    return api.put<DoctorProfile>('/doctors/profile/location', locationData, token);
-  },
-  
-  // Get nearby doctors based on speciality and location
-  getNearbyDoctors: async (
-    latitude: number,
-    longitude: number,
-    speciality?: string,
-    maxDistance: number = 30, // Default 30km radius
-    token?: string
-  ): Promise<ApiResponse<DoctorWithDistanceData[]>> => {
-    let endpoint = `/doctors/nearby?latitude=${latitude}&longitude=${longitude}&maxDistance=${maxDistance}`;
-    
-    if (speciality) {
-      endpoint += `&specialty=${encodeURIComponent(speciality)}`;
-    }
-    
-    return api.get<DoctorWithDistanceData[]>(endpoint, token);
-  },
-  
-  // Get doctor's location
-  getDoctorLocation: async (doctorId: number, token: string): Promise<ApiResponse<LocationData>> => {
-    return api.get<LocationData>(`/doctors/${doctorId}/location`, token);
-  },
 };
 
 export default doctorService;
