@@ -1,499 +1,688 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Text, Card, Avatar, Button, ActivityIndicator, TextInput, HelperText, Portal, Dialog } from 'react-native-paper';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { useAuth } from '../../contexts/AuthContext';
-import authService from '../../services/authService';
-import doctorService, { DashboardData } from '../../services/doctorService';
-import Colors from '../../constants/Colors';
+import React, { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Switch, RefreshControl, Platform, Alert } from 'react-native';
+import { Avatar, Divider, Dialog, Portal, Button } from 'react-native-paper';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useColorScheme } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 
-// Profile validation schema
-const ProfileSchema = Yup.object().shape({
-  first_name: Yup.string().required('First name is required'),
-  last_name: Yup.string().required('Last name is required'),
-  phone: Yup.string(),
-  specialization: Yup.string().required('Specialization is required'),
-  license_number: Yup.string().required('License number is required'),
-  years_of_experience: Yup.number()
-    .min(0, 'Experience cannot be negative')
-    .required('Years of experience is required'),
-  education: Yup.string(),
-  bio: Yup.string(),
-  consultation_fee: Yup.number()
-    .min(0, 'Fee cannot be negative')
-    .required('Consultation fee is required'),
-});
+import { useAuth } from '../../contexts/AuthContext';
+import { ThemedView } from '../../components/ThemedView';
+import { ThemedText } from '../../components/ThemedText';
+import Colors from '../../constants/Colors';
+import ModernHeader from '../../components/ui/ModernHeader';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
-
-  // Load doctor profile data
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const token = await authService.getToken();
-      
-      if (!token) {
-        setError('Authentication token not found');
-        return;
-      }
-      
-      const response = await doctorService.getProfile(token);
-      
-      if (response.success && response.data) {
-        setProfileData({
-          ...response.data,
-          // Include user details
-          first_name: response.data.user?.first_name || '',
-          last_name: response.data.user?.last_name || '',
-          email: response.data.user?.email || '',
-          phone: response.data.user?.phone || '',
-        });
-      } else {
-        setError(response.error || 'Failed to load profile data');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [refreshing, setRefreshing] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(colorScheme === 'dark');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Load saved preferences on mount
   useEffect(() => {
-    loadProfile();
+    const loadPreferences = async () => {
+      try {
+        const notificationPref = await AsyncStorage.getItem('notifications-enabled');
+        if (notificationPref !== null) {
+          setNotificationsEnabled(notificationPref === 'true');
+        }
+        
+        // Profile image would typically be loaded from user profile
+        const savedProfileImage = await AsyncStorage.getItem('profile-image');
+        if (savedProfileImage) {
+          setProfileImage(savedProfileImage);
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error);
+      }
+    };
+    
+    loadPreferences();
+  }, []);
+  
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Simulate a data refresh
+    setTimeout(() => {
+      setRefreshing(false);
+      // Would typically reload user profile data here
+    }, 1000);
   }, []);
 
-  const handleUpdateProfile = async (values: any) => {
+  const pickImage = async () => {
     try {
-      setUpdating(true);
-      setError(null);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
-      const token = await authService.getToken();
-      
-      if (!token) {
-        setError('Authentication token not found');
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          'Permission Required',
+          'Permission to access your photo library is required to update your profile picture.',
+          [{ text: 'OK' }]
+        );
         return;
       }
       
-      // Separate user data from profile data
-      const { first_name, last_name, phone, email, ...profileUpdateData } = values;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
       
-      // Update profile data
-      const response = await doctorService.updateProfile(profileUpdateData, token);
-      
-      if (response.success) {
-        Alert.alert(
-          'Success',
-          'Your profile has been updated successfully.',
-          [{ text: 'OK' }]
-        );
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedImage = result.assets[0].uri;
+        setProfileImage(selectedImage);
         
-        setProfileData({
-          ...response.data,
-          first_name,
-          last_name,
-          email,
-          phone,
-        });
-        
-        setIsEditing(false);
-      } else {
-        setError(response.error || 'Failed to update profile');
+        // Save selected image locally (in production, would upload to server)
+        try {
+          await AsyncStorage.setItem('profile-image', selectedImage);
+          console.log('Profile image saved locally');
+        } catch (error) {
+          console.error('Failed to save profile image:', error);
+        }
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-    } finally {
-      setUpdating(false);
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
 
-  const handleLogout = () => {
-    setLogoutDialogVisible(true);
+  const toggleDarkMode = async (value: boolean) => {
+    setDarkModeEnabled(value);
+    
+    try {
+      // In a real app, you'd store the preference and apply it
+      await AsyncStorage.setItem('theme-preference', value ? 'dark' : 'light');
+      console.log('Theme preference saved:', value ? 'dark' : 'light');
+      
+      // Note: In a full implementation, this would trigger theme change in the app
+      Alert.alert(
+        'Theme Preference Saved',
+        'This setting will take effect when you restart the app.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Failed to save theme preference:', error);
+    }
   };
 
-  const confirmLogout = async () => {
+  const toggleNotifications = async (value: boolean) => {
+    setNotificationsEnabled(value);
+    
+    try {
+      await AsyncStorage.setItem('notifications-enabled', value.toString());
+      console.log('Notification preference saved:', value);
+    } catch (error) {
+      console.error('Failed to save notification preference:', error);
+    }
+  };
+
+  const confirmLogout = () => {
     setLogoutDialogVisible(false);
-    await signOut();
+    signOut();
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
-  }
-
+  // Default data if user object is incomplete
+  const userFullName = user 
+    ? `Dr. ${user.first_name || ''} ${user.last_name || ''}`.trim() 
+    : 'Doctor';
+  
+  const userSpecialty = user?.specialty || 'General Practitioner';
+  const userEmail = user?.email || 'doctor@example.com';
+  const userPhone = user?.phone || '+1 123-456-7890';
+  
+  // Get user initials for avatar
+  const userInitials = `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase();
+  
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <ThemedView variant="secondary" style={styles.container}>
+      <ModernHeader 
+        title="My Profile"
+        showBackButton={false}
+        userName={`Dr. ${user?.last_name || 'Smith'}`}
+      />
+      
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={[Colors[theme].primary]}
+            tintColor={Colors[theme].primary}
+          />
+        }
       >
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Button mode="contained" onPress={loadProfile} style={styles.retryButton}>
-              Retry
-            </Button>
-          </View>
-        )}
-
-        {profileData && (
-          <>
-            <Card style={styles.profileHeader}>
-              <Card.Content style={styles.profileHeaderContent}>
-                <Avatar.Text 
-                  label={`${profileData.first_name?.charAt(0)}${profileData.last_name?.charAt(0)}`}
-                  size={80}
-                  style={styles.avatar}
+        {/* Profile Header */}
+        <ThemedView variant="card" useShadow style={styles.profileHeader}>
+          <LinearGradient
+            colors={Colors[theme].primary === Colors.light.primary 
+              ? ['rgba(4, 102, 200, 0.1)', 'rgba(4, 102, 200, 0.02)'] 
+              : ['rgba(88, 176, 237, 0.1)', 'rgba(88, 176, 237, 0.02)']}
+            style={styles.headerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          
+          <View style={styles.avatarContainer}>
+            {profileImage ? (
+              <Avatar.Image
+                size={110}
+                source={{ uri: profileImage }}
+              />
+            ) : (
+              <LinearGradient
+                colors={Colors[theme].primary === Colors.light.primary 
+                  ? ['#0466C8', '#0353A4'] 
+                  : ['#58B0ED', '#0466C8']}
+                style={styles.avatarGradient}
+              >
+                <Avatar.Text
+                  size={110}
+                  label={userInitials}
+                  labelStyle={{ fontSize: 40 }}
+                  style={{ backgroundColor: 'transparent' }}
                 />
-                <View style={styles.profileHeaderInfo}>
-                  <Text style={styles.doctorName}>Dr. {profileData.first_name} {profileData.last_name}</Text>
-                  <Text style={styles.doctorSpecialty}>{profileData.specialization}</Text>
-                  <Text style={styles.doctorExperience}>
-                    {profileData.years_of_experience} years of experience
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
-
-            <Formik
-              initialValues={{
-                first_name: profileData.first_name || '',
-                last_name: profileData.last_name || '',
-                email: profileData.email || '',
-                phone: profileData.phone || '',
-                specialization: profileData.specialization || '',
-                license_number: profileData.license_number || '',
-                years_of_experience: profileData.years_of_experience?.toString() || '0',
-                education: profileData.education || '',
-                bio: profileData.bio || '',
-                consultation_fee: profileData.consultation_fee?.toString() || '0',
+              </LinearGradient>
+            )}
+            <TouchableOpacity 
+              style={[styles.editAvatarButton, { backgroundColor: Colors[theme].primary }]} 
+              onPress={pickImage}
+            >
+              <FontAwesome5 name="camera" size={16} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+          
+          <ThemedText type="heading" style={styles.doctorName}>
+            {userFullName}
+          </ThemedText>
+          
+          <View style={styles.specialtyContainer}>
+            <FontAwesome5 name="stethoscope" size={14} color={Colors[theme].primary} style={styles.specialtyIcon} />
+            <ThemedText variant="secondary" style={styles.specialty}>
+              {userSpecialty}
+            </ThemedText>
+          </View>
+          
+          <View style={styles.statsContainer}>
+            <ThemedView 
+              variant="cardAlt" 
+              style={styles.statItem}
+            >
+              <ThemedText type="heading" style={styles.statNumber}>
+                {user?.appointments_count || 0}
+              </ThemedText>
+              <ThemedText variant="tertiary">Appointments</ThemedText>
+            </ThemedView>
+            
+            <ThemedView 
+              variant="cardAlt" 
+              style={styles.statItem}
+            >
+              <ThemedText type="heading" style={styles.statNumber}>
+                {user?.patients_count || 0}
+              </ThemedText>
+              <ThemedText variant="tertiary">Patients</ThemedText>
+            </ThemedView>
+            
+            <ThemedView 
+              variant="cardAlt" 
+              style={styles.statItem}
+            >
+              <ThemedText type="heading" style={styles.statNumber}>
+                {user?.experience_years || 0}
+              </ThemedText>
+              <ThemedText variant="tertiary">Years</ThemedText>
+            </ThemedView>
+          </View>
+        </ThemedView>
+        
+        {/* Contact Information */}
+        <ThemedView variant="card" useShadow style={styles.sectionCard}>
+          <View style={styles.sectionTitleContainer}>
+            <FontAwesome5 name="address-card" size={16} color={Colors[theme].primary} />
+            <ThemedText type="subheading" style={styles.sectionTitle}>
+              Contact Information
+            </ThemedText>
+          </View>
+          
+          <View style={styles.contactItem}>
+            <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+              <FontAwesome5 name="envelope" size={16} color={Colors[theme].primary} />
+            </View>
+            <View style={styles.contactContent}>
+              <ThemedText variant="secondary" style={styles.contactLabel}>
+                Email Address
+              </ThemedText>
+              <ThemedText>{userEmail}</ThemedText>
+            </View>
+          </View>
+          
+          <View style={styles.contactItem}>
+            <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+              <FontAwesome5 name="phone-alt" size={16} color={Colors[theme].primary} />
+            </View>
+            <View style={styles.contactContent}>
+              <ThemedText variant="secondary" style={styles.contactLabel}>
+                Phone Number
+              </ThemedText>
+              <ThemedText>{userPhone}</ThemedText>
+            </View>
+          </View>
+          
+          {user?.address && (
+            <View style={styles.contactItem}>
+              <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+                <FontAwesome5 name="map-marker-alt" size={16} color={Colors[theme].primary} />
+              </View>
+              <View style={styles.contactContent}>
+                <ThemedText variant="secondary" style={styles.contactLabel}>
+                  Office Address
+                </ThemedText>
+                <ThemedText>{user.address}</ThemedText>
+              </View>
+            </View>
+          )}
+          
+          {user?.hospital && (
+            <View style={styles.contactItem}>
+              <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+                <FontAwesome5 name="hospital" size={16} color={Colors[theme].primary} />
+              </View>
+              <View style={styles.contactContent}>
+                <ThemedText variant="secondary" style={styles.contactLabel}>
+                  Hospital
+                </ThemedText>
+                <ThemedText>{user.hospital}</ThemedText>
+              </View>
+            </View>
+          )}
+        </ThemedView>
+        
+        {/* App Settings */}
+        <ThemedView variant="card" useShadow style={styles.sectionCard}>
+          <View style={styles.sectionTitleContainer}>
+            <FontAwesome5 name="sliders-h" size={16} color={Colors[theme].primary} />
+            <ThemedText type="subheading" style={styles.sectionTitle}>
+              App Settings
+            </ThemedText>
+          </View>
+          
+          <View style={styles.settingItem}>
+            <View style={styles.settingLabelContainer}>
+              <View style={[styles.settingIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+                <Ionicons name="notifications" size={18} color={Colors[theme].primary} />
+              </View>
+              <View>
+                <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
+                <ThemedText variant="tertiary" style={styles.settingDescription}>
+                  Receive updates about your appointments
+                </ThemedText>
+              </View>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={toggleNotifications}
+              thumbColor={Platform.OS === 'ios' ? undefined : notificationsEnabled ? Colors[theme].primary : '#f4f3f4'}
+              trackColor={{ 
+                false: Platform.OS === 'ios' ? undefined : Colors[theme].borderLight, 
+                true: Platform.OS === 'ios' ? Colors[theme].primary : `${Colors[theme].primary}80`
               }}
-              validationSchema={ProfileSchema}
-              onSubmit={handleUpdateProfile}
-              enableReinitialize
+              ios_backgroundColor={Colors[theme].borderLight}
+            />
+          </View>
+          
+          <View style={styles.settingDivider} />
+          
+          <View style={styles.settingItem}>
+            <View style={styles.settingLabelContainer}>
+              <View style={[styles.settingIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
+                <Ionicons name={colorScheme === 'dark' ? "moon" : "sunny"} size={18} color={Colors[theme].primary} />
+              </View>
+              <View>
+                <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
+                <ThemedText variant="tertiary" style={styles.settingDescription}>
+                  Switch between light and dark themes
+                </ThemedText>
+              </View>
+            </View>
+            <Switch
+              value={darkModeEnabled}
+              onValueChange={toggleDarkMode}
+              thumbColor={Platform.OS === 'ios' ? undefined : darkModeEnabled ? Colors[theme].primary : '#f4f3f4'}
+              trackColor={{ 
+                false: Platform.OS === 'ios' ? undefined : Colors[theme].borderLight, 
+                true: Platform.OS === 'ios' ? Colors[theme].primary : `${Colors[theme].primary}80`
+              }}
+              ios_backgroundColor={Colors[theme].borderLight}
+            />
+          </View>
+        </ThemedView>
+        
+        {/* Security */}
+        <ThemedView variant="card" useShadow style={styles.sectionCard}>
+          <View style={styles.sectionTitleContainer}>
+            <FontAwesome5 name="shield-alt" size={16} color={Colors[theme].primary} />
+            <ThemedText type="subheading" style={styles.sectionTitle}>
+              Security
+            </ThemedText>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => Alert.alert('Change Password', 'This feature will be available in the next update.')}
+          >
+            <View style={styles.menuIconContainer}>
+              <MaterialCommunityIcons name="form-textbox-password" size={18} color={Colors[theme].primary} />
+            </View>
+            <View style={styles.menuContent}>
+              <ThemedText>Change Password</ThemedText>
+              <FontAwesome5 name="chevron-right" size={14} color={Colors[theme].textTertiary} />
+            </View>
+          </TouchableOpacity>
+          
+          <View style={styles.menuDivider} />
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => Alert.alert('Two-Factor Authentication', 'This feature will be available in the next update.')}
+          >
+            <View style={styles.menuIconContainer}>
+              <MaterialCommunityIcons name="two-factor-authentication" size={18} color={Colors[theme].primary} />
+            </View>
+            <View style={styles.menuContent}>
+              <ThemedText>Two-Factor Authentication</ThemedText>
+              <FontAwesome5 name="chevron-right" size={14} color={Colors[theme].textTertiary} />
+            </View>
+          </TouchableOpacity>
+        </ThemedView>
+        
+        {/* Actions */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => Alert.alert('Edit Profile', 'This feature will be available in the next update.')}
+          >
+            <LinearGradient
+              colors={Colors[theme].primary === Colors.light.primary 
+                ? ['#0466C8', '#0353A4'] 
+                : ['#58B0ED', '#0466C8']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                setFieldValue,
-                values,
-                errors,
-                touched,
-              }) => (
-                <View style={styles.profileForm}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Personal Information</Text>
-                    {!isEditing && (
-                      <Button
-                        mode="outlined"
-                        onPress={() => setIsEditing(true)}
-                        style={styles.editButton}
-                      >
-                        Edit Profile
-                      </Button>
-                    )}
-                  </View>
-
-                  <Card style={styles.formCard}>
-                    <Card.Content>
-                      <TextInput
-                        label="First Name"
-                        value={values.first_name}
-                        onChangeText={handleChange('first_name')}
-                        onBlur={handleBlur('first_name')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        error={touched.first_name && !!errors.first_name}
-                      />
-                      {touched.first_name && errors.first_name && (
-                        <HelperText type="error">{errors.first_name}</HelperText>
-                      )}
-
-                      <TextInput
-                        label="Last Name"
-                        value={values.last_name}
-                        onChangeText={handleChange('last_name')}
-                        onBlur={handleBlur('last_name')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        error={touched.last_name && !!errors.last_name}
-                      />
-                      {touched.last_name && errors.last_name && (
-                        <HelperText type="error">{errors.last_name}</HelperText>
-                      )}
-
-                      <TextInput
-                        label="Email"
-                        value={values.email}
-                        style={styles.input}
-                        disabled={true} // Email should not be editable
-                      />
-
-                      <TextInput
-                        label="Phone Number"
-                        value={values.phone}
-                        onChangeText={handleChange('phone')}
-                        onBlur={handleBlur('phone')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        keyboardType="phone-pad"
-                      />
-                    </Card.Content>
-                  </Card>
-
-                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Professional Information</Text>
-                  <Card style={styles.formCard}>
-                    <Card.Content>
-                      <TextInput
-                        label="Specialization"
-                        value={values.specialization}
-                        onChangeText={handleChange('specialization')}
-                        onBlur={handleBlur('specialization')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        error={touched.specialization && !!errors.specialization}
-                      />
-                      {touched.specialization && errors.specialization && (
-                        <HelperText type="error">{errors.specialization}</HelperText>
-                      )}
-
-                      <TextInput
-                        label="License Number"
-                        value={values.license_number}
-                        onChangeText={handleChange('license_number')}
-                        onBlur={handleBlur('license_number')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        error={touched.license_number && !!errors.license_number}
-                      />
-                      {touched.license_number && errors.license_number && (
-                        <HelperText type="error">{errors.license_number}</HelperText>
-                      )}
-
-                      <TextInput
-                        label="Years of Experience"
-                        value={values.years_of_experience}
-                        onChangeText={text => setFieldValue('years_of_experience', text)}
-                        onBlur={handleBlur('years_of_experience')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        keyboardType="numeric"
-                        error={touched.years_of_experience && !!errors.years_of_experience}
-                      />
-                      {touched.years_of_experience && errors.years_of_experience && (
-                        <HelperText type="error">{errors.years_of_experience}</HelperText>
-                      )}
-
-                      <TextInput
-                        label="Education"
-                        value={values.education}
-                        onChangeText={handleChange('education')}
-                        onBlur={handleBlur('education')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        multiline
-                      />
-
-                      <TextInput
-                        label="Bio"
-                        value={values.bio}
-                        onChangeText={handleChange('bio')}
-                        onBlur={handleBlur('bio')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        multiline
-                        numberOfLines={3}
-                      />
-
-                      <TextInput
-                        label="Consultation Fee"
-                        value={values.consultation_fee}
-                        onChangeText={text => setFieldValue('consultation_fee', text)}
-                        onBlur={handleBlur('consultation_fee')}
-                        style={styles.input}
-                        disabled={!isEditing}
-                        keyboardType="numeric"
-                        error={touched.consultation_fee && !!errors.consultation_fee}
-                      />
-                      {touched.consultation_fee && errors.consultation_fee && (
-                        <HelperText type="error">{errors.consultation_fee}</HelperText>
-                      )}
-                    </Card.Content>
-                  </Card>
-
-                  {isEditing && (
-                    <View style={styles.actionButtons}>
-                      <Button
-                        mode="outlined"
-                        onPress={() => setIsEditing(false)}
-                        style={[styles.actionButton, styles.cancelButton]}
-                        disabled={updating}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        mode="contained"
-                        onPress={() => handleSubmit()}
-                        style={styles.actionButton}
-                        disabled={updating}
-                        loading={updating}
-                      >
-                        Save Changes
-                      </Button>
-                    </View>
-                  )}
-                </View>
-              )}
-            </Formik>
-
-            <Button
-              mode="outlined"
-              onPress={handleLogout}
-              style={styles.logoutButton}
-              icon="logout"
-            >
-              Log Out
-            </Button>
-          </>
-        )}
-
-        <Portal>
-          <Dialog visible={logoutDialogVisible} onDismiss={() => setLogoutDialogVisible(false)}>
-            <Dialog.Title>Confirm Logout</Dialog.Title>
-            <Dialog.Content>
-              <Text>Are you sure you want to log out from Doc-Assist Pro?</Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setLogoutDialogVisible(false)}>Cancel</Button>
-              <Button onPress={confirmLogout}>Log Out</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+              <FontAwesome5 name="user-edit" size={16} color="#FFF" />
+              <ThemedText style={styles.primaryButtonText}>Edit Profile</ThemedText>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.outlineButton, { borderColor: Colors[theme].danger }]}
+            onPress={() => setLogoutDialogVisible(true)}
+          >
+            <FontAwesome5 name="sign-out-alt" size={16} color={Colors[theme].danger} />
+            <ThemedText style={[styles.outlineButtonText, { color: Colors[theme].danger }]}>
+              Logout
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+        
+        {/* App Info */}
+        <ThemedText 
+          variant="tertiary" 
+          style={styles.versionText}
+        >
+          Doc-Assist Pro v1.0.0
+        </ThemedText>
       </ScrollView>
-    </KeyboardAvoidingView>
+      
+      {/* Logout Confirmation Dialog */}
+      <Portal>
+        <Dialog
+          visible={logoutDialogVisible}
+          onDismiss={() => setLogoutDialogVisible(false)}
+          style={{ backgroundColor: Colors[theme].card }}
+        >
+          <Dialog.Title>
+            <ThemedText type="subheading">Confirm Logout</ThemedText>
+          </Dialog.Title>
+          <Dialog.Content>
+            <ThemedText>Are you sure you want to logout from your account?</ThemedText>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button 
+              onPress={() => setLogoutDialogVisible(false)}
+              textColor={Colors[theme].text}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onPress={confirmLogout}
+              textColor={Colors[theme].danger}
+            >
+              Logout
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
+  scrollContent: {
     padding: 16,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  retryButton: {
-    width: 150,
+    paddingBottom: 32,
   },
   profileHeader: {
-    marginBottom: 20,
-    elevation: 2,
-  },
-  profileHeaderContent: {
-    flexDirection: 'row',
+    padding: 24,
+    borderRadius: 16,
     alignItems: 'center',
-    padding: 10,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
-  avatar: {
-    backgroundColor: Colors.light.primary,
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  profileHeaderInfo: {
-    marginLeft: 20,
-    flex: 1,
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  avatarGradient: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editAvatarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   doctorName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    textAlign: 'center',
+    fontSize: 22,
+    marginBottom: 6,
   },
-  doctorSpecialty: {
-    fontSize: 16,
-    marginBottom: 3,
-    color: '#555',
+  specialtyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
-  doctorExperience: {
-    fontSize: 14,
-    color: '#666',
+  specialtyIcon: {
+    marginRight: 6,
   },
-  profileForm: {
-    marginVertical: 10,
+  specialty: {
+    textAlign: 'center',
   },
-  sectionHeader: {
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 8,
+  },
+  statItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  statNumber: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  sectionCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    marginLeft: 8,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  contactIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  contactContent: {
+    flex: 1,
+  },
+  contactLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+  settingLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  editButton: {
-    borderColor: Colors.light.primary,
+  settingIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  formCard: {
-    elevation: 2,
-    marginBottom: 10,
+  settingLabel: {
+    fontWeight: '500',
   },
-  input: {
-    marginBottom: 8,
-    backgroundColor: '#fff',
+  settingDescription: {
+    fontSize: 12,
+    marginTop: 2,
   },
-  actionButtons: {
+  settingDivider: {
+    height: 1,
+    marginVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuContent: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    alignItems: 'center',
   },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: 5,
+  menuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
-  cancelButton: {
-    borderColor: '#ccc',
+  actionsContainer: {
+    marginVertical: 16,
   },
-  logoutButton: {
-    marginTop: 30,
-    borderColor: '#F44336',
+  primaryButton: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  primaryButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingVertical: 14,
     borderWidth: 1,
+  },
+  outlineButtonText: {
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  versionText: {
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

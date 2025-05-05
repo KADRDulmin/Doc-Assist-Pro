@@ -11,6 +11,9 @@ export interface PatientProfileData {
   medical_history: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  address?: string;
   created_at: string;
   updated_at: string;
   user?: {
@@ -20,6 +23,10 @@ export interface PatientProfileData {
     email: string;
     phone: string;
   };
+  // Helper properties for UI display
+  name?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface PatientProfileUpdateData {
@@ -89,11 +96,26 @@ class PatientService {
 
       console.log('[PatientService] Fetching patient profile...');
       const response = await api.get('/api/patients/profile/me');
+      
+      // Add helper properties for UI display
+      if (response.success && response.data && response.data.user) {
+        response.data.name = `${response.data.user.first_name} ${response.data.user.last_name}`;
+        response.data.email = response.data.user.email;
+        response.data.phone = response.data.user.phone;
+      }
+      
       return response as ApiResponse<PatientProfileData>;
     } catch (error) {
       console.error('[PatientService] Failed to fetch patient profile:', error);
       throw error;
     }
+  }
+
+  /**
+   * Alias for getMyProfile to maintain backward compatibility
+   */
+  async getPatientProfile(): Promise<ApiResponse<PatientProfileData>> {
+    return this.getMyProfile();
   }
 
   /**

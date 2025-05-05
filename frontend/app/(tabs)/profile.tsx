@@ -8,11 +8,14 @@ import {
   SafeAreaView,
   Alert,
   Switch,
-  ActivityIndicator
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -22,95 +25,200 @@ import { useAuth } from '@/src/hooks/useAuth';
 import patientService, { PatientProfileData } from '@/src/services/patient.service';
 
 export default function ProfileScreen() {
-  const colorScheme = useColorScheme();
-  const { logout, user } = useAuth();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(colorScheme === 'dark');
+  const { user, logout } = useAuth();
+  const [profile, setProfile] = useState<PatientProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState<PatientProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 6.9147, // Default to Sri Lanka
+    longitude: 79.9729,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
-  // Fetch profile data when component mounts
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
+  // Define fixed gradient colors for header
+  const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
+  const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
+
+  // Theme-specific colors for components
+  const cardBackground = isDarkMode ? '#1e2022' : '#fff';
+  const cardBorderColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+  const dividerColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  const iconColor = isDarkMode ? '#A1CEDC' : '#0a7ea4';
+  const primaryColor = isDarkMode ? '#A1CEDC' : '#0a7ea4';
+  const accentColor = '#FF9800';
+  const logoutColor = '#e53935';
+
   useEffect(() => {
     fetchProfileData();
+    loadUserPreferences();
   }, []);
 
-  // Function to fetch patient profile data
   const fetchProfileData = async () => {
     setLoading(true);
     setError(null);
+
     try {
       const response = await patientService.getMyProfile();
+
       if (response.success && response.data) {
-        setProfileData(response.data);
+        setProfile(response.data);
+
+        // If profile has location, update map region
+        if (response.data.latitude && response.data.longitude) {
+          setMapRegion({
+            latitude: parseFloat(response.data.latitude),
+            longitude: parseFloat(response.data.longitude),
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
       } else {
-        setError('Failed to load profile data');
+        setError(response.message || 'Failed to load profile data');
       }
     } catch (err: any) {
-      console.error('Error fetching profile:', err);
-      setError(err?.message || 'An error occurred while fetching your profile');
+      console.error('Error loading profile:', err);
+      setError(err?.message || 'An error occurred while loading your profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          onPress: async () => {
-            try {
-              await logout();
-              // Navigation is handled by the AuthContext redirect
-            } catch (error) {
-              Alert.alert('Logout Error', 'Failed to logout. Please try again.');
-            }
-          },
-          style: 'destructive'
+  const loadUserPreferences = async () => {
+    try {
+      // Load user preferences from storage
+      const notificationsPref = await AsyncStorage.getItem('notifications_enabled');
+      setNotificationsEnabled(notificationsPref !== 'false');
+
+      const locationPref = await AsyncStorage.getItem('location_enabled');
+      setLocationEnabled(locationPref === 'true');
+
+      const darkModePref = await AsyncStorage.getItem('dark_mode_enabled');
+      setDarkModeEnabled(darkModePref === 'true');
+    } catch (err) {
+      console.error('Error loading preferences:', err);
+    }
+  };
+
+  const toggleNotifications = async (value: boolean) => {
+    setNotificationsEnabled(value);
+    try {
+      await AsyncStorage.setItem('notifications_enabled', value ? 'true' : 'false');
+    } catch (err) {
+      console.error('Error saving notification preference:', err);
+    }
+  };
+
+  const toggleLocation = async (value: boolean) => {
+    setLocationEnabled(value);
+    try {
+      if (value) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Location permission is required for this feature.');
+          setLocationEnabled(false);
+          return;
         }
-      ]
-    );
+
+        const location = await Location.getCurrentPositionAsync({});
+        setMapRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+
+      await AsyncStorage.setItem('location_enabled', value ? 'true' : 'false');
+    } catch (err) {
+      console.error('Error saving location preference:', err);
+      setLocationEnabled(false);
+    }
   };
 
-  const handleEditProfile = () => {
-    router.push('/edit-profile');
+  const toggleDarkMode = async (value: boolean) => {
+    setDarkModeEnabled(value);
+    try {
+      await AsyncStorage.setItem('dark_mode_enabled', value ? 'true' : 'false');
+
+      // Note: In a real app, you would update the app theme here
+      Alert.alert('Theme Preference Saved', 'This setting will take effect when you restart the app', [
+        { text: 'OK' },
+      ]);
+    } catch (err) {
+      console.error('Error saving dark mode preference:', err);
+    }
   };
 
-  const toggleNotifications = () => {
-    setNotificationsEnabled(previous => !previous);
+  const formatDateOfBirth = (dateString: string | undefined) => {
+    if (!dateString) return 'Not specified';
+
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
-  const toggleDarkMode = () => {
-    setDarkModeEnabled(previous => !previous);
-    // In a real app, you would actually change the theme here
-    // This is just for UI demonstration purposes
-  };
-  
-  // Define fixed gradient colors for LinearGradient
-  const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
-  const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
+  const calculateAge = (dateOfBirth: string | undefined) => {
+    if (!dateOfBirth) return null;
 
-  // Format allergies as an array for display
-  const allergiesList = profileData?.allergies ? 
-    profileData.allergies.split(',').map(item => item.trim()).filter(item => item.length > 0) : 
-    [];
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
+  const handleLogout = async () => {
+    Alert.alert('Confirm Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            console.error('Logout failed:', error);
+            Alert.alert('Logout Failed', 'An error occurred during logout.');
+          }
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
+
+  const onMapReady = () => {
+    setIsMapReady(true);
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-        <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#151718' : '#f8f8f8' }]}>
+        <ActivityIndicator size="large" color={iconColor} />
+        <ThemedText style={styles.loadingText}>Loading your profile...</ThemedText>
       </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.errorContainer}>
+      <SafeAreaView style={[styles.errorContainer, { backgroundColor: isDarkMode ? '#151718' : '#f8f8f8' }]}>
         <Ionicons name="alert-circle" size={50} color="#e53935" />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
         <TouchableOpacity style={styles.retryButton} onPress={fetchProfileData}>
@@ -121,12 +229,9 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#151718' : '#f8f8f8' }]}>
       {/* Profile Header */}
-      <LinearGradient
-        colors={colorScheme === 'dark' ? headerGradientDark : headerGradientLight}
-        style={styles.header}
-      >
+      <LinearGradient colors={isDarkMode ? headerGradientDark : headerGradientLight} style={styles.header}>
         <View style={styles.profileHeaderContent}>
           <View style={styles.profileImageContainer}>
             <View style={styles.profileImageWrapper}>
@@ -136,168 +241,194 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
-          <View style={styles.profileNameContainer}>
-            <ThemedText style={styles.profileName}>
-              {profileData?.user ? `${profileData.user.first_name || ''} ${profileData.user.last_name || ''}`.trim() : 'User'}
-            </ThemedText>
-            <View style={styles.patientBadge}>
-              <ThemedText style={styles.patientBadgeText}>Patient</ThemedText>
-            </View>
+
+          <View style={styles.profileInfo}>
+            <ThemedText style={styles.profileName}>{profile?.name || 'User'}</ThemedText>
+            <ThemedText style={styles.profileEmail}>{profile?.email || 'user@example.com'}</ThemedText>
+
+            <TouchableOpacity
+              style={[styles.editProfileButton, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}
+              onPress={() => router.push('/edit-profile')}
+            >
+              <Feather name="edit-2" size={16} color="#fff" />
+              <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
+            </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.editProfileButton}
-            onPress={handleEditProfile}
-          >
-            <ThemedText style={styles.editProfileButtonText}>Edit Profile</ThemedText>
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.contentContainer}>
-        {/* Personal Information Section */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="person-circle" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-            <ThemedText style={styles.sectionTitle}>Personal Information</ThemedText>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Patient Info */}
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="person-circle" size={22} color={iconColor} />
+            <ThemedText style={styles.cardTitle}>Personal Information</ThemedText>
           </View>
-          
+
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Email</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.user?.email || 'Not provided'}</ThemedText>
+            <ThemedText style={styles.infoLabel}>Full Name</ThemedText>
+            <ThemedText style={styles.infoValue}>{profile?.name || 'Not specified'}</ThemedText>
           </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Phone</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.user?.phone || 'Not provided'}</ThemedText>
-          </View>
-          
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Date of Birth</ThemedText>
-            <ThemedText style={styles.infoValue}>
-              {profileData?.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'Not provided'}
-            </ThemedText>
+            <ThemedText style={styles.infoValue}>{formatDateOfBirth(profile?.date_of_birth)}</ThemedText>
           </View>
-          
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Age</ThemedText>
+            <ThemedText style={styles.infoValue}>{calculateAge(profile?.date_of_birth) || 'Not specified'}</ThemedText>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Gender</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.gender || 'Not provided'}</ThemedText>
+            <ThemedText style={styles.infoValue}>{profile?.gender || 'Not specified'}</ThemedText>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Blood Group</ThemedText>
+            <View style={[styles.bloodGroupBadge, { backgroundColor: '#e74c3c' }]}>
+              <ThemedText style={styles.bloodGroupText}>{profile?.blood_group || 'Not specified'}</ThemedText>
+            </View>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Phone</ThemedText>
+            <ThemedText style={styles.infoValue}>{profile?.phone || 'Not specified'}</ThemedText>
           </View>
         </ThemedView>
-        
-        {/* Medical Information Section */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="medkit" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-            <ThemedText style={styles.sectionTitle}>Medical Information</ThemedText>
+
+        {/* Medical Information */}
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="medkit" size={22} color={iconColor} />
+            <ThemedText style={styles.cardTitle}>Medical Information</ThemedText>
           </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Blood Type</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.blood_group || 'Not provided'}</ThemedText>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Medical History</ThemedText>
-            <ThemedText style={styles.infoValue} numberOfLines={2}>
-              {profileData?.medical_history || 'None'}
+
+          <View style={styles.infoSection}>
+            <ThemedText style={styles.sectionLabel}>Allergies</ThemedText>
+            <ThemedText style={styles.sectionValue}>
+              {profile?.allergies ? profile.allergies : 'No known allergies'}
             </ThemedText>
           </View>
-          
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Allergies</ThemedText>
-            {allergiesList.length > 0 ? (
-              <View style={styles.allergiesContainer}>
-                {allergiesList.map((allergy, index) => (
-                  <View key={index} style={styles.allergyTag}>
-                    <ThemedText style={styles.allergyText}>{allergy}</ThemedText>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <ThemedText style={styles.infoValue}>None</ThemedText>
-            )}
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
+          <View style={styles.infoSection}>
+            <ThemedText style={styles.sectionLabel}>Medical History</ThemedText>
+            <ThemedText style={styles.sectionValue}>
+              {profile?.medical_history ? profile.medical_history : 'No medical history recorded'}
+            </ThemedText>
           </View>
         </ThemedView>
 
         {/* Emergency Contact */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="alert-circle" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-            <ThemedText style={styles.sectionTitle}>Emergency Contact</ThemedText>
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="call" size={22} color={accentColor} />
+            <ThemedText style={styles.cardTitle}>Emergency Contact</ThemedText>
           </View>
-          
+
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Name</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.emergency_contact_name || 'Not provided'}</ThemedText>
+            <ThemedText style={styles.infoLabel}>Contact Name</ThemedText>
+            <ThemedText style={styles.infoValue}>{profile?.emergency_contact_name || 'Not specified'}</ThemedText>
           </View>
-          
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Phone</ThemedText>
-            <ThemedText style={styles.infoValue}>{profileData?.emergency_contact_phone || 'Not provided'}</ThemedText>
+            <ThemedText style={styles.infoLabel}>Contact Phone</ThemedText>
+            <View style={styles.phoneContainer}>
+              <ThemedText style={styles.infoValue}>
+                {profile?.emergency_contact_phone || 'Not specified'}
+              </ThemedText>
+
+              {profile?.emergency_contact_phone && (
+                <TouchableOpacity
+                  style={[styles.callButton, { backgroundColor: accentColor }]}
+                  onPress={() => Linking.openURL(`tel:${profile?.emergency_contact_phone}`)}
+                >
+                  <Ionicons name="call" size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </ThemedView>
-        
-        {/* Preferences */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="settings" size={22} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-            <ThemedText style={styles.sectionTitle}>Preferences</ThemedText>
+
+        {/* App Settings */}
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="settings" size={22} color={iconColor} />
+            <ThemedText style={styles.cardTitle}>App Settings</ThemedText>
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
-              <Ionicons name="notifications" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+              <Ionicons name="notifications" size={20} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
-              trackColor={{ false: '#767577', true: colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4' }}
+              trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}
               thumbColor={notificationsEnabled ? '#f4f3f4' : '#f4f3f4'}
             />
           </View>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
-              <Ionicons name="moon" size={20} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+              <Ionicons name="moon" size={20} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
             </View>
             <Switch
               value={darkModeEnabled}
               onValueChange={toggleDarkMode}
-              trackColor={{ false: '#767577', true: colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4' }}
+              trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}
               thumbColor={darkModeEnabled ? '#f4f3f4' : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLabelContainer}>
+              <Ionicons name="location" size={20} color={iconColor} />
+              <ThemedText style={styles.settingLabel}>Location Services</ThemedText>
+            </View>
+            <Switch
+              value={locationEnabled}
+              onValueChange={toggleLocation}
+              trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}
+              thumbColor={locationEnabled ? '#f4f3f4' : '#f4f3f4'}
             />
           </View>
         </ThemedView>
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.helpButton]}
-            onPress={() => router.push('/help')}
-          >
+          <TouchableOpacity style={[styles.actionButton, styles.helpButton]} onPress={() => router.push('/help')}>
             <Ionicons name="help-circle" size={22} color="#fff" />
             <ThemedText style={styles.actionButtonText}>Help & Support</ThemedText>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.logoutButton]}
-            onPress={handleLogout}
-          >
+
+          <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
             <Ionicons name="log-out" size={22} color="#fff" />
             <ThemedText style={styles.actionButtonText}>Logout</ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* App Version */}
-        <ThemedText style={styles.versionText}>
-          Doc-Assist-Pro v1.0.0
-        </ThemedText>
-        
-        {/* Bottom spacing for bottom tabs */}
+        {/* Version Info */}
+        <ThemedText style={styles.versionText}>Doc-Assist-Pro v1.0.0</ThemedText>
+
+        {/* Bottom Padding for better scrolling with tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
@@ -375,7 +506,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  profileNameContainer: {
+  profileInfo: {
     alignItems: 'center',
     marginBottom: 15,
   },
@@ -385,48 +516,42 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 5,
   },
-  patientBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  patientBadgeText: {
-    fontSize: 12,
+  profileEmail: {
+    fontSize: 14,
     color: '#fff',
-    fontWeight: '600',
+    marginBottom: 10,
   },
   editProfileButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
   },
-  editProfileButtonText: {
+  editProfileText: {
     color: '#fff',
     fontWeight: '600',
+    marginLeft: 8,
   },
-  contentContainer: {
+  content: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  section: {
+  card: {
     borderRadius: 15,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
-  sectionHeader: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingBottom: 12,
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
@@ -447,22 +572,40 @@ const styles = StyleSheet.create({
     maxWidth: '60%',
     textAlign: 'right',
   },
-  allergiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    maxWidth: '60%',
+  divider: {
+    height: 1,
+    marginVertical: 8,
   },
-  allergyTag: {
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
+  bloodGroupBadge: {
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 12,
-    marginLeft: 6,
+  },
+  bloodGroupText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  infoSection: {
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
-  allergyText: {
-    fontSize: 12,
+  sectionValue: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  callButton: {
+    marginLeft: 10,
+    padding: 6,
+    borderRadius: 6,
   },
   settingRow: {
     flexDirection: 'row',

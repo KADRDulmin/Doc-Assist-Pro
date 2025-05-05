@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doc-Assist-Pro API Workflow Diagram</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: linear-gradient(135deg, #1D3D47, #0a7ea4);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #0a7ea4;
+            margin-top: 30px;
+            border-bottom: 2px solid #0a7ea4;
+            padding-bottom: 10px;
+        }
+        .diagram-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+            overflow: auto;
+            /* Standard A4 proportions for diagrams */
+            width: 100%;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+            /* A4 proportions (210mm x 297mm) */
+            aspect-ratio: 210 / 297;
+            width: 100%;
+            height: auto;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        .api-endpoints {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #0a7ea4;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        /* Style for arrow labels */
+        .arrow-label {
+            font-size: 12px;
+            font-weight: bold;
+            fill: #333;
+            text-anchor: middle;
+        }
+        /* Adding a background for arrow labels for better readability */
+        .label-bg {
+            fill: rgba(255, 255, 255, 0.8);
+            rx: 4;
+            ry: 4;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .diagram-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Doc-Assist-Pro API Workflow Diagram</h1>
+            <p>A comprehensive visualization of the system architecture and API flow</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <section>
+            <h2>System Architecture Overview</h2>
+            <div class="diagram-container">
+                <svg width="1100" height="900" viewBox="0 0 1100 900" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background -->
+                    <rect x="0" y="0" width="1100" height="900" fill="#f5f7fa" rx="10" ry="10" />
+                    
+                    <!-- Client Applications Layer -->
+                    <rect x="50" y="50" width="1000" height="130" fill="#e1f5fe" stroke="#81d4fa" stroke-width="2" rx="10" ry="10" />
+                    <text x="550" y="80" text-anchor="middle" font-weight="bold" font-size="18">Client Applications</text>
+                    
+                    <!-- Patient Frontend -->
+                    <rect x="100" y="100" width="220" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="8" ry="8" />
+                    <text x="210" y="135" text-anchor="middle" font-weight="bold">Patient Frontend (React Native)</text>
+                    
+                    <!-- Doctor Portal -->
+                    <rect x="440" y="100" width="220" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="8" ry="8" />
+                    <text x="550" y="135" text-anchor="middle" font-weight="bold">Doctor Portal (React Native)</text>
+                    
+                    <!-- Admin Portal -->
+                    <rect x="780" y="100" width="220" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="8" ry="8" />
+                    <text x="890" y="135" text-anchor="middle" font-weight="bold">Admin Portal (React)</text>
+                    
+                    <!-- API Layer -->
+                    <rect x="50" y="220" width="1000" height="100" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="2" rx="10" ry="10" />
+                    <text x="550" y="250" text-anchor="middle" font-weight="bold" font-size="18">API Gateway</text>
+                    
+                    <!-- Authentication Middleware -->
+                    <rect x="95" y="270" width="200" height="40" fill="#c8e6c9" stroke="#66bb6a" stroke-width="2" rx="5" ry="5" />
+                    <text x="195" y="295" text-anchor="middle" font-size="14">Authentication Middleware</text>
+                    
+                    <!-- Request Validation -->
+                    <rect x="325" y="270" width="200" height="40" fill="#c8e6c9" stroke="#66bb6a" stroke-width="2" rx="5" ry="5" />
+                    <text x="425" y="295" text-anchor="middle" font-size="14">Request Validation</text>
+                    
+                    <!-- Role Authorization -->
+                    <rect x="555" y="270" width="200" height="40" fill="#c8e6c9" stroke="#66bb6a" stroke-width="2" rx="5" ry="5" />
+                    <text x="655" y="295" text-anchor="middle" font-size="14">Role Authorization</text>
+                    
+                    <!-- Error Handling -->
+                    <rect x="785" y="270" width="200" height="40" fill="#c8e6c9" stroke="#66bb6a" stroke-width="2" rx="5" ry="5" />
+                    <text x="885" y="295" text-anchor="middle" font-size="14">Error Handling</text>
+                    
+                    <!-- Controllers Layer -->
+                    <rect x="50" y="360" width="1000" height="100" fill="#ede7f6" stroke="#d1c4e9" stroke-width="2" rx="10" ry="10" />
+                    <text x="550" y="390" text-anchor="middle" font-weight="bold" font-size="18">Controllers Layer</text>
+                    
+                    <!-- Controllers -->
+                    <rect x="80" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="130" y="435" text-anchor="middle" font-size="14">Auth</text>
+                    
+                    <rect x="200" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="250" y="435" text-anchor="middle" font-size="14">Patient</text>
+                    
+                    <rect x="320" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="370" y="435" text-anchor="middle" font-size="14">Doctor</text>
+                    
+                    <rect x="440" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="490" y="435" text-anchor="middle" font-size="14">Appointment</text>
+                    
+                    <rect x="560" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="610" y="435" text-anchor="middle" font-size="14">Consultation</text>
+                    
+                    <rect x="680" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="730" y="435" text-anchor="middle" font-size="14">MedicalRecord</text>
+                    
+                    <rect x="800" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="850" y="435" text-anchor="middle" font-size="14">HealthTip</text>
+                    
+                    <rect x="920" y="410" width="100" height="40" fill="#d1c4e9" stroke="#9575cd" stroke-width="2" rx="5" ry="5" />
+                    <text x="970" y="435" text-anchor="middle" font-size="14">Admin</text>
+                    
+                    <!-- Services Layer -->
+                    <rect x="50" y="500" width="1000" height="100" fill="#ffecb3" stroke="#ffe082" stroke-width="2" rx="10" ry="10" />
+                    <text x="550" y="530" text-anchor="middle" font-weight="bold" font-size="18">Services Layer</text>
+                    
+                    <!-- Services -->
+                    <rect x="80" y="550" width="150" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="155" y="575" text-anchor="middle" font-size="14">Auth Service</text>
+                    
+                    <rect x="250" y="550" width="150" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="325" y="575" text-anchor="middle" font-size="14">Appointment Scheduler</text>
+                    
+                    <rect x="420" y="550" width="150" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="495" y="575" text-anchor="middle" font-size="14">Email Service</text>
+                    
+                    <rect x="590" y="550" width="150" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="665" y="575" text-anchor="middle" font-size="14">Symptom Analysis</text>
+                    
+                    <rect x="760" y="550" width="150" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="835" y="575" text-anchor="middle" font-size="14">File Storage</text>
+                    
+                    <rect x="925" y="550" width="100" height="40" fill="#ffe082" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="975" y="575" text-anchor="middle" font-size="14">Admin</text>
+                    
+                    <!-- Repositories Layer -->
+                    <rect x="50" y="640" width="700" height="100" fill="#f3e5f5" stroke="#e1bee7" stroke-width="2" rx="10" ry="10" />
+                    <text x="400" y="670" text-anchor="middle" font-weight="bold" font-size="18">Data Access Layer</text>
+                    
+                    <!-- Repositories -->
+                    <rect x="80" y="690" width="140" height="40" fill="#e1bee7" stroke="#ce93d8" stroke-width="2" rx="5" ry="5" />
+                    <text x="150" y="715" text-anchor="middle" font-size="14">UserRepository</text>
+                    
+                    <rect x="235" y="690" width="140" height="40" fill="#e1bee7" stroke="#ce93d8" stroke-width="2" rx="5" ry="5" />
+                    <text x="305" y="715" text-anchor="middle" font-size="14">PatientRepository</text>
+                    
+                    <rect x="390" y="690" width="140" height="40" fill="#e1bee7" stroke="#ce93d8" stroke-width="2" rx="5" ry="5" />
+                    <text x="460" y="715" text-anchor="middle" font-size="14">DoctorRepository</text>
+                    
+                    <rect x="545" y="690" width="180" height="40" fill="#e1bee7" stroke="#ce93d8" stroke-width="2" rx="5" ry="5" />
+                    <text x="635" y="715" text-anchor="middle" font-size="14">AppointmentRepository</text>
+                    
+                    <!-- External Services -->
+                    <rect x="790" y="640" width="260" height="100" fill="#e1f5fe" stroke="#81d4fa" stroke-width="2" rx="10" ry="10" />
+                    <text x="920" y="670" text-anchor="middle" font-weight="bold" font-size="18">External Services</text>
+                    
+                    <rect x="810" y="690" width="100" height="40" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="860" y="715" text-anchor="middle" font-size="14">Email API</text>
+                    
+                    <rect x="930" y="690" width="100" height="40" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="980" y="715" text-anchor="middle" font-size="14">Gemini API</text>
+                    
+                    <!-- Database Layer -->
+                    <rect x="50" y="780" width="1000" height="90" fill="#e8eaf6" stroke="#c5cae9" stroke-width="2" rx="10" ry="10" opacity="0.9" />
+                    <text x="550" y="810" text-anchor="middle" font-weight="bold" font-size="18">Data Storage</text>
+                    
+                    <!-- Databases -->
+                    <rect x="100" y="830" width="600" height="30" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="850" text-anchor="middle" font-size="14">PostgreSQL Database</text>
+                    
+                    <rect x="750" y="830" width="250" height="30" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="875" y="850" text-anchor="middle" font-size="14">In-Memory Fallback Store</text>
+                    
+                    <!-- Arrows for Patient Frontend -->
+                    <!-- Auth Flow -->
+                    <defs>
+                        <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#2196F3" />
+                        </marker>
+                    </defs>
+                    
+                    <!-- Patient Frontend Flows -->
+                    <!-- Auth Flow -->
+                    <path d="M210,160 L195,270" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Auth Flow Label -->
+                    <rect x="160" y="200" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="205" y="215" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">Auth Requests</text>
+                    
+                    <!-- Appointment Flow -->
+                    <path d="M250,160 L425,270" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Appointment Flow Label -->
+                    <rect x="290" y="200" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="350" y="215" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">Appointment Requests</text>
+                    
+                    <!-- Medical Records Flow -->
+                    <path d="M300,160 L655,270" stroke="#FF9800" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Medical Records Flow Label -->
+                    <rect x="440" y="195" width="125" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="500" y="210" text-anchor="middle" font-size="12" fill="#FF9800" class="arrow-label">Medical Records Requests</text>
+                    
+                    <!-- Doctor Portal Flows -->
+                    <!-- Auth Flow -->
+                    <path d="M550,160 L195,270" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="5,5" />
+                    <!-- Auth Flow Label -->
+                    <rect x="330" y="190" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="375" y="205" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">Auth Requests</text>
+                    
+                    <!-- Patient Management Flow -->
+                    <path d="M510,160 L425,270" stroke="#9C27B0" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="5,5" />
+                    <!-- Patient Management Flow Label -->
+                    <rect x="420" y="180" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="470" y="195" text-anchor="middle" font-size="12" fill="#9C27B0" class="arrow-label">Patient Data</text>
+                    
+                    <!-- Consultation Flow -->
+                    <path d="M600,160 L655,270" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="5,5" />
+                    <!-- Consultation Flow Label -->
+                    <rect x="585" y="200" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="645" y="215" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">Consultation Requests</text>
+                    
+                    <!-- Admin Portal Flows -->
+                    <!-- Admin Flow -->
+                    <path d="M890,160 L885,270" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Admin Flow Label -->
+                    <rect x="845" y="200" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="890" y="215" text-anchor="middle" font-size="12" fill="#009688" class="arrow-label">Admin Actions</text>
+                    
+                    <!-- Vertical Flow Arrows -->
+                    <!-- API to Controllers -->
+                    <path d="M550,320 L550,360" stroke="#424242" stroke-width="3" marker-end="url(#arrowhead-blue)" fill="none" />
+                    
+                    <!-- Controllers to Services -->
+                    <path d="M550,460 L550,500" stroke="#424242" stroke-width="3" marker-end="url(#arrowhead-blue)" fill="none" />
+                    
+                    <!-- Services to Repositories -->
+                    <path d="M400,600 L400,640" stroke="#424242" stroke-width="3" marker-end="url(#arrowhead-blue)" fill="none" />
+                    
+                    <!-- Services to External -->
+                    <path d="M700,600 L850,640" stroke="#424242" stroke-width="3" marker-end="url(#arrowhead-blue)" fill="none" />
+                    
+                    <!-- Repositories to Database -->
+                    <path d="M400,740 L400,780" stroke="#424242" stroke-width="3" marker-end="url(#arrowhead-blue)" fill="none" />
+                    
+                    <!-- Response Flows (back to client) -->
+                    <path d="M150,320 L180,160" stroke="#673AB7" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Patient Response Flow Label -->
+                    <rect x="100" y="240" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="145" y="255" text-anchor="middle" font-size="12" fill="#673AB7" class="arrow-label">Response Data</text>
+                    
+                    <path d="M950,320 L890,160" stroke="#673AB7" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Admin Response Flow Label -->
+                    <rect x="950" y="230" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="995" y="245" text-anchor="middle" font-size="12" fill="#673AB7" class="arrow-label">Response Data</text>
+                    
+                    <!-- In-Memory Fallback Flow -->
+                    <path d="M450,850 C550,870 650,870 750,850" stroke="#FF5722" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Fallback Flow Label -->
+                    <rect x="555" y="860" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="600" y="875" text-anchor="middle" font-size="12" fill="#FF5722" class="arrow-label">Fallback Path</text>
+                </svg>
+            </div>
+            
+            <div class="legend">
+                <h3>Legend:</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2196F3;"></div>
+                    <span>Authentication Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4CAF50;"></div>
+                    <span>Appointment Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF9800;"></div>
+                    <span>Medical Records Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #F44336;"></div>
+                    <span>Consultation Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9C27B0;"></div>
+                    <span>Patient Management Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF5722;"></div>
+                    <span>Fallback Path</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #673AB7;"></div>
+                    <span>Response Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #009688;"></div>
+                    <span>Admin Flow</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="api-endpoints">
+            <h2>Key API Endpoints</h2>
+            <p>The Doc-Assist-Pro system exposes the following key API endpoints for interactions between frontend applications and the backend:</p>
+            
+            <h3>Authentication Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/auth/register</td>
+                        <td>Register a new user</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/auth/login</td>
+                        <td>Authenticate and get token</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/auth/me</td>
+                        <td>Get current user profile</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/auth/logout</td>
+                        <td>Logout user and invalidate token</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Patient Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/patients/profile</td>
+                        <td>Get patient profile</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                    <tr>
+                        <td>PUT</td>
+                        <td>/api/patients/profile</td>
+                        <td>Update patient profile</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/patients/dashboard</td>
+                        <td>Get patient dashboard data</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/patients/medical-records</td>
+                        <td>Get patient medical records</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Doctor Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/doctors/register</td>
+                        <td>Register as a doctor</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/doctors/profile/me</td>
+                        <td>Get doctor profile</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>PUT</td>
+                        <td>/api/doctors/profile/me</td>
+                        <td>Update doctor profile</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/doctors/dashboard</td>
+                        <td>Get doctor dashboard data</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/doctors/patients</td>
+                        <td>Get doctor's patients</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Appointment Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/appointments/my-appointments</td>
+                        <td>Get user's appointments</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/appointments/:id</td>
+                        <td>Get appointment details</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/appointments</td>
+                        <td>Create new appointment</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                    <tr>
+                        <td>PUT</td>
+                        <td>/api/appointments/:id</td>
+                        <td>Update appointment</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/appointments/:id/cancel</td>
+                        <td>Cancel appointment</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/appointments/today</td>
+                        <td>Get today's appointments</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/appointments/doctors/:id/availability</td>
+                        <td>Get doctor availability</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Consultation Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/appointment/:id/start</td>
+                        <td>Start consultation for appointment</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/consultations/:id</td>
+                        <td>Get consultation details</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/:id/complete</td>
+                        <td>Complete consultation</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/:id/missed</td>
+                        <td>Mark consultation as missed</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/:id/medical-record</td>
+                        <td>Add medical record to consultation</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/:id/prescription</td>
+                        <td>Add prescription to consultation</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/consultations/:id/submit</td>
+                        <td>Submit complete consultation data</td>
+                        <td>Yes (Doctor)</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Feedback Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/feedback/appointment/:id</td>
+                        <td>Submit feedback for appointment</td>
+                        <td>Yes (Patient)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/feedback/appointment/:id</td>
+                        <td>Get feedback for appointment</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/feedback/doctor/:id</td>
+                        <td>Get all feedback for doctor</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Health Tips Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/health-tips</td>
+                        <td>Get health tips</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/health-tips/personalized</td>
+                        <td>Get personalized health tips</td>
+                        <td>Yes</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/health-tips/:id</td>
+                        <td>Get specific health tip</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Admin Endpoints</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                        <th>Auth Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/dashboard</td>
+                        <td>Get admin dashboard overview</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/doctors</td>
+                        <td>Get all doctors (including pending verification)</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/doctors/:id</td>
+                        <td>Get doctor details</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/admin/doctors/:id/verify</td>
+                        <td>Approve and verify a doctor's account</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>POST</td>
+                        <td>/api/admin/doctors/:id/reject</td>
+                        <td>Reject a doctor's verification request</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/patients</td>
+                        <td>Get all patient accounts</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/patients/:id</td>
+                        <td>Get patient details</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>PUT</td>
+                        <td>/api/admin/patients/:id/status</td>
+                        <td>Update patient account status (active/inactive)</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>PUT</td>
+                        <td>/api/admin/doctors/:id/status</td>
+                        <td>Update doctor account status (active/inactive)</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/statistics</td>
+                        <td>Get system statistics and metrics</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                    <tr>
+                        <td>GET</td>
+                        <td>/api/admin/activity-logs</td>
+                        <td>Get system activity logs</td>
+                        <td>Yes (Admin)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Authentication Flow</h2>
+            <div class="diagram-container">
+                <svg width="1000" height="550" viewBox="0 0 1000 550" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background -->
+                    <rect x="0" y="0" width="1000" height="550" fill="#f5f7fa" rx="10" ry="10" />
+                    
+                    <!-- Client Box -->
+                    <rect x="50" y="50" width="200" height="80" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="150" y="95" text-anchor="middle" font-weight="bold">Client</text>
+                    
+                    <!-- Auth Controller Box -->
+                    <rect x="400" y="50" width="200" height="80" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="500" y="95" text-anchor="middle" font-weight="bold">Auth Controller</text>
+                    
+                    <!-- Auth Service Box -->
+                    <rect x="750" y="50" width="200" height="80" fill="#c8e6c9" stroke="#81c784" stroke-width="2" rx="5" ry="5" />
+                    <text x="850" y="95" text-anchor="middle" font-weight="bold">Auth Service</text>
+                    
+                    <!-- Database Box -->
+                    <rect x="750" y="200" width="200" height="80" fill="#e1bee7" stroke="#ba68c8" stroke-width="2" rx="5" ry="5" />
+                    <text x="850" y="245" text-anchor="middle" font-weight="bold">Database</text>
+                    
+                    <!-- JWT Token Box -->
+                    <rect x="400" y="350" width="200" height="80" fill="#ffecb3" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="500" y="395" text-anchor="middle" font-weight="bold">JWT Token</text>
+                    
+                    <!-- Auth Middleware Box -->
+                    <rect x="50" y="200" width="200" height="80" fill="#ffccbc" stroke="#ffab91" stroke-width="2" rx="5" ry="5" />
+                    <text x="150" y="245" text-anchor="middle" font-weight="bold">Auth Middleware</text>
+                    
+                    <!-- Protected Resource Box -->
+                    <rect x="50" y="350" width="200" height="80" fill="#b2dfdb" stroke="#80cbc4" stroke-width="2" rx="5" ry="5" />
+                    <text x="150" y="395" text-anchor="middle" font-weight="bold">Protected Resource</text>
+                    
+                    <!-- Arrows for Login Flow -->
+                    <path d="M250,90 L400,90" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Login Request Label -->
+                    <rect x="300" y="65" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="345" y="80" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">1. Login Request</text>
+                    
+                    <path d="M600,90 L750,90" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Validate Credentials Label -->
+                    <rect x="640" y="65" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="700" y="80" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">2. Validate Credentials</text>
+                    
+                    <path d="M850,130 L850,200" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Query User Label -->
+                    <rect x="860" y="155" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="905" y="170" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">3. Query User</text>
+                    
+                    <path d="M750,240 L600,240 L600,350" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Generate Token Label -->
+                    <rect x="635" y="215" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="685" y="230" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">4. Generate Token</text>
+                    
+                    <path d="M400,390 L250,390" stroke="#2196F3" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Return Token Label -->
+                    <rect x="300" y="365" width="90" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="345" y="380" text-anchor="middle" font-size="12" fill="#2196F3" class="arrow-label">5. Return Token</text>
+                    
+                    <!-- Arrows for Protected Route Access -->
+                    <path d="M150,130 L150,200" stroke="#FF5722" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Request with Token Label -->
+                    <rect x="160" y="155" width="110" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="215" y="170" text-anchor="middle" font-size="12" fill="#FF5722" class="arrow-label">6. Request with Token</text>
+                    
+                    <path d="M250,240 L350,240 L350,390 L250,390" stroke="#FF5722" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Verify Token Label -->
+                    <rect x="255" y="245" width="135" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="325" y="260" text-anchor="middle" font-size="12" fill="#FF5722" class="arrow-label">7. Verify Token & Access</text>
+                </svg>
+            </div>
+        </section>
+        
+        <section>
+            <h2>Appointment Workflow</h2>
+            <div class="diagram-container">
+                <svg width="1000" height="550" viewBox="0 0 1000 550" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background -->
+                    <rect x="0" y="0" width="1000" height="550" fill="#f5f7fa" rx="10" ry="10" />
+                    
+                    <!-- Patient Box -->
+                    <rect x="50" y="50" width="150" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="125" y="85" text-anchor="middle" font-weight="bold">Patient</text>
+                    
+                    <!-- Doctor Box -->
+                    <rect x="800" y="50" width="150" height="60" fill="#c8e6c9" stroke="#81c784" stroke-width="2" rx="5" ry="5" />
+                    <text x="875" y="85" text-anchor="middle" font-weight="bold">Doctor</text>
+                    
+                    <!-- Appointment API Box -->
+                    <rect x="400" y="150" width="200" height="60" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="500" y="185" text-anchor="middle" font-weight="bold">Appointment API</text>
+                    
+                    <!-- Symptom Analysis Box -->
+                    <rect x="200" y="250" width="200" height="60" fill="#ffecb3" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="300" y="285" text-anchor="middle" font-weight="bold">Symptom Analysis Service</text>
+                    
+                    <!-- Database Box -->
+                    <rect x="600" y="250" width="200" height="60" fill="#e1bee7" stroke="#ba68c8" stroke-width="2" rx="5" ry="5" />
+                    <text x="700" y="285" text-anchor="middle" font-weight="bold">Database</text>
+                    
+                    <!-- Notification Service Box -->
+                    <rect x="400" y="350" width="200" height="60" fill="#ffccbc" stroke="#ffab91" stroke-width="2" rx="5" ry="5" />
+                    <text x="500" y="385" text-anchor="middle" font-weight="bold">Notification Service</text>
+                    
+                    <!-- Appointment States -->
+                    <rect x="50" y="450" width="900" height="40" fill="#EEEEEE" stroke="#BDBDBD" stroke-width="2" rx="5" ry="5" />
+                    <text x="140" y="475" text-anchor="middle" font-size="14">Requested</text>
+                    <text x="320" y="475" text-anchor="middle" font-size="14">Confirmed</text>
+                    <text x="500" y="475" text-anchor="middle" font-size="14">In Progress</text>
+                    <text x="680" y="475" text-anchor="middle" font-size="14">Completed</text>
+                    <text x="860" y="475" text-anchor="middle" font-size="14">Cancelled/Missed</text>
+                    
+                    <!-- Arrows -->
+                    <path d="M125,110 L300,150" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Book Appointment Label -->
+                    <rect x="170" y="110" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="230" y="125" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">1. Book Appointment</text>
+                    
+                    <path d="M400,210 L300,250" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Analyze Symptoms Label -->
+                    <rect x="320" y="220" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="380" y="235" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">2. Analyze Symptoms</text>
+                    
+                    <path d="M400,250 L300,190" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Suggest Diagnosis Label -->
+                    <rect x="320" y="200" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="380" y="215" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">3. Suggest Diagnosis</text>
+                    
+                    <path d="M600,180 L700,250" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Store Appointment Label -->
+                    <rect x="620" y="200" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="680" y="215" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">4. Store Appointment</text>
+                    
+                    <path d="M500,210 L500,350" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Send Notifications Label -->
+                    <rect x="510" y="270" width="130" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="575" y="285" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">5. Send Notifications</text>
+                    
+                    <path d="M600,350 L875,110" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Alert Doctor Label -->
+                    <rect x="720" y="180" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="770" y="195" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">6. Alert Doctor</text>
+                    
+                    <path d="M850,110 L600,150" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Manage Appointment Label -->
+                    <rect x="680" y="110" width="130" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="745" y="125" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">7. Manage Appointment</text>
+                    
+                    <path d="M400,380 L125,110" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Notify Patient Label -->
+                    <rect x="220" y="220" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="270" y="235" text-anchor="middle" font-size="12" fill="#4CAF50" class="arrow-label">8. Notify Patient</text>
+                    
+                    <!-- State Flow Arrows -->
+                    <path d="M140,450 L320,450" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <path d="M320,450 L500,450" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <path d="M500,450 L680,450" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <path d="M320,440 C500,410 500,410 680,440" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <path d="M320,430 C500,400 500,400 860,430" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    
+                    <!-- State Labels -->
+                    <rect x="225" y="425" width="50" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="250" y="440" text-anchor="middle" font-size="10" fill="#9E9E9E" class="arrow-label">Confirm</text>
+                    
+                    <rect x="405" y="425" width="50" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="430" y="440" text-anchor="middle" font-size="10" fill="#9E9E9E" class="arrow-label">Start</text>
+                    
+                    <rect x="585" y="425" width="50" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="610" y="440" text-anchor="middle" font-size="10" fill="#9E9E9E" class="arrow-label">Complete</text>
+                    
+                    <rect x="495" y="405" width="50" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="520" y="420" text-anchor="middle" font-size="10" fill="#9E9E9E" class="arrow-label">Cancel</text>
+                    
+                    <rect x="680" y="405" width="50" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="705" y="420" text-anchor="middle" font-size="10" fill="#9E9E9E" class="arrow-label">Miss</text>
+                </svg>
+            </div>
+        </section>
+
+        <section>
+            <h2>Consultation & Medical Record Flow</h2>
+            <div class="diagram-container">
+                <svg width="1000" height="550" viewBox="0 0 1000 550" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background -->
+                    <rect x="0" y="0" width="1000" height="550" fill="#f5f7fa" rx="10" ry="10" />
+                    
+                    <!-- Doctor Box -->
+                    <rect x="50" y="100" width="150" height="60" fill="#c8e6c9" stroke="#81c784" stroke-width="2" rx="5" ry="5" />
+                    <text x="125" y="135" text-anchor="middle" font-weight="bold">Doctor</text>
+                    
+                    <!-- Consultation API Box -->
+                    <rect x="300" y="100" width="200" height="60" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="135" text-anchor="middle" font-weight="bold">Consultation API</text>
+                    
+                    <!-- Medical Records API Box -->
+                    <rect x="600" y="100" width="200" height="60" fill="#ffccbc" stroke="#ffab91" stroke-width="2" rx="5" ry="5" />
+                    <text x="700" y="135" text-anchor="middle" font-weight="bold">Medical Records API</text>
+                    
+                    <!-- Prescription API Box -->
+                    <rect x="300" y="250" width="200" height="60" fill="#b2dfdb" stroke="#80cbc4" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="285" text-anchor="middle" font-weight="bold">Prescription API</text>
+                    
+                    <!-- File Storage Box -->
+                    <rect x="600" y="250" width="200" height="60" fill="#bbdefb" stroke="#90caf9" stroke-width="2" rx="5" ry="5" />
+                    <text x="700" y="285" text-anchor="middle" font-weight="bold">File Storage Service</text>
+                    
+                    <!-- Database Box -->
+                    <rect x="450" y="400" width="200" height="60" fill="#e1bee7" stroke="#ba68c8" stroke-width="2" rx="5" ry="5" />
+                    <text x="550" y="435" text-anchor="middle" font-weight="bold">Database</text>
+                    
+                    <!-- Patient Box -->
+                    <rect x="800" y="400" width="150" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="875" y="435" text-anchor="middle" font-weight="bold">Patient</text>
+                    
+                    <!-- Arrows -->
+                    <!-- Doctor to Consultation -->
+                    <path d="M200,130 L300,130" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Start Consultation Label -->
+                    <rect x="210" y="105" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="270" y="120" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">1. Start Consultation</text>
+                    
+                    <!-- Consultation to Medical Records -->
+                    <path d="M500,130 L600,130" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Create Medical Record Label -->
+                    <rect x="505" y="105" width="140" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="575" y="120" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">2. Create Medical Record</text>
+                    
+                    <!-- Medical Records to File Storage -->
+                    <path d="M700,160 L700,250" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Upload Images Label -->
+                    <rect x="710" y="195" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="760" y="210" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">3. Upload Images</text>
+                    
+                    <!-- Doctor to Prescription -->
+                    <path d="M125,160 L125,280 L300,280" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Create Prescription Label -->
+                    <rect x="170" y="240" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="230" y="255" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">4. Create Prescription</text>
+                    
+                    <!-- Prescription to File Storage -->
+                    <path d="M500,280 L600,280" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Upload Prescription Label -->
+                    <rect x="505" y="255" width="120" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="565" y="270" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">5. Upload Prescription</text>
+                    
+                    <!-- Services to Database -->
+                    <path d="M400,310 L450,400" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Store Data Label -->
+                    <rect x="380" y="345" width="80" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="420" y="360" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">6. Store Data</text>
+                    
+                    <path d="M700,310 L650,400" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <!-- Store References Label -->
+                    <rect x="650" y="345" width="110" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="705" y="360" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">7. Store References</text>
+                    
+                    <!-- Database to Patient -->
+                    <path d="M650,430 L800,430" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- Access Results Label -->
+                    <rect x="690" y="405" width="100" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="740" y="420" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">8. Access Results</text>
+                    
+                    <!-- Complete Consultation -->
+                    <path d="M125,180 L450,400" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="5,5" />
+                    <!-- Complete Consultation Label -->
+                    <rect x="250" y="280" width="140" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="320" y="295" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">9. Complete Consultation</text>
+                    
+                    <!-- Data Flow to Patient -->
+                    <path d="M600,400 L800,150" stroke="#F44336" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <!-- View Medical Records Label -->
+                    <rect x="650" y="200" width="140" height="20" class="label-bg" fill="white" fill-opacity="0.8" />
+                    <text x="720" y="215" text-anchor="middle" font-size="12" fill="#F44336" class="arrow-label">10. View Medical Records</text>
+                </svg>
+            </div>
+        </section>
+
+        <section>
+            <h2>Admin Portal Workflow</h2>
+            <div class="diagram-container">
+                <svg width="1000" height="600" viewBox="0 0 1000 600">
+                    <!-- Background -->
+                    <rect x="0" y="0" width="1000" height="600" fill="#f5f7fa" rx="10" ry="10" />
+                    
+                    <!-- Admin Box -->
+                    <rect x="50" y="50" width="170" height="60" fill="#80cbc4" stroke="#009688" stroke-width="2" rx="5" ry="5" />
+                    <text x="135" y="85" text-anchor="middle" font-weight="bold">Admin</text>
+                    
+                    <!-- Admin API Box -->
+                    <rect x="400" y="50" width="200" height="60" fill="#c5cae9" stroke="#9fa8da" stroke-width="2" rx="5" ry="5" />
+                    <text x="500" y="85" text-anchor="middle" font-weight="bold">Admin API</text>
+                    
+                    <!-- Doctor Management -->
+                    <rect x="300" y="170" width="200" height="60" fill="#c8e6c9" stroke="#81c784" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="205" text-anchor="middle" font-weight="bold">Doctor Management</text>
+                    
+                    <!-- Patient Management -->
+                    <rect x="300" y="270" width="200" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="305" text-anchor="middle" font-weight="bold">Patient Management</text>
+                    
+                    <!-- System Statistics -->
+                    <rect x="300" y="370" width="200" height="60" fill="#ffecb3" stroke="#ffd54f" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="405" text-anchor="middle" font-weight="bold">System Statistics</text>
+                    
+                    <!-- Activity Logs -->
+                    <rect x="300" y="470" width="200" height="60" fill="#ffccbc" stroke="#ffab91" stroke-width="2" rx="5" ry="5" />
+                    <text x="400" y="505" text-anchor="middle" font-weight="bold">Activity Logs</text>
+                    
+                    <!-- Database -->
+                    <rect x="700" y="270" width="200" height="60" fill="#e1bee7" stroke="#ba68c8" stroke-width="2" rx="5" ry="5" />
+                    <text x="800" y="305" text-anchor="middle" font-weight="bold">Database</text>
+                    
+                    <!-- Verification Process Box -->
+                    <rect x="600" y="170" width="200" height="60" fill="#dcedc8" stroke="#aed581" stroke-width="2" rx="5" ry="5" />
+                    <text x="700" y="205" text-anchor="middle" font-weight="bold">Doctor Verification Process</text>
+                    
+                    <!-- Email Service -->
+                    <rect x="700" y="370" width="200" height="60" fill="#b3e5fc" stroke="#29b6f6" stroke-width="2" rx="5" ry="5" />
+                    <text x="800" y="405" text-anchor="middle" font-weight="bold">Email Notification Service</text>
+                    
+                    <!-- Doctor -->
+                    <rect x="850" y="50" width="100" height="60" fill="#c8e6c9" stroke="#81c784" stroke-width="2" rx="5" ry="5" />
+                    <text x="900" y="85" text-anchor="middle" font-weight="bold">Doctor</text>
+                    
+                    <!-- Verification States -->
+                    <rect x="600" y="470" width="300" height="40" fill="#EEEEEE" stroke="#BDBDBD" stroke-width="2" rx="5" ry="5" />
+                    <text x="660" y="495" text-anchor="middle" font-size="14">Pending</text>
+                    <text x="750" y="495" text-anchor="middle" font-size="14">Verified</text>
+                    <text x="840" y="495" text-anchor="middle" font-size="14">Rejected</text>
+                    
+                    <!-- Arrows -->
+                    <!-- Admin to Admin API -->
+                    <path d="M220,80 L400,80" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="310" y="70" font-size="12" fill="#009688">1. Access Admin Portal</text>
+                    
+                    <!-- Admin API to Doctor Management -->
+                    <path d="M500,110 L400,170" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="435" y="130" font-size="12" fill="#009688">2. Manage Doctors</text>
+                    
+                    <!-- Doctor Management to Verification Process -->
+                    <path d="M500,200 L600,200" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="550" y="190" font-size="12" fill="#009688">3. Review Doctor</text>
+                    
+                    <!-- Doctor Management to Database -->
+                    <path d="M500,200 L700,270" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="600" y="230" font-size="12" fill="#009688">4. Update Status</text>
+                    
+                    <!-- Verification Process to Email Service -->
+                    <path d="M700,230 L800,370" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="730" y="300" font-size="12" fill="#009688">5. Notify</text>
+                    
+                    <!-- Email Service to Doctor -->
+                    <path d="M850,370 L900,110" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <text x="910" y="240" font-size="12" fill="#009688">6. Send Verification Results</text>
+                    
+                    <!-- Admin API to Patient Management -->
+                    <path d="M500,110 L500,270" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="515" y="190" font-size="12" fill="#009688">7. Manage Patients</text>
+                    
+                    <!-- Patient Management to Database -->
+                    <path d="M500,300 L700,300" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="600" y="290" font-size="12" fill="#009688">8. Update Status</text>
+                    
+                    <!-- Admin API to System Statistics -->
+                    <path d="M500,110 L600,370" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    <text x="590" y="240" font-size="12" fill="#009688">9. View Statistics</text>
+                    
+                    <!-- System Statistics to Database -->
+                    <path d="M500,400 L700,330" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="600" y="375" font-size="12" fill="#009688">10. Query Data</text>
+                    
+                    <!-- Admin API to Activity Logs -->
+                    <path d="M400,110 L400,470" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="350" y="290" font-size="12" fill="#009688">11. View Logs</text>
+                    
+                    <!-- Activity Logs to Database -->
+                    <path d="M500,500 L800,330" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <text x="650" y="430" font-size="12" fill="#009688">12. Query Logs</text>
+                    
+                    <!-- Verification State Flow -->
+                    <path d="M680,470 L720,470" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <path d="M780,470 L810,470" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" />
+                    <path d="M680,460 C750,440 750,440 840,460" stroke="#9E9E9E" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="3,3" />
+                    
+                    <!-- Doctor to Verification Process -->
+                    <path d="M850,80 L700,170" stroke="#009688" stroke-width="2" marker-end="url(#arrowhead-blue)" fill="none" stroke-dasharray="5,5" />
+                    <text x="730" y="115" font-size="12" fill="#009688">Submit Documents</text>
+                </svg>
+            </div>
+        </section>
+
+        <div class="footer">
+            <p>Doc-Assist-Pro API Workflow Diagram | Generated on May 4, 2025</p>
+            <p>© 2025 Doc-Assist-Pro</p>
+        </div>
+    </div>
+</body>
+</html>

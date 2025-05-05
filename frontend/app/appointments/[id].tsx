@@ -23,6 +23,7 @@ export default function AppointmentDetailsScreen() {
   const appointmentId = typeof params.id === 'string' ? parseInt(params.id) : 0;
   
   const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const [appointment, setAppointment] = useState<AppointmentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,17 +115,22 @@ export default function AppointmentDetailsScreen() {
       case 'upcoming':
         return {
           color: '#4CAF50',
-          backgroundColor: 'rgba(76, 175, 80, 0.1)'
+          backgroundColor: isDarkMode ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.1)'
         };
       case 'completed':
         return {
           color: '#2196F3',
-          backgroundColor: 'rgba(33, 150, 243, 0.1)'
+          backgroundColor: isDarkMode ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.1)'
         };
       case 'cancelled':
         return {
           color: '#FF5252',
-          backgroundColor: 'rgba(255, 82, 82, 0.1)'
+          backgroundColor: isDarkMode ? 'rgba(255, 82, 82, 0.2)' : 'rgba(255, 82, 82, 0.1)'
+        };
+      case 'missed':
+        return {
+          color: '#FF9800',
+          backgroundColor: isDarkMode ? 'rgba(255, 152, 0, 0.2)' : 'rgba(255, 152, 0, 0.1)'
         };
       default:
         return {};
@@ -134,8 +140,8 @@ export default function AppointmentDetailsScreen() {
   // Loading state
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+      <SafeAreaView style={[styles.loadingContainer, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
+        <ActivityIndicator size="large" color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
         <ThemedText style={styles.loadingText}>Loading appointment details...</ThemedText>
       </SafeAreaView>
     );
@@ -144,10 +150,13 @@ export default function AppointmentDetailsScreen() {
   // Error state
   if (error) {
     return (
-      <SafeAreaView style={styles.errorContainer}>
+      <SafeAreaView style={[styles.errorContainer, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
         <Ionicons name="alert-circle" size={50} color="#e53935" />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
-        <TouchableOpacity style={styles.retryButton} onPress={loadAppointmentDetails}>
+        <TouchableOpacity 
+          style={[styles.retryButton, {backgroundColor: isDarkMode ? '#1D3D47' : '#0a7ea4'}]} 
+          onPress={loadAppointmentDetails}
+        >
           <ThemedText style={styles.retryButtonText}>Try Again</ThemedText>
         </TouchableOpacity>
       </SafeAreaView>
@@ -156,10 +165,13 @@ export default function AppointmentDetailsScreen() {
 
   if (!appointment) {
     return (
-      <SafeAreaView style={styles.errorContainer}>
+      <SafeAreaView style={[styles.errorContainer, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
         <Ionicons name="calendar-outline" size={50} color="#e53935" />
         <ThemedText style={styles.errorText}>Appointment not found</ThemedText>
-        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={[styles.retryButton, {backgroundColor: isDarkMode ? '#1D3D47' : '#0a7ea4'}]} 
+          onPress={() => router.back()}
+        >
           <ThemedText style={styles.retryButtonText}>Go Back</ThemedText>
         </TouchableOpacity>
       </SafeAreaView>
@@ -178,7 +190,7 @@ export default function AppointmentDetailsScreen() {
         options={{
           title: 'Appointment Details',
           headerStyle: {
-            backgroundColor: colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC',
+            backgroundColor: isDarkMode ? '#1D3D47' : '#A1CEDC',
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
@@ -188,7 +200,7 @@ export default function AppointmentDetailsScreen() {
         }}
       />
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
         <View style={styles.content}>
           {/* Status Badge */}
           <View style={styles.statusContainer}>
@@ -210,10 +222,13 @@ export default function AppointmentDetailsScreen() {
           </View>
 
           {/* Doctor Information */}
-          <ThemedView style={styles.doctorCard}>
+          <ThemedView style={[
+            styles.doctorCard, 
+            {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+          ]}>
             <View style={styles.doctorAvatarContainer}>
               <LinearGradient
-                colors={colorScheme === 'dark' ? headerGradientDark : headerGradientLight}
+                colors={isDarkMode ? headerGradientDark : headerGradientLight}
                 style={styles.doctorAvatar}
               >
                 <Ionicons name="person" size={40} color="#fff" />
@@ -227,22 +242,25 @@ export default function AppointmentDetailsScreen() {
                   : 'Doctor'
                 }
               </ThemedText>
-              <ThemedText style={styles.doctorSpecialty}>
+              <ThemedText style={[styles.doctorSpecialty, {opacity: isDarkMode ? 0.8 : 0.7}]}>
                 {appointment.doctor?.specialization || 'Specialist'}
               </ThemedText>
             </View>
           </ThemedView>
 
           {/* Appointment Details */}
-          <ThemedView style={styles.detailsCard}>
+          <ThemedView style={[
+            styles.detailsCard,
+            {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+          ]}>
             <ThemedText style={styles.sectionTitle}>Appointment Details</ThemedText>
             
             <View style={styles.detailRow}>
               <View style={styles.detailIconContainer}>
-                <Ionicons name="calendar" size={24} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                <Ionicons name="calendar" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
               <View>
-                <ThemedText style={styles.detailLabel}>Date</ThemedText>
+                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Date</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {formatDate(appointment.appointment_date)}
                 </ThemedText>
@@ -251,10 +269,10 @@ export default function AppointmentDetailsScreen() {
             
             <View style={styles.detailRow}>
               <View style={styles.detailIconContainer}>
-                <Ionicons name="time" size={24} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                <Ionicons name="time" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
               <View>
-                <ThemedText style={styles.detailLabel}>Time</ThemedText>
+                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Time</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {formatTime(appointment.appointment_time)}
                 </ThemedText>
@@ -263,10 +281,10 @@ export default function AppointmentDetailsScreen() {
             
             <View style={styles.detailRow}>
               <View style={styles.detailIconContainer}>
-                <Ionicons name="medical" size={24} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                <Ionicons name="medical" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
               <View>
-                <ThemedText style={styles.detailLabel}>Type</ThemedText>
+                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Type</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {appointment.appointment_type
                     .split('_')
@@ -280,10 +298,10 @@ export default function AppointmentDetailsScreen() {
             {appointment.location && (
               <View style={styles.detailRow}>
                 <View style={styles.detailIconContainer}>
-                  <Ionicons name="location" size={24} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                  <Ionicons name="location" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
                 </View>
                 <View>
-                  <ThemedText style={styles.detailLabel}>Location</ThemedText>
+                  <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Location</ThemedText>
                   <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
                 </View>
               </View>
@@ -292,7 +310,10 @@ export default function AppointmentDetailsScreen() {
 
           {/* Notes Section */}
           {appointment.notes && (
-            <ThemedView style={styles.detailsCard}>
+            <ThemedView style={[
+              styles.detailsCard,
+              {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+            ]}>
               <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
               <ThemedText style={styles.notesContent}>{appointment.notes}</ThemedText>
             </ThemedView>

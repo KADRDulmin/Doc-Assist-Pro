@@ -1,60 +1,107 @@
-import { Text, type TextProps, StyleSheet } from 'react-native';
+import React from 'react';
+import { Text, TextProps, StyleSheet } from 'react-native';
+import { useColorScheme } from 'react-native';
+import Colors from '../constants/Colors';
 
-import { useThemeColor } from '@/hooks/useThemeColor';
+interface ThemedTextProps extends TextProps {
+  variant?: 'primary' | 'secondary' | 'tertiary';
+  type?: 'default' | 'heading' | 'subheading' | 'error';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  children: React.ReactNode;
+}
 
-export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
-};
-
-export function ThemedText({
-  style,
-  lightColor,
-  darkColor,
+export const ThemedText: React.FC<ThemedTextProps> = ({
+  variant = 'primary',
   type = 'default',
-  ...rest
-}: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  weight = 'normal',
+  style,
+  children,
+  ...props
+}) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+
+  // Get text color based on variant and theme
+  const getTextColor = () => {
+    switch (variant) {
+      case 'primary':
+        return Colors[theme].text;
+      case 'secondary':
+        return Colors[theme].textSecondary;
+      case 'tertiary':
+        return Colors[theme].textTertiary;
+      default:
+        return Colors[theme].text;
+    }
+  };
+
+  // Get text styles based on type
+  const getTypeStyle = () => {
+    switch (type) {
+      case 'heading':
+        return styles.heading;
+      case 'subheading':
+        return styles.subheading;
+      case 'error':
+        return { color: Colors[theme].danger };
+      default:
+        return {};
+    }
+  };
+
+  // Get font weight style
+  const getWeightStyle = () => {
+    switch (weight) {
+      case 'medium':
+        return styles.medium;
+      case 'semibold':
+        return styles.semibold;
+      case 'bold':
+        return styles.bold;
+      default:
+        return styles.normal;
+    }
+  };
 
   return (
     <Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        { color: getTextColor() },
+        getTypeStyle(),
+        getWeightStyle(),
         style,
       ]}
-      {...rest}
-    />
+      {...props}
+    >
+      {children}
+    </Text>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
+  // Type styles
+  heading: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
   },
-  defaultSemiBold: {
+  subheading: {
     fontSize: 16,
-    lineHeight: 24,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  
+  // Weight styles
+  normal: {
+    fontWeight: '400',
+  },
+  medium: {
+    fontWeight: '500',
+  },
+  semibold: {
     fontWeight: '600',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+  bold: {
+    fontWeight: '700',
   },
 });
