@@ -1,21 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
-import { Text, Card, Title, Paragraph, Avatar, Button, ActivityIndicator, Divider } from 'react-native-paper';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, ScrollView, RefreshControl, View, Dimensions } from 'react-native';
+import { Avatar, Card, Divider, TouchableRipple } from 'react-native-paper';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useColorScheme } from 'react-native';
+
 import { useAuth } from '../../contexts/AuthContext';
 import doctorService, { DashboardData, AppointmentData } from '../../services/doctorService';
 import authService from '../../services/authService';
 import Colors from '../../constants/Colors';
-import { router } from 'expo-router';
+import { ThemedView } from '../../components/ThemedView';
+import { ThemedText } from '../../components/ThemedText';
+import ModernHeader from '../../components/ui/ModernHeader';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<AppointmentData[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -58,7 +68,7 @@ export default function DashboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user?.id]);
 
   const handleStartConsultation = (appointmentId: number) => {
     router.push(`/consultation/${appointmentId}` as any);
@@ -66,205 +76,304 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   const onRefresh = () => {
     setRefreshing(true);
     loadDashboard();
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
-      </View>
-    );
-  }
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'upcoming':
+        return Colors[theme].primary;
+      case 'completed':
+        return Colors[theme].success;
+      case 'cancelled':
+        return Colors[theme].danger;
+      case 'missed':
+        return '#FF9800'; // amber
+      default:
+        return Colors[theme].textTertiary;
+    }
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Button mode="contained" onPress={loadDashboard} style={styles.retryButton}>
-            Retry
-          </Button>
-        </View>
-      ) : (
-        <>
-          <Card style={styles.welcomeCard}>
-            <Card.Content>
-              <Title style={styles.welcomeTitle}>
-                Welcome, Dr. {user?.first_name} {user?.last_name}
-              </Title>
-              <Paragraph>
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Paragraph>
-            </Card.Content>
-          </Card>
-
-          <View style={styles.statsContainer}>
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Avatar.Icon size={40} icon="calendar" style={styles.statIcon} />
-                <View>
-                  <Text style={styles.statValue}>
-                    {dashboardData?.stats?.appointmentCount || 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Appointments</Text>
+    <ThemedView variant="secondary" style={styles.container}>
+      <ModernHeader 
+        title="Doctor Dashboard"
+        showBackButton={false}
+        userName={`Dr. ${user?.last_name || 'Smith'}`}
+      />
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {error ? (
+          <ThemedView variant="card" useShadow style={styles.errorContainer}>
+            <ThemedText type="error" style={styles.errorText}>{error}</ThemedText>
+            <TouchableRipple
+              style={styles.retryButton}
+              onPress={loadDashboard}
+              borderless
+            >
+              <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            </TouchableRipple>
+          </ThemedView>
+        ) : loading && !refreshing ? (
+          <ThemedView variant="card" useShadow style={styles.loadingContainer}>
+            <FontAwesome5 name="stethoscope" size={40} color={Colors[theme].primary} />
+            <ThemedText variant="secondary" style={styles.loadingText}>
+              Loading your dashboard...
+            </ThemedText>
+          </ThemedView>
+        ) : (
+          <>
+            {/* Welcome Card */}
+            <ThemedView variant="card" useShadow style={styles.welcomeCard}>
+              <View style={styles.welcomeCardContent}>
+                <View style={styles.welcomeInfo}>
+                  <ThemedText type="heading">
+                    Welcome, Dr. {user?.first_name} {user?.last_name}
+                  </ThemedText>
+                  <ThemedText variant="secondary" style={styles.dateText}>
+                    {new Date().toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </ThemedText>
                 </View>
-              </Card.Content>
-            </Card>
+                <Avatar.Text 
+                  size={50} 
+                  label={`${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`}
+                  color="#FFF"
+                  style={{
+                    backgroundColor: Colors[theme].primary,
+                  }}
+                />
+              </View>
+            </ThemedView>
 
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Avatar.Icon size={40} icon="account-group" style={styles.statIcon} />
-                <View>
-                  <Text style={styles.statValue}>
-                    {dashboardData?.stats?.patientCount || 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Patients</Text>
+            {/* Stats Section */}
+            <View style={styles.statsContainer}>
+              <ThemedView variant="card" useShadow style={styles.statCard}>
+                <View style={styles.statContent}>
+                  <View style={[styles.statIconContainer, { backgroundColor: Colors[theme].primary }]}>
+                    <FontAwesome5 name="calendar-check" size={18} color="#FFF" />
+                  </View>
+                  <ThemedText type="heading">{dashboardData?.stats?.appointmentCount || 0}</ThemedText>
+                  <ThemedText variant="secondary">Appointments</ThemedText>
                 </View>
-              </Card.Content>
-            </Card>
+              </ThemedView>
 
-            <Card style={styles.statCard}>
-              <Card.Content style={styles.statContent}>
-                <Avatar.Icon size={40} icon="check-circle" style={styles.statIcon} />
-                <View>
-                  <Text style={styles.statValue}>
-                    {dashboardData?.stats?.completedAppointments || 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Completed</Text>
+              <ThemedView variant="card" useShadow style={styles.statCard}>
+                <View style={styles.statContent}>
+                  <View style={[styles.statIconContainer, { backgroundColor: Colors[theme].accent }]}>
+                    <FontAwesome5 name="users" size={18} color="#FFF" />
+                  </View>
+                  <ThemedText type="heading">{dashboardData?.stats?.patientCount || 0}</ThemedText>
+                  <ThemedText variant="secondary">Patients</ThemedText>
                 </View>
-              </Card.Content>
-            </Card>
-          </View>
+              </ThemedView>
 
-          <Card style={styles.sectionCard}>
-            <Card.Title title="Today's Appointments" />
-            <Card.Content>
+              <ThemedView variant="card" useShadow style={styles.statCard}>
+                <View style={styles.statContent}>
+                  <View style={[styles.statIconContainer, { backgroundColor: Colors[theme].success }]}>
+                    <FontAwesome5 name="check-circle" size={18} color="#FFF" />
+                  </View>
+                  <ThemedText type="heading">{dashboardData?.stats?.completedAppointments || 0}</ThemedText>
+                  <ThemedText variant="secondary">Completed</ThemedText>
+                </View>
+              </ThemedView>
+            </View>
+
+            {/* Today's Appointments Section */}
+            <ThemedView variant="card" useShadow style={styles.appointmentsCard}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subheading">Today's Appointments</ThemedText>
+                <TouchableRipple onPress={() => router.push('/(tabs)/appointments')}>
+                  <ThemedText type="link" style={styles.viewAllLink}>View All</ThemedText>
+                </TouchableRipple>
+              </View>
+              
               {todayAppointments && todayAppointments.length > 0 ? (
                 todayAppointments.map((appointment, index) => (
                   <React.Fragment key={appointment.id}>
-                    <View style={styles.appointmentItem}>
-                      <View style={styles.appointmentTimeContainer}>
-                        <Text style={styles.appointmentTime}>
-                          {appointment.appointment_time || appointment.time}
-                        </Text>
+                    <ThemedView 
+                      variant="cardAlt"
+                      style={styles.appointmentItem}
+                    >
+                      <View style={styles.appointmentInfo}>
+                        <View style={styles.appointmentTimeContainer}>
+                          <ThemedText weight="semibold" style={styles.appointmentTime}>
+                            {appointment.appointment_time || appointment.time}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.appointmentDetails}>
+                          <ThemedText weight="semibold">
+                            {appointment.patient?.name || 'Unknown Patient'}
+                          </ThemedText>
+                          <ThemedText variant="tertiary" style={styles.appointmentType}>
+                            {appointment.appointment_type || appointment.type || 'General'}
+                          </ThemedText>
+                        </View>
                       </View>
-                      <View style={styles.appointmentDetails}>
-                        <Text style={styles.patientName}>
-                          {appointment.patient?.name || 'Unknown Patient'}
-                        </Text>
-                        <Text style={styles.appointmentType}>
-                          {appointment.appointment_type || appointment.type || 'General'}
-                        </Text>
-                      </View>
-                      <View style={styles.buttonsContainer}>
-                        <Button
-                          mode="contained"
-                          compact
-                          style={[
-                            styles.statusButton,
-                            appointment.status === 'upcoming'
-                              ? styles.upcomingButton
-                              : appointment.status === 'completed'
-                              ? styles.completedButton
-                              : styles.cancelledButton,
-                          ]}
-                        >
-                          {appointment.status === 'upcoming'
-                            ? 'Upcoming'
-                            : appointment.status === 'completed'
-                            ? 'Completed'
-                            : 'Cancelled'}
-                        </Button>
+                      
+                      <View style={styles.appointmentActions}>
+                        <View style={[
+                          styles.statusBadge, 
+                          { backgroundColor: `${getStatusColor(appointment.status)}20` }
+                        ]}>
+                          <ThemedText
+                            style={[styles.statusText, { color: getStatusColor(appointment.status) }]}
+                          >
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                          </ThemedText>
+                        </View>
                         
                         {appointment.status === 'upcoming' && (
-                          <Button
-                            mode="contained"
-                            compact
-                            style={styles.consultButton}
+                          <TouchableRipple
+                            style={[styles.consultButton, { backgroundColor: Colors[theme].success }]}
                             onPress={() => handleStartConsultation(appointment.id)}
                           >
-                            Consult
-                          </Button>
+                            <ThemedText style={styles.consultButtonText}>
+                              Consult
+                            </ThemedText>
+                          </TouchableRipple>
                         )}
                       </View>
-                    </View>
+                    </ThemedView>
                     {index < todayAppointments.length - 1 && <Divider style={styles.divider} />}
                   </React.Fragment>
                 ))
               ) : (
-                <Text style={styles.noAppointmentsText}>No appointments for today</Text>
+                <ThemedView variant="cardAlt" style={styles.emptyAppointments}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={40}
+                    color={Colors[theme].textTertiary}
+                  />
+                  <ThemedText variant="secondary" style={styles.emptyAppointmentsText}>
+                    No appointments scheduled for today
+                  </ThemedText>
+                </ThemedView>
               )}
-            </Card.Content>
-            <Card.Actions>
-              <Button
-                mode="text"
-                onPress={() => router.push('/(tabs)/appointments')}
-              >
-                View All
-              </Button>
-            </Card.Actions>
-          </Card>
-        </>
-      )}
-    </ScrollView>
+            </ThemedView>
+            
+            {/* Quick Actions */}
+            <ThemedView variant="card" useShadow style={styles.quickActionsCard}>
+              <ThemedText type="subheading" style={styles.quickActionsTitle}>
+                Quick Actions
+              </ThemedText>
+              
+              <View style={styles.quickActionsGrid}>
+                <TouchableRipple 
+                  style={styles.quickActionButton}
+                  onPress={() => router.push('/(tabs)/appointments')}
+                >
+                  <View style={styles.quickActionContent}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: Colors[theme].primary }]}>
+                      <FontAwesome5 name="calendar-plus" size={18} color="#FFF" />
+                    </View>
+                    <ThemedText weight="medium" style={styles.quickActionText}>
+                      Manage Appointments
+                    </ThemedText>
+                  </View>
+                </TouchableRipple>
+                
+                <TouchableRipple 
+                  style={styles.quickActionButton}
+                  onPress={() => router.push('/(tabs)/patients')}
+                >
+                  <View style={styles.quickActionContent}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: Colors[theme].accent }]}>
+                      <FontAwesome5 name="user-plus" size={18} color="#FFF" />
+                    </View>
+                    <ThemedText weight="medium" style={styles.quickActionText}>
+                      Patient Records
+                    </ThemedText>
+                  </View>
+                </TouchableRipple>
+                
+                <TouchableRipple 
+                  style={styles.quickActionButton}
+                  onPress={() => router.push('/(tabs)/profile')}
+                >
+                  <View style={styles.quickActionContent}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: Colors[theme].info }]}>
+                      <FontAwesome5 name="user-md" size={18} color="#FFF" />
+                    </View>
+                    <ThemedText weight="medium" style={styles.quickActionText}>
+                      Profile Settings
+                    </ThemedText>
+                  </View>
+                </TouchableRipple>
+              </View>
+            </ThemedView>
+          </>
+        )}
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 24,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+    marginTop: 20,
+    borderRadius: 12,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 20,
+    marginTop: 16,
     textAlign: 'center',
   },
+  errorContainer: {
+    alignItems: 'center',
+    padding: 20,
+    marginTop: 20,
+    borderRadius: 12,
+  },
+  errorText: {
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   retryButton: {
-    width: 150,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#0466C8',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
   welcomeCard: {
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
-    elevation: 2,
   },
-  welcomeTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  welcomeCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  welcomeInfo: {
+    flex: 1,
+  },
+  dateText: {
+    marginTop: 4,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -273,82 +382,130 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    borderRadius: 12,
     marginHorizontal: 4,
-    elevation: 2,
+    padding: 16,
   },
   statContent: {
     alignItems: 'center',
-    padding: 10,
   },
-  statIcon: {
-    backgroundColor: Colors.light.primary,
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  statLabel: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  sectionCard: {
+  appointmentsCard: {
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
-    elevation: 2,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllLink: {
+    fontSize: 14,
   },
   appointmentItem: {
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 6,
+  },
+  appointmentInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
+    marginBottom: 8,
   },
   appointmentTimeContainer: {
     width: 60,
-    alignItems: 'center',
   },
   appointmentTime: {
-    fontWeight: 'bold',
+    fontSize: 14,
   },
   appointmentDetails: {
     flex: 1,
-    marginLeft: 8,
-  },
-  patientName: {
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   appointmentType: {
     fontSize: 14,
-    color: '#666',
+    marginTop: 2,
   },
-  buttonsContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 6,
+  appointmentActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  statusButton: {
-    borderRadius: 5,
-    marginBottom: 4,
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   consultButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  upcomingButton: {
-    backgroundColor: Colors.light.primary,
-  },
-  completedButton: {
-    backgroundColor: '#4CAF50',
-  },
-  cancelledButton: {
-    backgroundColor: '#F44336',
+  consultButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   divider: {
     marginVertical: 8,
   },
-  noAppointmentsText: {
+  emptyAppointments: {
+    alignItems: 'center',
+    padding: 24,
+    marginVertical: 8,
+    borderRadius: 8,
+  },
+  emptyAppointmentsText: {
+    marginTop: 12,
     textAlign: 'center',
-    padding: 10,
-    fontStyle: 'italic',
+  },
+  quickActionsCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  quickActionsTitle: {
+    marginBottom: 16,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -8,
+  },
+  quickActionButton: {
+    flexBasis: '50%',
+    padding: 8,
+    maxWidth: '50%',
+  },
+  quickActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  quickActionText: {
+    flex: 1,
+    fontSize: 14,
   },
 });

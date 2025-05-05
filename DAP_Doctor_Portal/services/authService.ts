@@ -42,6 +42,13 @@ export interface DoctorUser {
   last_name: string;
   role: string;
   phone?: string;
+  
+  // Add missing properties from backend
+  appointments_count?: number;
+  patients_count?: number;
+  experience_years?: number;
+  address?: string;
+  hospital?: string;
 }
 
 export interface DoctorProfile {

@@ -128,6 +128,8 @@ export interface PatientData {
     email: string;
     phone?: string;
   };
+  date_of_birth?: string; // Added to support age calculation
+  age?: number; // Added to support age property access
   appointment_count: number;
   completed_appointments: number;
   cancelled_appointments: number;

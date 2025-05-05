@@ -41,6 +41,7 @@ export default function NewAppointmentScreen() {
   const criticalityFromParams = params.criticality ? String(params.criticality) : '';
   const explanationFromParams = params.explanation ? String(params.explanation) : '';
   
+  // State variables
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [doctors, setDoctors] = useState<DoctorData[]>([]);
@@ -70,7 +71,7 @@ export default function NewAppointmentScreen() {
   const [recommendedSpecialty2, setRecommendedSpecialty2] = useState(recommendedSpecialty2FromParams);
   const [criticality, setCriticality] = useState(criticalityFromParams);
 
-  // Define fixed gradient colors for LinearGradient
+  // Define fixed gradient colors for LinearGradient based on theme
   const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
@@ -251,7 +252,7 @@ export default function NewAppointmentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
       {/* Header */}
       <LinearGradient
         colors={isDarkMode ? headerGradientDark : headerGradientLight}
@@ -269,10 +270,13 @@ export default function NewAppointmentScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Symptom Analysis Summary (if available) */}
         {hasSymptomAnalysis && (
-          <View style={styles.analysisSection}>
+          <ThemedView style={styles.analysisSection}>
             <View style={styles.analysisSectionHeader}>
               <Ionicons name="analytics-outline" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               <ThemedText style={styles.analysisSectionTitle}>Symptom Analysis</ThemedText>
@@ -302,7 +306,7 @@ export default function NewAppointmentScreen() {
                 </ThemedText>
               </View>
             </View>
-          </View>
+          </ThemedView>
         )}
 
         {/* Doctor Selection */}
@@ -359,7 +363,7 @@ export default function NewAppointmentScreen() {
           <TouchableOpacity 
             style={[
               styles.datePickerButton,
-              isDarkMode && styles.datePickerButtonDark
+              isDarkMode ? styles.datePickerButtonDark : styles.datePickerButtonLight
             ]}
             onPress={() => setShowDatePicker(true)}
           >
@@ -374,6 +378,7 @@ export default function NewAppointmentScreen() {
               display="default"
               onChange={handleDateChange}
               minimumDate={new Date()}
+              themeVariant={isDarkMode ? "dark" : "light"}
             />
           )}
         </View>
@@ -394,14 +399,17 @@ export default function NewAppointmentScreen() {
                   style={[
                     styles.timeSlot,
                     selectedTime === time && styles.selectedTimeSlot,
-                    isDarkMode && selectedTime === time && styles.selectedTimeSlotDark
+                    isDarkMode && selectedTime === time && styles.selectedTimeSlotDark,
+                    isDarkMode && styles.timeSlotDark
                   ]}
                   onPress={() => setSelectedTime(time)}
                 >
                   <Text 
                     style={[
                       styles.timeSlotText,
-                      selectedTime === time && styles.selectedTimeSlotText
+                      selectedTime === time && styles.selectedTimeSlotText,
+                      isDarkMode && styles.timeSlotTextDark,
+                      isDarkMode && selectedTime === time && styles.selectedTimeSlotTextActive
                     ]}
                   >
                     {time}
@@ -418,7 +426,7 @@ export default function NewAppointmentScreen() {
           <TextInput
             style={[
               styles.notesInput,
-              isDarkMode && styles.notesInputDark
+              isDarkMode ? styles.notesInputDark : styles.notesInputLight
             ]}
             multiline
             numberOfLines={4}
@@ -433,7 +441,7 @@ export default function NewAppointmentScreen() {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!selectedDoctor || !selectedTime) && styles.disabledButton
+            (!selectedDoctor || !selectedTime || submitting) && styles.disabledButton
           ]}
           onPress={handleSubmit}
           disabled={!selectedDoctor || !selectedTime || submitting}
@@ -444,6 +452,9 @@ export default function NewAppointmentScreen() {
             <Text style={styles.submitButtonText}>Schedule Appointment</Text>
           )}
         </TouchableOpacity>
+        
+        {/* Extra space at bottom for better scrolling */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -526,6 +537,10 @@ const styles = StyleSheet.create({
     borderColor: '#34495e',
     backgroundColor: '#2c3e50',
   },
+  datePickerButtonLight: {
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
   dateText: {
     marginLeft: 10,
     fontSize: 16,
@@ -543,6 +558,9 @@ const styles = StyleSheet.create({
     margin: 5,
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
   },
+  timeSlotDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
   selectedTimeSlot: {
     backgroundColor: '#0a7ea4',
     borderColor: '#0a7ea4',
@@ -554,9 +572,15 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 14,
   },
+  timeSlotTextDark: {
+    color: '#fff',
+  },
   selectedTimeSlotText: {
     color: '#fff',
     fontWeight: '500',
+  },
+  selectedTimeSlotTextActive: {
+    color: '#000',
   },
   noSlotsText: {
     textAlign: 'center',
@@ -576,6 +600,11 @@ const styles = StyleSheet.create({
     borderColor: '#34495e',
     backgroundColor: '#2c3e50',
     color: '#fff',
+  },
+  notesInputLight: {
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    color: '#000',
   },
   submitButton: {
     backgroundColor: '#0a7ea4',
