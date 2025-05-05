@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator, HelperText, Chip, ProgressBar, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, useColorScheme } from 'react-native';
+import { TextInput, Button, ActivityIndicator, HelperText, Chip, ProgressBar, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import authService, { DoctorSignupData } from '../../services/authService';
 import Colors from '../../constants/Colors';
-import { LocationSelector, LocationData } from '../../components/maps';
+import { ThemedView } from '../../components/ThemedView';
+import { ThemedText } from '../../components/ThemedText';
+import { FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Step 1 validation schema (user account information)
 const AccountInfoSchema = Yup.object().shape({
@@ -50,22 +53,13 @@ const DoctorInfoSchema = Yup.object().shape({
     .min(0, 'Fee cannot be negative'),
 });
 
-// Step 4 validation schema (location information)
-const LocationInfoSchema = Yup.object().shape({
-  location: Yup.object().shape({
-    latitude: Yup.number().required('Latitude is required'),
-    longitude: Yup.number().required('Longitude is required'),
-    address: Yup.string().required('Address is required'),
-  }).required('Location is required'),
-});
-
 // Combined schema
-const SignupSchema = AccountInfoSchema.concat(PersonalInfoSchema)
-  .concat(DoctorInfoSchema)
-  .concat(LocationInfoSchema);
+const SignupSchema = AccountInfoSchema.concat(PersonalInfoSchema).concat(DoctorInfoSchema);
 
 export default function SignupScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const [step, setStep] = useState(1);
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [confirmSecureTextEntry, setConfirmSecureTextEntry] = useState(true);
@@ -112,13 +106,6 @@ export default function SignupScreen() {
       
       // Remove confirm_password before sending to API
       const { confirm_password, ...doctorData } = values;
-      
-      // Convert location object to expected format if needed by your API
-      if (doctorData.location) {
-        doctorData.latitude = doctorData.location.latitude;
-        doctorData.longitude = doctorData.location.longitude;
-        doctorData.address = doctorData.location.address;
-      }
       
       const response = await authService.signup(doctorData);
       
@@ -197,27 +184,6 @@ export default function SignupScreen() {
         }
       });
     }
-    // For step 3, we validate professional info
-    else if (step === 3) {
-      validateForm().then((errors: any) => {
-        const relevantErrors: Record<string, string> = {};
-        
-        // Only check errors for fields in step 3
-        if (errors.specialization) relevantErrors['specialization'] = errors.specialization;
-        if (errors.license_number) relevantErrors['license_number'] = errors.license_number;
-        if (errors.years_of_experience) relevantErrors['years_of_experience'] = errors.years_of_experience;
-        if (errors.consultation_fee) relevantErrors['consultation_fee'] = errors.consultation_fee;
-        
-        if (Object.keys(relevantErrors).length === 0) {
-          setStep(step + 1);
-          setError(null);
-        } else {
-          // Display the first error
-          const firstError = Object.values(relevantErrors)[0];
-          setError(firstError);
-        }
-      });
-    }
   };
 
   const prevStep = () => {
@@ -226,383 +192,484 @@ export default function SignupScreen() {
   };
 
   // Calculate progress based on current step
-  const progress = step / 4; // Now we have 4 steps
+  const progress = step / 3;
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Doctor Registration</Text>
-        <Text style={styles.headerSubtitle}>
-          {step === 1 && 'Step 1: Account Information'}
-          {step === 2 && 'Step 2: Personal Information'}
-          {step === 3 && 'Step 3: Professional Information'}
-          {step === 4 && 'Step 4: Practice Location'}
-        </Text>
-      </View>
-
-      <ProgressBar
-        progress={progress}
-        color={Colors.light.primary}
-        style={styles.progressBar}
-      />
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      <Formik
-        initialValues={{
-          email: '',
-          password: '',
-          confirm_password: '',
-          first_name: '',
-          last_name: '',
-          phone: '',
-          specialization: '',
-          license_number: '',
-          years_of_experience: 0,
-          education: '',
-          bio: '',
-          consultation_fee: 0,
-          location: undefined as LocationData | undefined,
-        }}
-        validationSchema={SignupSchema}
-        onSubmit={handleSignup}
+    <ThemedView variant="secondary" style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          setFieldValue,
-          validateForm,
-          values,
-          errors,
-          touched,
-        }) => (
-          <View style={styles.formContainer}>
-            {step === 1 && (
-              <>
-                <TextInput
-                  label="Email"
-                  value={values.email}
-                  onChangeText={handleChange('email')}
-                  onBlur={handleBlur('email')}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.email && !!errors.email}
-                />
-                {touched.email && errors.email && (
-                  <HelperText type="error" visible={!!errors.email}>
-                    {errors.email}
-                  </HelperText>
-                )}
+        <View style={styles.formWrapper}>
+          <ThemedView variant="card" useShadow style={styles.formCard}>
+            <View style={styles.headerContainer}>
+              <ThemedText type="heading" weight="bold" style={styles.headerTitle}>
+                Doctor Registration
+              </ThemedText>
+              <ThemedText variant="secondary" style={styles.headerSubtitle}>
+                {step === 1 && 'Step 1: Account Information'}
+                {step === 2 && 'Step 2: Personal Information'}
+                {step === 3 && 'Step 3: Professional Information'}
+              </ThemedText>
+            </View>
 
-                <TextInput
-                  label="Password"
-                  value={values.password}
-                  onChangeText={handleChange('password')}
-                  onBlur={handleBlur('password')}
-                  secureTextEntry={secureTextEntry}
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.password && !!errors.password}
-                  right={
-                    <TextInput.Icon
-                      icon={secureTextEntry ? 'eye-off' : 'eye'}
-                      onPress={() => setSecureTextEntry(!secureTextEntry)}
-                    />
-                  }
-                />
-                {touched.password && errors.password && (
-                  <HelperText type="error" visible={!!errors.password}>
-                    {errors.password}
-                  </HelperText>
-                )}
-
-                <TextInput
-                  label="Confirm Password"
-                  value={values.confirm_password}
-                  onChangeText={handleChange('confirm_password')}
-                  onBlur={handleBlur('confirm_password')}
-                  secureTextEntry={confirmSecureTextEntry}
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.confirm_password && !!errors.confirm_password}
-                  right={
-                    <TextInput.Icon
-                      icon={confirmSecureTextEntry ? 'eye-off' : 'eye'}
-                      onPress={() => setConfirmSecureTextEntry(!confirmSecureTextEntry)}
-                    />
-                  }
-                />
-                {touched.confirm_password && errors.confirm_password && (
-                  <HelperText type="error" visible={!!errors.confirm_password}>
-                    {errors.confirm_password}
-                  </HelperText>
-                )}
-
-                <Button
-                  mode="contained"
-                  onPress={() => nextStep(validateForm, values)}
-                  style={styles.button}
-                >
-                  Next
-                </Button>
-              </>
+            {error && (
+              <View style={[styles.errorContainer, { backgroundColor: `${Colors[theme].danger}15` }]}>
+                <ThemedText type="error" style={styles.errorText}>{error}</ThemedText>
+              </View>
             )}
 
-            {step === 2 && (
-              <>
-                <TextInput
-                  label="First Name"
-                  value={values.first_name}
-                  onChangeText={handleChange('first_name')}
-                  onBlur={handleBlur('first_name')}
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.first_name && !!errors.first_name}
-                />
-                {touched.first_name && errors.first_name && (
-                  <HelperText type="error" visible={!!errors.first_name}>
-                    {errors.first_name}
-                  </HelperText>
-                )}
+            <Formik
+              initialValues={{
+                email: '',
+                password: '',
+                confirm_password: '',
+                first_name: '',
+                last_name: '',
+                phone: '',
+                specialization: '',
+                license_number: '',
+                years_of_experience: 0,
+                education: '',
+                bio: '',
+                consultation_fee: 0,
+              }}
+              validationSchema={SignupSchema}
+              onSubmit={handleSignup}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                setFieldValue,
+                validateForm,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View style={styles.formContainer}>
+                  {step === 1 && (
+                    <>
+                      <TextInput
+                        label="Email"
+                        value={values.email}
+                        onChangeText={handleChange('email')}
+                        onBlur={handleBlur('email')}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.email && !!errors.email}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.email && errors.email && (
+                        <HelperText type="error" visible={!!errors.email}>
+                          {errors.email}
+                        </HelperText>
+                      )}
 
-                <TextInput
-                  label="Last Name"
-                  value={values.last_name}
-                  onChangeText={handleChange('last_name')}
-                  onBlur={handleBlur('last_name')}
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.last_name && !!errors.last_name}
-                />
-                {touched.last_name && errors.last_name && (
-                  <HelperText type="error" visible={!!errors.last_name}>
-                    {errors.last_name}
-                  </HelperText>
-                )}
+                      <TextInput
+                        label="Password"
+                        value={values.password}
+                        onChangeText={handleChange('password')}
+                        onBlur={handleBlur('password')}
+                        secureTextEntry={secureTextEntry}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.password && !!errors.password}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                        right={
+                          <TextInput.Icon
+                            icon={secureTextEntry ? 'eye-off' : 'eye'}
+                            onPress={() => setSecureTextEntry(!secureTextEntry)}
+                            color={Colors[theme].icon}
+                          />
+                        }
+                      />
+                      {touched.password && errors.password && (
+                        <HelperText type="error" visible={!!errors.password}>
+                          {errors.password}
+                        </HelperText>
+                      )}
 
-                <TextInput
-                  label="Phone Number"
-                  value={values.phone}
-                  onChangeText={handleChange('phone')}
-                  onBlur={handleBlur('phone')}
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.phone && !!errors.phone}
-                />
-                {touched.phone && errors.phone && (
-                  <HelperText type="error" visible={!!errors.phone}>
-                    {errors.phone}
-                  </HelperText>
-                )}
+                      <TextInput
+                        label="Confirm Password"
+                        value={values.confirm_password}
+                        onChangeText={handleChange('confirm_password')}
+                        onBlur={handleBlur('confirm_password')}
+                        secureTextEntry={confirmSecureTextEntry}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.confirm_password && !!errors.confirm_password}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                        right={
+                          <TextInput.Icon
+                            icon={confirmSecureTextEntry ? 'eye-off' : 'eye'}
+                            onPress={() => setConfirmSecureTextEntry(!confirmSecureTextEntry)}
+                            color={Colors[theme].icon}
+                          />
+                        }
+                      />
+                      {touched.confirm_password && errors.confirm_password && (
+                        <HelperText type="error" visible={!!errors.confirm_password}>
+                          {errors.confirm_password}
+                        </HelperText>
+                      )}
 
-                <View style={styles.buttonRow}>
-                  <Button mode="outlined" onPress={prevStep} style={styles.backButton}>
-                    Back
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={() => nextStep(validateForm, values)}
-                    style={styles.nextButton}
-                  >
-                    Next
-                  </Button>
+                      <TouchableOpacity
+                        style={styles.gradientButtonContainer}
+                        onPress={() => nextStep(validateForm, values)}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient
+                          colors={Colors[theme].primary === Colors.light.primary 
+                            ? ['#0466C8', '#0353A4'] 
+                            : ['#58B0ED', '#0466C8']}
+                          style={styles.gradientButton}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <ThemedText style={styles.buttonText}>Next</ThemedText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {step === 2 && (
+                    <>
+                      <TextInput
+                        label="First Name"
+                        value={values.first_name}
+                        onChangeText={handleChange('first_name')}
+                        onBlur={handleBlur('first_name')}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.first_name && !!errors.first_name}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.first_name && errors.first_name && (
+                        <HelperText type="error" visible={!!errors.first_name}>
+                          {errors.first_name}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="Last Name"
+                        value={values.last_name}
+                        onChangeText={handleChange('last_name')}
+                        onBlur={handleBlur('last_name')}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.last_name && !!errors.last_name}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.last_name && errors.last_name && (
+                        <HelperText type="error" visible={!!errors.last_name}>
+                          {errors.last_name}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="Phone Number"
+                        value={values.phone}
+                        onChangeText={handleChange('phone')}
+                        onBlur={handleBlur('phone')}
+                        keyboardType="phone-pad"
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.phone && !!errors.phone}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.phone && errors.phone && (
+                        <HelperText type="error" visible={!!errors.phone}>
+                          {errors.phone}
+                        </HelperText>
+                      )}
+
+                      <View style={styles.buttonRow}>
+                        <TouchableOpacity 
+                          style={styles.outlineButtonContainer}
+                          onPress={prevStep}
+                          activeOpacity={0.8}
+                        >
+                          <ThemedView style={styles.outlineButton}>
+                            <ThemedText style={[styles.outlineButtonText, { color: Colors[theme].primary }]}>
+                              Back
+                            </ThemedText>
+                          </ThemedView>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                          style={[styles.gradientButtonContainer, styles.nextButtonContainer]}
+                          onPress={() => nextStep(validateForm, values)}
+                          activeOpacity={0.8}
+                        >
+                          <LinearGradient
+                            colors={Colors[theme].primary === Colors.light.primary 
+                              ? ['#0466C8', '#0353A4'] 
+                              : ['#58B0ED', '#0466C8']}
+                            style={styles.gradientButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                          >
+                            <ThemedText style={styles.buttonText}>Next</ThemedText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+
+                  {step === 3 && (
+                    <>
+                      <ThemedText weight="semibold" style={styles.sectionTitle}>Specialization</ThemedText>
+                      <View style={styles.specializationContainer}>
+                        {specializations.map((spec) => (
+                          <Chip
+                            key={spec}
+                            selected={values.specialization === spec}
+                            onPress={() => {
+                              setSelectedSpecialization(spec);
+                              setFieldValue('specialization', spec);
+                            }}
+                            style={[
+                              styles.specializationChip,
+                              { 
+                                backgroundColor: values.specialization === spec 
+                                  ? `${Colors[theme].primary}20` 
+                                  : Colors[theme].cardAlt
+                              }
+                            ]}
+                            textStyle={[
+                              values.specialization === spec && styles.selectedChipText,
+                              { color: values.specialization === spec ? Colors[theme].primary : Colors[theme].text }
+                            ]}
+                          >
+                            {spec}
+                          </Chip>
+                        ))}
+                      </View>
+                      {touched.specialization && errors.specialization && (
+                        <HelperText type="error" visible={!!errors.specialization}>
+                          {errors.specialization}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="License Number"
+                        value={values.license_number}
+                        onChangeText={handleChange('license_number')}
+                        onBlur={handleBlur('license_number')}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.license_number && !!errors.license_number}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.license_number && errors.license_number && (
+                        <HelperText type="error" visible={!!errors.license_number}>
+                          {errors.license_number}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="Years of Experience"
+                        value={values.years_of_experience.toString()}
+                        onChangeText={(text) => setFieldValue('years_of_experience', parseInt(text) || 0)}
+                        onBlur={handleBlur('years_of_experience')}
+                        keyboardType="numeric"
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.years_of_experience && !!errors.years_of_experience}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.years_of_experience && errors.years_of_experience && (
+                        <HelperText type="error" visible={!!errors.years_of_experience}>
+                          {errors.years_of_experience}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="Education (Optional)"
+                        value={values.education}
+                        onChangeText={handleChange('education')}
+                        onBlur={handleBlur('education')}
+                        style={styles.input}
+                        mode="outlined"
+                        multiline
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+
+                      <TextInput
+                        label="Bio (Optional)"
+                        value={values.bio}
+                        onChangeText={handleChange('bio')}
+                        onBlur={handleBlur('bio')}
+                        style={styles.input}
+                        mode="outlined"
+                        multiline
+                        numberOfLines={3}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+
+                      <TextInput
+                        label="Consultation Fee"
+                        value={values.consultation_fee.toString()}
+                        onChangeText={(text) => setFieldValue('consultation_fee', parseFloat(text) || 0)}
+                        onBlur={handleBlur('consultation_fee')}
+                        keyboardType="numeric"
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.consultation_fee && !!errors.consultation_fee}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                      />
+                      {touched.consultation_fee && errors.consultation_fee && (
+                        <HelperText type="error" visible={!!errors.consultation_fee}>
+                          {errors.consultation_fee}
+                        </HelperText>
+                      )}
+
+                      <View style={styles.buttonRow}>
+                        <TouchableOpacity 
+                          style={styles.outlineButtonContainer}
+                          onPress={prevStep}
+                          activeOpacity={0.8}
+                        >
+                          <ThemedView style={styles.outlineButton}>
+                            <ThemedText style={[styles.outlineButtonText, { color: Colors[theme].primary }]}>
+                              Back
+                            </ThemedText>
+                          </ThemedView>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                          style={[styles.gradientButtonContainer, styles.nextButtonContainer]}
+                          onPress={() => handleSubmit()}
+                          activeOpacity={0.8}
+                          disabled={loading}
+                        >
+                          <LinearGradient
+                            colors={Colors[theme].primary === Colors.light.primary 
+                              ? ['#0466C8', '#0353A4'] 
+                              : ['#58B0ED', '#0466C8']}
+                            style={styles.gradientButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                          >
+                            {loading ? (
+                              <ActivityIndicator color="white" size="small" />
+                            ) : (
+                              <View style={styles.registerButtonContent}>
+                                <FontAwesome5 name="user-md" size={16} color="#FFF" style={styles.registerIcon} />
+                                <ThemedText style={styles.buttonText}>Register</ThemedText>
+                              </View>
+                            )}
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
                 </View>
-              </>
-            )}
+              )}
+            </Formik>
 
-            {step === 3 && (
-              <>
-                <Text style={styles.sectionTitle}>Specialization</Text>
-                <View style={styles.specializationContainer}>
-                  {specializations.map((spec) => (
-                    <Chip
-                      key={spec}
-                      selected={values.specialization === spec}
-                      onPress={() => {
-                        setSelectedSpecialization(spec);
-                        setFieldValue('specialization', spec);
-                      }}
-                      style={styles.specializationChip}
-                      textStyle={values.specialization === spec ? styles.selectedChipText : {}}
-                    >
-                      {spec}
-                    </Chip>
-                  ))}
-                </View>
-                {touched.specialization && errors.specialization && (
-                  <HelperText type="error" visible={!!errors.specialization}>
-                    {errors.specialization}
-                  </HelperText>
-                )}
-
-                <TextInput
-                  label="License Number"
-                  value={values.license_number}
-                  onChangeText={handleChange('license_number')}
-                  onBlur={handleBlur('license_number')}
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.license_number && !!errors.license_number}
-                />
-                {touched.license_number && errors.license_number && (
-                  <HelperText type="error" visible={!!errors.license_number}>
-                    {errors.license_number}
-                  </HelperText>
-                )}
-
-                <TextInput
-                  label="Years of Experience"
-                  value={values.years_of_experience.toString()}
-                  onChangeText={(text) => setFieldValue('years_of_experience', parseInt(text) || 0)}
-                  onBlur={handleBlur('years_of_experience')}
-                  keyboardType="numeric"
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.years_of_experience && !!errors.years_of_experience}
-                />
-                {touched.years_of_experience && errors.years_of_experience && (
-                  <HelperText type="error" visible={!!errors.years_of_experience}>
-                    {errors.years_of_experience}
-                  </HelperText>
-                )}
-
-                <TextInput
-                  label="Education (Optional)"
-                  value={values.education}
-                  onChangeText={handleChange('education')}
-                  onBlur={handleBlur('education')}
-                  style={styles.input}
-                  mode="outlined"
-                  multiline
-                />
-
-                <TextInput
-                  label="Bio (Optional)"
-                  value={values.bio}
-                  onChangeText={handleChange('bio')}
-                  onBlur={handleBlur('bio')}
-                  style={styles.input}
-                  mode="outlined"
-                  multiline
-                  numberOfLines={3}
-                />
-
-                <TextInput
-                  label="Consultation Fee"
-                  value={values.consultation_fee.toString()}
-                  onChangeText={(text) => setFieldValue('consultation_fee', parseFloat(text) || 0)}
-                  onBlur={handleBlur('consultation_fee')}
-                  keyboardType="numeric"
-                  style={styles.input}
-                  mode="outlined"
-                  error={touched.consultation_fee && !!errors.consultation_fee}
-                />
-                {touched.consultation_fee && errors.consultation_fee && (
-                  <HelperText type="error" visible={!!errors.consultation_fee}>
-                    {errors.consultation_fee}
-                  </HelperText>
-                )}
-
-                <View style={styles.buttonRow}>
-                  <Button mode="outlined" onPress={prevStep} style={styles.backButton}>
-                    Back
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={() => nextStep(validateForm, values)}
-                    style={styles.nextButton}
-                  >
-                    Next
-                  </Button>
-                </View>
-              </>
-            )}
-
-            {step === 4 && (
-              <>
-                <Text style={styles.sectionTitle}>Practice Location</Text>
-                <Text style={styles.sectionDescription}>
-                  Please select your practice location. Patients will be able to find you based on this location.
-                </Text>
-                
-                <LocationSelector
-                  initialLocation={values.location}
-                  onLocationSelected={(location) => setFieldValue('location', location)}
-                  label="Practice Location"
-                  required={true}
-                  error={touched.location && errors.location ? 'Practice location is required' : undefined}
-                />
-                
-                {touched.location && errors.location && (
-                  <HelperText type="error" visible={!!errors.location}>
-                    Please select your practice location
-                  </HelperText>
-                )}
-
-                <View style={styles.buttonRow}>
-                  <Button mode="outlined" onPress={prevStep} style={styles.backButton}>
-                    Back
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={() => handleSubmit()}
-                    style={styles.nextButton}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator color="white" /> : 'Register'}
-                  </Button>
-                </View>
-              </>
-            )}
-          </View>
-        )}
-      </Formik>
-
-      <Divider style={styles.divider} />
-      <View style={styles.loginContainer}>
-        <Text>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('/auth/login')}>
-          <Text style={styles.loginText}>Log in</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+            <Divider style={styles.divider} />
+            <View style={styles.loginContainer}>
+              <ThemedText variant="secondary">Already have an account? </ThemedText>
+              <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                <ThemedText style={styles.loginText}>Log in</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ThemedView>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: Colors.light.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  formWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    minHeight: '100%',
+  },
+  formCard: {
+    width: '100%',
+    maxWidth: 500,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4, // for Android
   },
   headerContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.primary,
-    marginBottom: 5,
+    fontSize: 28,
+    marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: Colors.light.text,
   },
   progressBar: {
-    marginBottom: 20,
+    marginBottom: 24,
     height: 8,
     borderRadius: 5,
   },
@@ -610,65 +677,87 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    marginBottom: 10,
+    marginBottom: 16,
+    backgroundColor: 'transparent',
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 16,
   },
-  backButton: {
+  outlineButtonContainer: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
   },
-  nextButton: {
+  outlineButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outlineButtonText: {
+    fontWeight: '600',
+  },
+  gradientButtonContainer: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  nextButtonContainer: {
     flex: 2,
   },
-  button: {
-    padding: 5,
-    marginVertical: 10,
+  gradientButton: {
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   divider: {
-    marginVertical: 20,
+    marginVertical: 24,
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   loginText: {
-    color: Colors.light.primary,
     fontWeight: 'bold',
+    color: Colors.light.primary,
   },
   errorContainer: {
-    backgroundColor: '#FFEBEE',
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 20,
   },
   errorText: {
-    color: '#D32F2F',
     textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: Colors.light.text,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    marginBottom: 15,
-    color: Colors.light.textDim,
+    marginBottom: 12,
   },
   specializationContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   specializationChip: {
     margin: 4,
+    borderRadius: 20,
   },
   selectedChipText: {
     fontWeight: 'bold',
+  },
+  registerButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registerIcon: {
+    marginRight: 8,
   },
 });
