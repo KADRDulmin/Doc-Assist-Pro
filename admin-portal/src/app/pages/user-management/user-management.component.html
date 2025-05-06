@@ -1,0 +1,277 @@
+<div class="user-management-container">
+  <h1 class="page-title">User Management</h1>
+  
+  <mat-card class="user-management-card">
+    <mat-card-content>
+      <mat-tab-group [selectedIndex]="activeTab === 'doctors' ? 0 : activeTab === 'patients' ? 1 : 2" (selectedIndexChange)="onTabChange($event)">
+        <!-- Doctors Tab -->
+        <mat-tab label="Doctors">
+          <div class="tab-content">
+            <div class="tab-header">
+              <div class="search-actions">
+                <button mat-raised-button color="primary">
+                  <mat-icon>add</mat-icon>
+                  Add Doctor
+                </button>
+              </div>
+            </div>
+            
+            @if (isLoading.doctors) {
+              <div class="loading-indicator">
+                <p>Loading doctors...</p>
+              </div>
+            } @else if (displayDoctors.length === 0) {
+              <div class="empty-state">
+                <p>No doctors found</p>
+              </div>
+            } @else {
+              <table mat-table [dataSource]="displayDoctors" class="data-table">
+                <!-- Name Column -->
+                <ng-container matColumnDef="fullName">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let doctor">
+                    <div class="user-info">
+                      <img *ngIf="doctor.profileImage" [src]="doctor.profileImage" alt="Doctor" class="user-avatar">
+                      <mat-icon *ngIf="!doctor.profileImage">account_circle</mat-icon>
+                      <div>
+                        <div class="user-name">{{ doctor.fullName }}</div>
+                        <div class="user-email">{{ doctor.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <!-- Specialization Column -->
+                <ng-container matColumnDef="specialization">
+                  <th mat-header-cell *matHeaderCellDef>Specialization</th>
+                  <td mat-cell *matCellDef="let doctor">{{ doctor.specialization }}</td>
+                </ng-container>
+                
+                <!-- Verification Status Column -->
+                <ng-container matColumnDef="verificationStatus">
+                  <th mat-header-cell *matHeaderCellDef>Verification</th>
+                  <td mat-cell *matCellDef="let doctor">
+                    <span class="status-chip" [ngClass]="getStatusClass(doctor.verificationStatus)">
+                      {{ doctor.verificationStatus }}
+                    </span>
+                  </td>
+                </ng-container>
+                
+                <!-- Account Status Column -->
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let doctor">
+                    <span class="status-chip" [ngClass]="getStatusClass(doctor.status)">
+                      {{ doctor.status }}
+                    </span>
+                  </td>
+                </ng-container>
+                
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let doctor">
+                    <div class="action-buttons">
+                      <a mat-icon-button [routerLink]="['/user-details', doctor.id]" color="primary" 
+                         matTooltip="View details">
+                        <mat-icon>visibility</mat-icon>
+                      </a>
+                      
+                      <button mat-icon-button color="warn" *ngIf="doctor.status !== 'suspended'" 
+                              (click)="suspendUser(doctor)" matTooltip="Suspend user">
+                        <mat-icon>block</mat-icon>
+                      </button>
+                      
+                      <button mat-icon-button color="accent" *ngIf="doctor.status !== 'active'" 
+                              (click)="activateUser(doctor)" matTooltip="Activate user">
+                        <mat-icon>check_circle</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="doctorColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: doctorColumns;"></tr>
+              </table>
+              
+              <mat-paginator
+                [length]="doctorTotalItems"
+                [pageSize]="doctorPageSize"
+                [pageSizeOptions]="[5, 10, 25, 50]"
+                (page)="onDoctorPageChange($event)"
+                aria-label="Select page of doctors">
+              </mat-paginator>
+            }
+          </div>
+        </mat-tab>
+        
+        <!-- Patients Tab -->
+        <mat-tab label="Patients">
+          <div class="tab-content">
+            <div class="tab-header">
+              <div class="search-actions">
+                <button mat-raised-button color="primary">
+                  <mat-icon>add</mat-icon>
+                  Add Patient
+                </button>
+              </div>
+            </div>
+            
+            @if (isLoading.patients) {
+              <div class="loading-indicator">
+                <p>Loading patients...</p>
+              </div>
+            } @else if (displayPatients.length === 0) {
+              <div class="empty-state">
+                <p>No patients found</p>
+              </div>
+            } @else {
+              <table mat-table [dataSource]="displayPatients" class="data-table">
+                <!-- Name Column -->
+                <ng-container matColumnDef="fullName">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let patient">
+                    <div class="user-info">
+                      <img *ngIf="patient.profileImage" [src]="patient.profileImage" alt="Patient" class="user-avatar">
+                      <mat-icon *ngIf="!patient.profileImage">account_circle</mat-icon>
+                      <div>
+                        <div class="user-name">{{ patient.fullName }}</div>
+                        <div class="user-email">{{ patient.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <!-- Gender Column -->
+                <ng-container matColumnDef="gender">
+                  <th mat-header-cell *matHeaderCellDef>Gender</th>
+                  <td mat-cell *matCellDef="let patient">{{ patient.gender }}</td>
+                </ng-container>
+                
+                <!-- Status Column -->
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let patient">
+                    <span class="status-chip" [ngClass]="getStatusClass(patient.status)">
+                      {{ patient.status }}
+                    </span>
+                  </td>
+                </ng-container>
+                
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let patient">
+                    <div class="action-buttons">
+                      <a mat-icon-button [routerLink]="['/user-details', patient.id]" color="primary" 
+                         matTooltip="View details">
+                        <mat-icon>visibility</mat-icon>
+                      </a>
+                      
+                      <button mat-icon-button color="warn" *ngIf="patient.status !== 'suspended'" 
+                              (click)="suspendUser(patient)" matTooltip="Suspend user">
+                        <mat-icon>block</mat-icon>
+                      </button>
+                      
+                      <button mat-icon-button color="accent" *ngIf="patient.status !== 'active'" 
+                              (click)="activateUser(patient)" matTooltip="Activate user">
+                        <mat-icon>check_circle</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="patientColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: patientColumns;"></tr>
+              </table>
+              
+              <mat-paginator
+                [length]="patientTotalItems"
+                [pageSize]="patientPageSize"
+                [pageSizeOptions]="[5, 10, 25, 50]"
+                (page)="onPatientPageChange($event)"
+                aria-label="Select page of patients">
+              </mat-paginator>
+            }
+          </div>
+        </mat-tab>
+        
+        <!-- Admins Tab -->
+        <mat-tab label="Admins">
+          <div class="tab-content">
+            <div class="tab-header">
+              <div class="search-actions">
+                <button mat-raised-button color="primary">
+                  <mat-icon>add</mat-icon>
+                  Add Admin
+                </button>
+              </div>
+            </div>
+            
+            @if (isLoading.admins) {
+              <div class="loading-indicator">
+                <p>Loading admins...</p>
+              </div>
+            } @else if (displayAdmins.length === 0) {
+              <div class="empty-state">
+                <p>No admins found</p>
+              </div>
+            } @else {
+              <table mat-table [dataSource]="displayAdmins" class="data-table">
+                <!-- Name Column -->
+                <ng-container matColumnDef="fullName">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let admin">
+                    <div class="user-info">
+                      <img *ngIf="admin.profileImage" [src]="admin.profileImage" alt="Admin" class="user-avatar">
+                      <mat-icon *ngIf="!admin.profileImage">account_circle</mat-icon>
+                      <div>
+                        <div class="user-name">{{ admin.fullName }}</div>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <!-- Email Column -->
+                <ng-container matColumnDef="email">
+                  <th mat-header-cell *matHeaderCellDef>Email</th>
+                  <td mat-cell *matCellDef="let admin">{{ admin.email }}</td>
+                </ng-container>
+                
+                <!-- Last Login Column -->
+                <ng-container matColumnDef="lastLogin">
+                  <th mat-header-cell *matHeaderCellDef>Last Login</th>
+                  <td mat-cell *matCellDef="let admin">{{ admin.lastLogin | date:'medium' }}</td>
+                </ng-container>
+                
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let admin">
+                    <div class="action-buttons">
+                      <a mat-icon-button [routerLink]="['/user-details', admin.id]" color="primary" 
+                         matTooltip="View details">
+                        <mat-icon>visibility</mat-icon>
+                      </a>
+                    </div>
+                  </td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="adminColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: adminColumns;"></tr>
+              </table>
+              
+              <mat-paginator
+                [length]="adminTotalItems"
+                [pageSize]="adminPageSize"
+                [pageSizeOptions]="[5, 10, 25]"
+                (page)="onAdminPageChange($event)"
+                aria-label="Select page of admins">
+              </mat-paginator>
+            }
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card-content>
+  </mat-card>
+</div>

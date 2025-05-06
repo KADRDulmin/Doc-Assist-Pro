@@ -1,0 +1,271 @@
+<div class="dashboard-container">
+  <h1 class="page-title">Dashboard</h1>
+  
+  <!-- Stats Overview Section -->
+  <div class="stats-overview">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon users-icon">
+          <mat-icon>people</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>Total Users</h3>
+          <p class="stat-value">{{ userStats.totalUsers }}</p>
+          <p class="stat-detail">{{ userStats.activeUsers }} active</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon doctors-icon">
+          <mat-icon>medical_services</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>Doctors</h3>
+          <p class="stat-value">{{ doctorStats.total }}</p>
+          <p class="stat-detail">{{ doctorStats.verified }} verified</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon patients-icon">
+          <mat-icon>personal_injury</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>Patients</h3>
+          <p class="stat-value">{{ patientStats.total }}</p>
+          <p class="stat-detail">{{ patientStats.active }} active</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon verification-icon">
+          <mat-icon>verified_user</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>Pending Verifications</h3>
+          <p class="stat-value">{{ doctorStats.pending }}</p>
+          <p class="stat-detail">{{ doctorStats.rejected }} rejected</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  
+  <!-- Recent Doctors Section -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">Recent Doctors</h2>
+      <a mat-button color="primary" routerLink="/user-management/doctors">
+        View All
+        <mat-icon>chevron_right</mat-icon>
+      </a>
+    </div>
+    
+    <mat-card>
+      <mat-card-content>
+        @if (isLoading.doctors) {
+          <div class="loading-indicator">
+            <p>Loading doctors...</p>
+          </div>
+        } @else if (recentDoctors.length === 0) {
+          <div class="empty-state">
+            <p>No doctors found</p>
+          </div>
+        } @else {
+          <table mat-table [dataSource]="recentDoctors" class="data-table">
+            <!-- Name Column -->
+            <ng-container matColumnDef="fullName">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let doctor">
+                <div class="user-info">
+                  <img *ngIf="doctor.profileImage" [src]="doctor.profileImage" alt="Doctor" class="user-avatar">
+                  <mat-icon *ngIf="!doctor.profileImage">account_circle</mat-icon>
+                  <div>
+                    <div class="user-name">{{ doctor.fullName }}</div>
+                    <div class="user-email">{{ doctor.email }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+            
+            <!-- Specialization Column -->
+            <ng-container matColumnDef="specialization">
+              <th mat-header-cell *matHeaderCellDef>Specialization</th>
+              <td mat-cell *matCellDef="let doctor">{{ doctor.specialization }}</td>
+            </ng-container>
+            
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let doctor">
+                <span class="status-chip" [ngClass]="getStatusClass(doctor.verificationStatus)">
+                  {{ doctor.verificationStatus }}
+                </span>
+              </td>
+            </ng-container>
+            
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let doctor">
+                <a mat-icon-button [routerLink]="['/user-details', doctor.id]" color="primary" aria-label="View details">
+                  <mat-icon>visibility</mat-icon>
+                </a>
+              </td>
+            </ng-container>
+            
+            <tr mat-header-row *matHeaderRowDef="doctorColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: doctorColumns;"></tr>
+          </table>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+  
+  <!-- Recent Patients Section -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">Recent Patients</h2>
+      <a mat-button color="primary" routerLink="/user-management/patients">
+        View All
+        <mat-icon>chevron_right</mat-icon>
+      </a>
+    </div>
+    
+    <mat-card>
+      <mat-card-content>
+        @if (isLoading.patients) {
+          <div class="loading-indicator">
+            <p>Loading patients...</p>
+          </div>
+        } @else if (recentPatients.length === 0) {
+          <div class="empty-state">
+            <p>No patients found</p>
+          </div>
+        } @else {
+          <table mat-table [dataSource]="recentPatients" class="data-table">
+            <!-- Name Column -->
+            <ng-container matColumnDef="fullName">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let patient">
+                <div class="user-info">
+                  <img *ngIf="patient.profileImage" [src]="patient.profileImage" alt="Patient" class="user-avatar">
+                  <mat-icon *ngIf="!patient.profileImage">account_circle</mat-icon>
+                  <div>
+                    <div class="user-name">{{ patient.fullName }}</div>
+                    <div class="user-email">{{ patient.email }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+            
+            <!-- Gender Column -->
+            <ng-container matColumnDef="gender">
+              <th mat-header-cell *matHeaderCellDef>Gender</th>
+              <td mat-cell *matCellDef="let patient">{{ patient.gender }}</td>
+            </ng-container>
+            
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let patient">
+                <span class="status-chip" [ngClass]="getStatusClass(patient.status)">
+                  {{ patient.status }}
+                </span>
+              </td>
+            </ng-container>
+            
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let patient">
+                <a mat-icon-button [routerLink]="['/user-details', patient.id]" color="primary" aria-label="View details">
+                  <mat-icon>visibility</mat-icon>
+                </a>
+              </td>
+            </ng-container>
+            
+            <tr mat-header-row *matHeaderRowDef="patientColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: patientColumns;"></tr>
+          </table>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+  
+  <!-- Pending Verification Section -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="section-title">Pending Verifications</h2>
+      <a mat-button color="primary" routerLink="/doctor-verification">
+        View All
+        <mat-icon>chevron_right</mat-icon>
+      </a>
+    </div>
+    
+    <mat-card>
+      <mat-card-content>
+        @if (isLoading.verifications) {
+          <div class="loading-indicator">
+            <p>Loading verification requests...</p>
+          </div>
+        } @else if (pendingVerifications.length === 0) {
+          <div class="empty-state">
+            <p>No pending verification requests</p>
+          </div>
+        } @else {
+          <table mat-table [dataSource]="pendingVerifications" class="data-table">
+            <!-- Doctor Column -->
+            <ng-container matColumnDef="doctor">
+              <th mat-header-cell *matHeaderCellDef>Doctor</th>
+              <td mat-cell *matCellDef="let verification">
+                <div class="user-info">
+                  <img *ngIf="verification.doctor.profileImage" [src]="verification.doctor.profileImage" alt="Doctor" class="user-avatar">
+                  <mat-icon *ngIf="!verification.doctor.profileImage">account_circle</mat-icon>
+                  <div>
+                    <div class="user-name">{{ verification.doctor.fullName }}</div>
+                    <div class="user-email">{{ verification.doctor.email }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+            
+            <!-- Submitted Date Column -->
+            <ng-container matColumnDef="submittedDate">
+              <th mat-header-cell *matHeaderCellDef>Submitted</th>
+              <td mat-cell *matCellDef="let verification">{{ verification.submittedDate | date:'mediumDate' }}</td>
+            </ng-container>
+            
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let verification">
+                <span class="status-chip" [ngClass]="getStatusClass(verification.status)">
+                  {{ verification.status }}
+                </span>
+              </td>
+            </ng-container>
+            
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let verification">
+                <a mat-icon-button [routerLink]="['/doctor-verification', verification.id]" color="primary" aria-label="View verification">
+                  <mat-icon>visibility</mat-icon>
+                </a>
+              </td>
+            </ng-container>
+            
+            <tr mat-header-row *matHeaderRowDef="verificationColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: verificationColumns;"></tr>
+          </table>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

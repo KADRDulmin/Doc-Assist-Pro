@@ -1,0 +1,124 @@
+.user-management-container {
+  padding: 20px 0;
+}
+
+.page-title {
+  margin-bottom: 24px;
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.user-management-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Table styles */
+.data-table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.mat-column-actions {
+  width: 150px;
+  text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.user-email {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Status indicators */
+.status-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-active, .status-verified {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+}
+
+.status-inactive {
+  background-color: rgba(158, 158, 158, 0.15);
+  color: #616161;
+}
+
+.status-suspended, .status-rejected {
+  background-color: rgba(244, 67, 54, 0.15);
+  color: #d32f2f;
+}
+
+.status-pending {
+  background-color: rgba(255, 152, 0, 0.15);
+  color: #ef6c00;
+}
+
+/* Loading and empty states */
+.loading-indicator, .empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: #777;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .data-table {
+    overflow-x: auto;
+    display: block;
+  }
+  
+  .mat-column-specialization,
+  .mat-column-gender,
+  .mat-column-email {
+    display: none;
+  }
+}

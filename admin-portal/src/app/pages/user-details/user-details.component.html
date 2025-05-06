@@ -1,0 +1,256 @@
+<div class="user-details-container">
+  <div class="page-header">
+    <button mat-button color="primary" (click)="goBack()" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Users
+    </button>
+    <h1 class="page-title">User Details</h1>
+  </div>
+  
+  @if (isLoading) {
+    <div class="loading-container">
+      <p>Loading user details...</p>
+    </div>
+  } @else if (error) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <p class="error-message">{{ error }}</p>
+        <button mat-raised-button color="primary" (click)="goBack()">Go Back</button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <div class="user-details-content">
+      <!-- User Profile Card -->
+      <mat-card class="profile-card">
+        <mat-card-content>
+          <div class="profile-header">
+            <div class="profile-image-container">
+              <img *ngIf="user?.profileImage" [src]="user?.profileImage" alt="User profile" class="profile-image">
+              <mat-icon *ngIf="!user?.profileImage" class="profile-placeholder">account_circle</mat-icon>
+            </div>
+            
+            <div class="profile-info">
+              <h2 class="user-name">{{ user?.fullName }}</h2>
+              <p class="user-email">{{ user?.email }}</p>
+              <div class="user-tags">
+                <span class="role-tag">{{ userType | titlecase }}</span>
+                <span class="status-chip" [ngClass]="getStatusClass(user?.status || '')">
+                  {{ user?.status }}
+                </span>
+                
+                @if (userType === 'doctor') {
+                  <span class="status-chip" [ngClass]="getStatusClass(doctor?.verificationStatus || '')">
+                    {{ doctor?.verificationStatus }}
+                  </span>
+                }
+              </div>
+            </div>
+            
+            <div class="action-buttons">
+              <button mat-raised-button color="primary">
+                <mat-icon>edit</mat-icon>
+                Edit Profile
+              </button>
+              
+              @if (user?.status !== 'suspended') {
+                <button mat-raised-button color="warn" (click)="suspendUser()">
+                  <mat-icon>block</mat-icon>
+                  Suspend
+                </button>
+              } @else {
+                <button mat-raised-button color="accent" (click)="activateUser()">
+                  <mat-icon>check_circle</mat-icon>
+                  Activate
+                </button>
+              }
+            </div>
+          </div>
+          
+          <mat-divider></mat-divider>
+          
+          <!-- Basic Information -->
+          <div class="profile-section">
+            <h3 class="section-title">Basic Information</h3>
+            
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">User ID</span>
+                <span class="info-value">{{ user?.id }}</span>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Username</span>
+                <span class="info-value">{{ user?.username || 'N/A' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Account Created</span>
+                <span class="info-value">{{ formatDate(user?.createdAt) }}</span>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Last Login</span>
+                <span class="info-value">{{ formatDate(user?.lastLogin) }}</span>
+              </div>
+              
+              @if (userType === 'doctor') {
+                <div class="info-item">
+                  <span class="info-label">Doctor ID</span>
+                  <span class="info-value">{{ doctor?.doctorId }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Specialization</span>
+                  <span class="info-value">{{ doctor?.specialization }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">License Number</span>
+                  <span class="info-value">{{ doctor?.licenseNumber }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Experience</span>
+                  <span class="info-value">{{ doctor?.experience }} years</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Hospital/Clinic</span>
+                  <span class="info-value">{{ doctor?.hospital }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Consultation Fee</span>
+                  <span class="info-value">LKR {{ doctor?.consultationFee }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Ratings</span>
+                  <span class="info-value">
+                    {{ doctor?.ratings }}/5 ({{ doctor?.reviewCount }} reviews)
+                  </span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Available Days</span>
+                  <span class="info-value">{{ doctor?.availableDays?.join(', ') }}</span>
+                </div>
+              }
+              
+              @if (userType === 'patient') {
+                <div class="info-item">
+                  <span class="info-label">Patient ID</span>
+                  <span class="info-value">{{ patient?.patientId }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Gender</span>
+                  <span class="info-value">{{ patient?.gender }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Date of Birth</span>
+                  <span class="info-value">{{ formatDate(patient?.dateOfBirth) }}</span>
+                </div>
+                
+              }
+            </div>
+          </div>
+          
+          <mat-divider></mat-divider>
+          
+          <!-- Contact Information -->
+          <div class="profile-section">
+            <h3 class="section-title">Contact Information</h3>
+            
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ user?.email }}</span>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ 
+                  userType === 'doctor' ? doctor?.phone : 
+                  userType === 'patient' ? patient?.phone : 'N/A' 
+                }}</span>
+              </div>
+              
+              <div class="info-item wide">
+                <span class="info-label">Address</span>
+                <span class="info-value">{{ 
+                  userType === 'doctor' ? doctor?.address : 
+                  userType === 'patient' ? patient?.address : 'N/A' 
+                }}</span>
+              </div>
+            </div>
+          </div>
+          
+          @if (userType === 'doctor') {
+            <mat-divider></mat-divider>
+            
+            <!-- Education & Professional Information -->
+            <div class="profile-section">
+              <h3 class="section-title">Education & Professional Information</h3>
+              
+              <div class="info-list">
+                <h4 class="subsection-title">Education</h4>
+                <ul class="education-list">
+                  @for (education of doctor?.education; track education) {
+                    <li>{{ education }}</li>
+                  }
+                </ul>
+                
+                <h4 class="subsection-title">Languages</h4>
+                <div class="languages-list">
+                  @for (language of doctor?.languages; track language) {
+                    <span class="language-tag">{{ language }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+          
+          @if (userType === 'patient') {
+            <mat-divider></mat-divider>
+            
+            <!-- Medical Information -->
+            <div class="profile-section">
+              <h3 class="section-title">Medical Information</h3>
+                
+                <div class="info-item wide">
+                  <span class="info-label">Allergies</span>
+                  <span class="info-value">{{ patient?.allergies?.join(', ') || 'None' }}</span>
+                </div>
+              </div>
+
+            <mat-divider></mat-divider>
+            
+            <!-- Emergency Contact -->
+            <div class="profile-section">
+              <h3 class="section-title">Emergency Contact</h3>
+              
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Name</span>
+                  <span class="info-value">{{ patient?.emergencyContact?.name || 'N/A' }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Relationship</span>
+                  <span class="info-value">{{ patient?.emergencyContact?.relationship || 'N/A' }}</span>
+                </div>
+                
+                <div class="info-item">
+                  <span class="info-label">Phone</span>
+                  <span class="info-value">{{ patient?.emergencyContact?.phone || 'N/A' }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

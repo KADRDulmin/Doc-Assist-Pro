@@ -100,20 +100,7 @@ export default function LoginScreen() {
       <ThemedText type="title" style={styles.title}>Doc-Assist-Pro</ThemedText>
       <ThemedText style={styles.subtitle}>Patient Login</ThemedText>
 
-      {isDev && (
-        <TouchableOpacity 
-          style={styles.devBanner}
-          onPress={() => {
-            setShowTestCreds(!showTestCreds);
-            if (!showTestCreds) fillTestCredentials();
-          }}
-        >
-          <ThemedText style={styles.devText}>
-            Development Mode{showTestCreds ? ' - Test Credentials Applied' : ' (Tap for test account)'}
-          </ThemedText>
-          <ThemedText style={styles.devApiUrl}>API: {apiUrl}</ThemedText>
-        </TouchableOpacity>
-      )}
+
 
       <TextInput
         style={[styles.input, errors.email ? styles.inputError : null]}
