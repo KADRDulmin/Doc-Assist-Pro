@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, FlatList, RefreshControl, View, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator } from 'react-native';
-import { Searchbar, Divider, TouchableRipple, FAB, Badge } from 'react-native-paper';
+import { Searchbar, Divider, TouchableRipple } from 'react-native-paper';
 import { FontAwesome5, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'react-native';
@@ -896,46 +896,12 @@ export default function AppointmentsScreen() {
                     : 'No appointments found'
                 }
               </ThemedText>
-              <TouchableOpacity 
-                style={styles.newAppointmentButton}
-                onPress={() => console.log('Schedule new appointment')}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={Colors[theme].primary === Colors.light.primary 
-                    ? ['#0466C8', '#0353A4'] 
-                    : ['#58B0ED', '#0466C8']}
-                  style={styles.newAppointmentGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <FontAwesome5 name="calendar-plus" size={14} color="#FFF" />
-                  <ThemedText style={styles.actionButtonText}>Schedule New Appointment</ThemedText>
-                </LinearGradient>
-              </TouchableOpacity>
             </ThemedView>
           }
         />
       )}
       
       {dialogVisible && renderAppointmentDialog()}
-      
-      <FAB
-        style={[styles.fab]}
-        icon={() => (
-          <LinearGradient
-            colors={Colors[theme].primary === Colors.light.primary 
-              ? ['#0466C8', '#0353A4'] 
-              : ['#58B0ED', '#0466C8']}
-            style={styles.fabGradient}
-          >
-            <FontAwesome5 name="calendar-plus" size={20} color="#FFF" />
-          </LinearGradient>
-        )}
-        label="Schedule"
-        onPress={() => console.log('Schedule new appointment')}
-        color="#FFF"
-      />
     </ThemedView>
   );
 }
@@ -1174,21 +1140,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    elevation: 6,
-  },
-  fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   separator: {
     height: 16,
   },
@@ -1202,22 +1153,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
     textAlign: 'center',
-  },
-  newAppointmentButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  newAppointmentGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 24,
   },
   modalOverlay: {
     position: 'absolute',
