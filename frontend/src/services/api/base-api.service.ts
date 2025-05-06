@@ -191,7 +191,17 @@ class BaseApiService {
         if (__DEV__) {
           console.log('Non-JSON response:', text);
         }
-        responseData = { message: text };
+        
+        // For 500 Internal Server Error, provide a structured response anyway
+        if (response.status === 500) {
+          responseData = { 
+            success: false, 
+            message: 'Internal server error', 
+            error: text || 'An unexpected error occurred on the server'
+          };
+        } else {
+          responseData = { message: text };
+        }
       }
       
       // Handle unauthorized (401) and forbidden (403) responses that indicate auth issues
@@ -275,8 +285,19 @@ class BaseApiService {
         }
       }
 
+      // Enhanced error handling for non-200 responses
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || `Request failed with status ${response.status}`);
+        // For 500 errors, add more structured error data
+        if (response.status === 500) {
+          console.error('Server returned 500 Internal Server Error:', responseData.error || responseData.message);
+          
+          // Throw structured error object - this will be caught by the catch block
+          throw new Error(responseData.error || responseData.message || 'Internal server error');
+        }
+        
+        // For other errors, use the error message from the response if available
+        const errorMessage = (responseData.error || responseData.message || `Request failed with status ${response.status}`);
+        throw new Error(errorMessage);
       }
 
       return responseData;

@@ -92,6 +92,10 @@ class AppointmentService extends BaseApiService {
     return this.get('/my-appointments');
   }
 
+  async getUpcomingAppointments(): Promise<ApiResponse<AppointmentData[]>> {
+    return this.get('/my-appointments?status=upcoming');
+  }
+
   async getAppointmentById(id: number): Promise<ApiResponse<AppointmentData>> {
     return this.get(`/${id}`);
   }

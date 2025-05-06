@@ -13,24 +13,59 @@ class HealthTipController {
             const limit = parseInt(req.query.limit) || 10;
             const page = parseInt(req.query.page) || 1;
             const offset = (page - 1) * limit;
+            const sort = req.query.sort || 'created_at';
+            const order = req.query.order || 'desc';
             
-            const tips = await healthTipRepository.getAllTips({
-                category,
-                limit,
-                offset
-            });
+            // Add additional logging to debug errors
+            console.log(`Fetching health tips with params: Category=${category || 'any'}, Limit=${limit}, Page=${page}, Sort=${sort}, Order=${order}`);
             
-            res.json({
-                success: true,
-                data: tips,
-                pagination: {
-                    page,
+            try {
+                const tips = await healthTipRepository.getAllTips({
+                    category,
                     limit,
-                    totalItems: tips.length // This is approximate since we don't have a count query
-                }
-            });
+                    offset,
+                    sort,
+                    order
+                });
+                
+                res.json({
+                    success: true,
+                    data: tips,
+                    pagination: {
+                        page,
+                        limit,
+                        totalItems: tips.length
+                    }
+                });
+            } catch (repoError) {
+                console.error('Error retrieving health tips from repository:', repoError);
+                
+                // Try to use in-memory data as a fallback
+                const fallbackTips = healthTipRepository._getAllTipsInMemory({
+                    category,
+                    limit,
+                    offset
+                });
+                
+                res.json({
+                    success: true,
+                    data: fallbackTips,
+                    pagination: {
+                        page,
+                        limit,
+                        totalItems: fallbackTips.length
+                    },
+                    message: 'Using fallback health tips due to database error'
+                });
+            }
         } catch (error) {
-            next(error);
+            console.error('Unexpected error in health tips controller:', error);
+            // Avoid passing the error to next, handle it directly
+            res.status(500).json({
+                success: false,
+                error: 'Failed to retrieve health tips',
+                message: 'An internal server error occurred while retrieving health tips'
+            });
         }
     }
     

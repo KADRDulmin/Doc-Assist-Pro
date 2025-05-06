@@ -9,8 +9,10 @@ import {
   View,
   Platform,
   Dimensions,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  useColorScheme
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 
@@ -55,7 +57,25 @@ export default function PatientRegisterScreen() {
     gender: '',
     bloodGroup: ''
   });
+  
   const { isLoading, registerPatient } = useAuth();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
+  // Define theme specific colors
+  const backgroundColor = isDarkMode ? '#151718' : '#f8f8f8';
+  const cardBackground = isDarkMode ? '#1e2022' : '#fff';
+  const borderColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  const inputBackground = isDarkMode ? '#2c3e50' : '#f9f9f9';
+  const inputBorderColor = isDarkMode ? '#34495e' : '#ddd';
+  const textColor = isDarkMode ? '#f5f5f5' : '#333';
+  const placeholderColor = isDarkMode ? '#78909c' : '#999';
+  const primaryColor = isDarkMode ? '#A1CEDC' : '#0a7ea4';
+  const errorColor = '#ff3b30';
+  
+  // Define fixed gradient colors for LinearGradient
+  const headerGradientDark = ['#1D3D47', '#0f1e23'] as const;
+  const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
   useEffect(() => {
     setApiUrl(API_URL);
@@ -225,9 +245,12 @@ export default function PatientRegisterScreen() {
       <ThemedText style={styles.sectionTitle}>Account Information</ThemedText>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Email Address</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Email Address</ThemedText>
         <TextInput
-          style={[styles.input, errors.email ? styles.inputError : null]}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: errors.email ? errorColor : inputBorderColor, color: textColor},
+          ]}
           placeholder="Enter your email"
           value={email}
           onChangeText={(text) => {
@@ -236,59 +259,71 @@ export default function PatientRegisterScreen() {
           }}
           keyboardType="email-address"
           autoCapitalize="none"
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
         {errors.email ? <ThemedText style={styles.errorText}>{errors.email}</ThemedText> : null}
       </View>
 
       <View style={styles.rowContainer}>
         <View style={[styles.inputGroup, styles.halfWidth]}>
-          <ThemedText style={styles.label}>First Name</ThemedText>
+          <ThemedText style={[styles.label, {color: textColor}]}>First Name</ThemedText>
           <TextInput
-            style={[styles.input, errors.firstName ? styles.inputError : null]}
+            style={[
+              styles.input, 
+              {backgroundColor: inputBackground, borderColor: errors.firstName ? errorColor : inputBorderColor, color: textColor},
+            ]}
             placeholder="First name"
             value={firstName}
             onChangeText={(text) => {
               setFirstName(text);
               if (errors.firstName) setErrors({...errors, firstName: ''});
             }}
-            placeholderTextColor="#999"
+            placeholderTextColor={placeholderColor}
           />
           {errors.firstName ? <ThemedText style={styles.errorText}>{errors.firstName}</ThemedText> : null}
         </View>
 
         <View style={[styles.inputGroup, styles.halfWidth]}>
-          <ThemedText style={styles.label}>Last Name</ThemedText>
+          <ThemedText style={[styles.label, {color: textColor}]}>Last Name</ThemedText>
           <TextInput
-            style={[styles.input, errors.lastName ? styles.inputError : null]}
+            style={[
+              styles.input, 
+              {backgroundColor: inputBackground, borderColor: errors.lastName ? errorColor : inputBorderColor, color: textColor},
+            ]}
             placeholder="Last name"
             value={lastName}
             onChangeText={(text) => {
               setLastName(text);
               if (errors.lastName) setErrors({...errors, lastName: ''});
             }}
-            placeholderTextColor="#999"
+            placeholderTextColor={placeholderColor}
           />
           {errors.lastName ? <ThemedText style={styles.errorText}>{errors.lastName}</ThemedText> : null}
         </View>
       </View>
 
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Phone Number (optional)</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Phone Number (optional)</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: inputBorderColor, color: textColor},
+          ]}
           placeholder="Enter your phone number"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Password</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Password</ThemedText>
         <TextInput
-          style={[styles.input, errors.password ? styles.inputError : null]}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: errors.password ? errorColor : inputBorderColor, color: textColor},
+          ]}
           placeholder="Create a password (minimum 6 characters)"
           value={password}
           onChangeText={(text) => {
@@ -296,15 +331,18 @@ export default function PatientRegisterScreen() {
             if (errors.password) setErrors({...errors, password: ''});
           }}
           secureTextEntry
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
         {errors.password ? <ThemedText style={styles.errorText}>{errors.password}</ThemedText> : null}
       </View>
 
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Confirm Password</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Confirm Password</ThemedText>
         <TextInput
-          style={[styles.input, errors.confirmPassword ? styles.inputError : null]}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: errors.confirmPassword ? errorColor : inputBorderColor, color: textColor},
+          ]}
           placeholder="Re-enter your password"
           value={confirmPassword}
           onChangeText={(text) => {
@@ -312,13 +350,13 @@ export default function PatientRegisterScreen() {
             if (errors.confirmPassword) setErrors({...errors, confirmPassword: ''});
           }}
           secureTextEntry
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
         {errors.confirmPassword ? <ThemedText style={styles.errorText}>{errors.confirmPassword}</ThemedText> : null}
       </View>
 
       <TouchableOpacity
-        style={styles.buttonPrimary}
+        style={[styles.buttonPrimary, {backgroundColor: primaryColor}]}
         onPress={handleContinue}
       >
         <ThemedText style={styles.buttonText}>Continue</ThemedText>
@@ -340,21 +378,29 @@ export default function PatientRegisterScreen() {
           }}
           maximumDate={new Date()}
           hasError={!!errors.dateOfBirth}
+          isDarkMode={isDarkMode}
         />
         {errors.dateOfBirth ? <ThemedText style={styles.errorText}>{errors.dateOfBirth}</ThemedText> : null}
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Gender</ThemedText>
-        <View style={[styles.pickerContainer, errors.gender ? styles.inputError : null]}>
+        <ThemedText style={[styles.label, {color: textColor}]}>Gender</ThemedText>
+        <View style={[
+          styles.pickerContainer, 
+          {
+            borderColor: errors.gender ? errorColor : inputBorderColor,
+            backgroundColor: inputBackground
+          }
+        ]}>
           <Picker
             selectedValue={gender}
             onValueChange={(value) => setGender(value)}
             style={styles.picker}
+            dropdownIconColor={isDarkMode ? primaryColor : undefined}
           >
-            <Picker.Item label="Select Gender" value="" color="#999" />
+            <Picker.Item label="Select Gender" value="" color={placeholderColor} />
             {GENDERS.map((item) => (
-              <Picker.Item key={item} label={item} value={item} />
+              <Picker.Item key={item} label={item} value={item} color={textColor} />
             ))}
           </Picker>
         </View>
@@ -362,16 +408,23 @@ export default function PatientRegisterScreen() {
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Blood Group (optional)</ThemedText>
-        <View style={[styles.pickerContainer, errors.bloodGroup ? styles.inputError : null]}>
+        <ThemedText style={[styles.label, {color: textColor}]}>Blood Group (optional)</ThemedText>
+        <View style={[
+          styles.pickerContainer, 
+          {
+            borderColor: errors.bloodGroup ? errorColor : inputBorderColor,
+            backgroundColor: inputBackground
+          }
+        ]}>
           <Picker
             selectedValue={bloodGroup}
             onValueChange={(value) => setBloodGroup(value)}
             style={styles.picker}
+            dropdownIconColor={isDarkMode ? primaryColor : undefined}
           >
-            <Picker.Item label="Select Blood Group" value="" color="#999" />
+            <Picker.Item label="Select Blood Group" value="" color={placeholderColor} />
             {BLOOD_GROUPS.map((item) => (
-              <Picker.Item key={item} label={item} value={item} />
+              <Picker.Item key={item} label={item} value={item} color={textColor} />
             ))}
           </Picker>
         </View>
@@ -379,63 +432,84 @@ export default function PatientRegisterScreen() {
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Allergies (optional)</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Allergies (optional)</ThemedText>
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[
+            styles.input, 
+            styles.textArea,
+            {backgroundColor: inputBackground, borderColor: inputBorderColor, color: textColor},
+          ]}
           placeholder="Enter any allergies you may have"
           value={allergies}
           onChangeText={setAllergies}
           multiline
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Medical History (optional)</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Medical History (optional)</ThemedText>
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[
+            styles.input, 
+            styles.textArea,
+            {backgroundColor: inputBackground, borderColor: inputBorderColor, color: textColor},
+          ]}
           placeholder="Enter relevant medical history"
           value={medicalHistory}
           onChangeText={setMedicalHistory}
           multiline
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
       </View>
       
-      <View style={styles.divider}>
-        <ThemedText style={styles.dividerText}>Emergency Contact</ThemedText>
+      <View style={[styles.divider, {borderTopColor: borderColor}]}>
+        <ThemedText style={[styles.dividerText, {color: textColor}]}>Emergency Contact</ThemedText>
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Emergency Contact Name (optional)</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Emergency Contact Name (optional)</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: inputBorderColor, color: textColor},
+          ]}
           placeholder="Name of emergency contact"
           value={emergencyContactName}
           onChangeText={setEmergencyContactName}
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
       </View>
       
       <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Emergency Contact Phone (optional)</ThemedText>
+        <ThemedText style={[styles.label, {color: textColor}]}>Emergency Contact Phone (optional)</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input, 
+            {backgroundColor: inputBackground, borderColor: inputBorderColor, color: textColor},
+          ]}
           placeholder="Phone number of emergency contact"
           value={emergencyContactPhone}
           onChangeText={setEmergencyContactPhone}
           keyboardType="phone-pad"
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
         />
       </View>
 
       <View style={styles.buttonGroup}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ThemedText style={styles.backButtonText}>Back</ThemedText>
+        <TouchableOpacity 
+          style={[styles.backButton, {borderColor: primaryColor}]} 
+          onPress={handleBack}
+        >
+          <ThemedText style={[styles.backButtonText, {color: primaryColor}]}>Back</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.buttonPrimary, styles.registerButton, serverStatus === 'offline' && styles.disabledButton]}
+          style={[
+            styles.buttonPrimary, 
+            styles.registerButton, 
+            {backgroundColor: serverStatus === 'offline' ? '#cccccc' : primaryColor}
+          ]}
           onPress={handleRegister}
           disabled={isLoading || serverStatus === 'offline'}
         >
@@ -451,11 +525,11 @@ export default function PatientRegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
-      <ThemedView style={styles.container}>
+      <ThemedView style={[styles.container, {backgroundColor}]}>
         {serverStatus === 'offline' && (
           <ThemedView style={styles.offlineBar}>
             <ThemedText style={styles.offlineText}>
@@ -464,25 +538,28 @@ export default function PatientRegisterScreen() {
           </ThemedView>
         )}
 
-        <View style={styles.headerContainer}>
-          <ThemedText type="title" style={styles.title}>Doc-Assist-Pro</ThemedText>
-          <ThemedText style={styles.subtitle}>Patient Registration</ThemedText>
-        </View>
+        <LinearGradient
+          colors={isDarkMode ? headerGradientDark : headerGradientLight}
+          style={styles.headerContainer}
+        >
+          <ThemedText type="title" style={[styles.title, {color: '#fff'}]}>Doc-Assist-Pro</ThemedText>
+          <ThemedText style={[styles.subtitle, {color: isDarkMode ? '#e0e0e0' : '#fff'}]}>Patient Registration</ThemedText>
+        </LinearGradient>
 
         <ScrollView 
           style={styles.scrollView} 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
+          <ThemedView style={[styles.card, {backgroundColor: cardBackground, borderColor: borderColor}]}>
             {currentSection === 'basic' ? renderBasicInfoSection() : renderMedicalInfoSection()}
-          </View>
+          </ThemedView>
 
           <TouchableOpacity
             onPress={() => router.push('/(auth)/login')}
             style={styles.linkContainer}
           >
-            <ThemedText style={styles.link}>Already have an account? Login</ThemedText>
+            <ThemedText style={[styles.link, {color: primaryColor}]}>Already have an account? Login</ThemedText>
           </TouchableOpacity>
         </ScrollView>
       </ThemedView>
@@ -497,7 +574,6 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingTop: 60,
     paddingBottom: 5,
-    backgroundColor: '#151517',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#0a0a0a',
@@ -514,16 +590,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
     textAlign: 'center',
-    color: '#0a7ea4',
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 10,
     textAlign: 'center',
-    color: '#555',
   },
   card: {
-    backgroundColor: '#151517',
     borderRadius: 12,
     padding: 5,
     shadowColor: '#000',
@@ -541,7 +614,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#ffffff',
   },
   inputGroup: {
     marginBottom: 16,
@@ -557,17 +629,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 5,
     marginLeft: 2,
-    color: '#f5f5f5',
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    color: '#333',
   },
   textArea: {
     height: 90,
@@ -580,7 +648,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonPrimary: {
-    backgroundColor: '#0a7ea4',
     height: 50,
     borderRadius: 8,
     justifyContent: 'center',
@@ -594,7 +661,6 @@ const styles = StyleSheet.create({
   backButton: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#0a7ea4',
     borderRadius: 8,
     flex: 0.3,
     justifyContent: 'center',
@@ -603,7 +669,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   backButtonText: {
-    color: '#0a7ea4',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -618,7 +683,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   link: {
-    color: '#0a7ea4',
     fontSize: 15,
   },
   offlineBar: {
@@ -632,13 +696,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
   },
-  disabledButton: {
-    backgroundColor: '#cccccc',
-  },
-  inputError: {
-    borderColor: '#ff3b30',
-    borderWidth: 1,
-  },
   errorText: {
     color: '#ff3b30',
     fontSize: 13,
@@ -647,10 +704,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    color: '#7a7979',
     overflow: 'hidden',
   },
   picker: {
@@ -661,9 +715,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 15,
+    borderTopWidth: 1,
   },
   dividerText: {
-    color: '#ffffff',
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 10,

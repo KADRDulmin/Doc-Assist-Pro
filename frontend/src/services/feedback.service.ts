@@ -9,18 +9,6 @@ export interface FeedbackData {
   comment?: string;
   created_at?: string;
   updated_at?: string;
-  doctor?: {
-    id: number;
-    user: {
-      first_name: string;
-      last_name: string;
-    };
-    specialization?: string;
-  };
-  appointment?: {
-    appointment_date: string;
-    appointment_time: string;
-  };
 }
 
 interface ApiResponse<T> {
@@ -51,14 +39,6 @@ class FeedbackService {
    */
   async getDoctorFeedback(doctorId: number): Promise<ApiResponse<FeedbackData[]>> {
     const response = await api.get(`/api/feedback/doctor/${doctorId}`);
-    return response as ApiResponse<FeedbackData[]>;
-  }
-
-  /**
-   * Get all feedback submitted by the current user (patient)
-   */
-  async getMyFeedback(): Promise<ApiResponse<FeedbackData[]>> {
-    const response = await api.get('/api/feedback/my-feedback');
     return response as ApiResponse<FeedbackData[]>;
   }
 

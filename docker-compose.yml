@@ -118,6 +118,46 @@ services:
     networks:
       - doc-assist-network
 
+  doctor_portal:
+    build: 
+      context: ./DAP_Doctor_Portal
+      dockerfile: Dockerfile
+    ports:
+      - "19010:19006"  # Web (different port to avoid conflicts with patient frontend)
+      - "19011:19000"  # Metro bundler
+      - "19012:8081"   # Metro bundler alternative port
+      - "19013:19001"  # Dev tools
+      - "19014:19002"  # Dev menu
+    environment:
+      NODE_ENV: development
+      CI: "false"
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: "0.0.0.0"
+      REACT_NATIVE_PACKAGER_HOSTNAME: "0.0.0.0"
+      EXPO_PUBLIC_API_URL: "http://localhost:3000"
+      # For QR code access via mobile devices
+      EXPO_PUBLIC_WEBAPP_URL: "http://localhost:19010"
+      # LAN access 
+      EXPO_PUBLIC_LOCAL_URL: "http://192.168.1.4:19011"
+      # Additional environment variables for better connectivity
+      EXPO_NO_DOCTOR: 1
+      EXPO_DEBUG: 1
+    volumes:
+      - ./DAP_Doctor_Portal:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["npm", "start", "--", "--web", "--port", "19006", "--host", "0.0.0.0"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19006"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - doc-assist-network
+
 volumes:
   pg_data:
   pgadmin_data:
