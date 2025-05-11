@@ -151,7 +151,7 @@ Access Doc-Assist-Pro on your mobile device with these simple steps:
 ### Using Expo Go App
 
 <div align="center">
-  <img src="expo-screenshoot.png" alt="Expo QR Code" />
+<img src="expo-screenshoot.png" alt="Expo QR Code" width="50%" style="max-width: 300px;" />
 </div>
 
 1. **Install Expo Go** on your [iOS](https://apps.apple.com/app/expo-go/id982107779) or [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) device
