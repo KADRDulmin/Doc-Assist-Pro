@@ -12,7 +12,7 @@
 [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
 <p align="center">
-  <img src="/Project_poster.png" alt="Doc-Assist-Pro Banner" />
+  <img src="Project_poster.png" alt="Doc-Assist-Pro Banner" />
 </p>
 
 > Streamlining healthcare management with cutting-edge technology
@@ -151,7 +151,7 @@ Access Doc-Assist-Pro on your mobile device with these simple steps:
 ### Using Expo Go App
 
 <div align="center">
-  <img src="https://via.placeholder.com/250x250?text=Expo+QR" alt="Expo QR Code" />
+  <img src="expo-screenshoot.png" alt="Expo QR Code" />
 </div>
 
 1. **Install Expo Go** on your [iOS](https://apps.apple.com/app/expo-go/id982107779) or [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) device
@@ -209,9 +209,7 @@ Default test account: `test@example.com` / `test123`
 
 ### Accessing with pgAdmin
 
-<div align="center">
-  <img src="https://via.placeholder.com/600x300?text=pgAdmin+Interface" alt="pgAdmin Interface" />
-</div>
+
 
 1. **Access pgAdmin** at [http://localhost:5050](http://localhost:5050)
 
