@@ -1,6 +1,6 @@
 <div align="center">
   
-# 🏥 Doc-Assist-Pro
+# <img src="./admin-portal/public/logo.png" alt="Logo" width="50%" style="max-width: 30px;" /> Doc-Assist <span style="color: #18B3FE;">Pro</span>
 
 ### Your Modern Healthcare Assistant Solution
 
