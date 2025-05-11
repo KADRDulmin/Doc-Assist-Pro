@@ -108,8 +108,8 @@ Doc-Assist-Pro is a comprehensive healthcare solution with the following main co
 
 Mobile application for patients to:
 - Schedule appointments
+- AI assisted doctor recommendation
 - View medical records
-- Communicate with healthcare providers
 - Receive health tips and reminders
 
 ### 👨‍⚕️ Doctor Mobile App (DAP_Doctor_Portal)
@@ -117,15 +117,15 @@ Mobile application for patients to:
 Specialized interface for doctors to:
 - Manage patient appointments
 - Review and update medical records
-- Conduct virtual consultations
-- Issue prescriptions
+- Consultation screen
+- Record prescriptions
 
 ### 🔧 Admin Portal
 
 Web-based administrative dashboard for:
 - User management
+- Doctor verification
 - System configuration
-- Analytics and reporting
 - Content management
 
 ### ⚙️ Backend API
@@ -182,7 +182,7 @@ npm install
 cp .env.example .env
 
 # Start Expo development server
-npm start
+npm run device
 ```
 
 ### Doctor Portal (React Native)
@@ -198,7 +198,7 @@ npm install
 cp .env.example .env
 
 # Start Expo development server
-npm start
+npm run device
 ```
 
 ### Admin Portal (Angular)
@@ -211,7 +211,7 @@ cd admin-portal
 npm install
 
 # Start Angular development server
-npm start
+ng serve
 ```
 
 ### Environment Configuration
@@ -323,30 +323,17 @@ For quick testing without building:
    ```bash
    # For Patient App
    cd frontend
-   npm run start:device
+   npm run device
    
    # For Doctor Portal
    cd DAP_Doctor_Portal
-   npm run start:device
+   npm run device
    ```
 
 5. **Connect using one of these methods**:
    - Scan the QR code from terminal with your device camera
    - Open Expo Go and enter: `exp://<YOUR_IP_ADDRESS>:19000` (for Patient App) or `exp://<YOUR_IP_ADDRESS>:19011` (for Doctor Portal)
 
-### Testing Both Apps Simultaneously
-
-To test both applications on separate devices:
-
-```bash
-# Start Patient App on port 19000
-cd frontend
-npm run start:device
-
-# Start Doctor Portal on port 19011 (in a new terminal)
-cd DAP_Doctor_Portal
-npm run start:device -- --port 19011
-```
 
 For the best experience testing both applications together, use:
 - Docker for backend services
@@ -368,7 +355,7 @@ cd admin-portal
 npm install
 
 # Start development server
-npm start
+ng serve
 ```
 
 The admin portal will be available at [http://localhost:4200](http://localhost:4200).
