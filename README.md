@@ -12,7 +12,7 @@
 [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
 <p align="center">
-  <img src="https://via.placeholder.com/800x400?text=Doc-Assist-Pro" alt="Doc-Assist-Pro Banner" />
+  <img src="/Project_poster.png" alt="Doc-Assist-Pro Banner" />
 </p>
 
 > Streamlining healthcare management with cutting-edge technology
