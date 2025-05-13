@@ -13,6 +13,7 @@ export interface AppointmentData {
   location?: string;
   created_at: string;
   updated_at: string;
+  parent_appointment_id?: number;
   doctor?: {
     id: number;
     specialization: string;

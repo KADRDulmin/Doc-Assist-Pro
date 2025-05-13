@@ -3,18 +3,19 @@ const appointmentRepository = require('../repositories/appointmentRepository');
 const doctorRepository = require('../repositories/doctorRepository');
 const { ValidationError } = require('../utils/errors');
 
-// Hardcoded API key - In production, use environment variables instead
-const GEMINI_API_KEY = 'AIzaSyCEibIAu1vBrMGXLlo4l-b-ylWSoTyI2E8';
+// Get Gemini API key from environment variables
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL;
 
 /**
  * Service for handling symptom analysis using Gemini API
  */
 class SymptomAnalysisService {
     constructor() {
-        // Use the hardcoded API key instead of environment variable
+        // Use environment variable for API key
         this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Use the latest model version
-        this.modelName = 'gemini-1.5-flash-latest';
+        // Use environment variable for model name
+        this.modelName = GEMINI_MODEL;
     }
 
     /**
@@ -195,8 +196,8 @@ class SymptomAnalysisService {
                 Use EXACTLY these field names in your JSON:
                 1. "possible_illness_1" (String): First most likely potential illness
                 2. "possible_illness_2" (String): Second most likely potential illness  
-                3. "recommended_doctor_speciality_1" (String): First recommended doctor specialty to consult
-                4. "recommended_doctor_speciality_2" (String): Second recommended doctor specialty to consult
+                3. "recommended_doctor_speciality_1" (String): First recommended doctor specialty ONLY from this list: Cardiology, Dermatology, Endocrinology, Gastroenterology, Neurology, Oncology, Pediatrics, Psychiatry, Radiology, Surgery, Urology, General Medicine, Orthopedics, Gynecology, Ophthalmology, ENT, Dental
+                4. "recommended_doctor_speciality_2" (String): Second recommended doctor specialty ONLY from the same list
                 5. "criticality" (String): One of: "Low", "Medium", "High", "Emergency"
                 6. "assessment" (String): Brief assessment (1-2 paragraphs)
                 7. "follow_up_questions" (Array of strings): 3-5 follow-up questions to ask the patient

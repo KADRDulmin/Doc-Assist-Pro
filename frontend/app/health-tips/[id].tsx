@@ -101,6 +101,7 @@ export default function HealthTipDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 50,
     backgroundColor: 'transparent',
   },
   scrollView: {

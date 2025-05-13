@@ -1,9 +1,12 @@
 import BaseApiService, { API_URL, HttpMethod } from "./api/base-api.service";
+import Constants from 'expo-constants';
 
-// Gemini API key - IMPORTANT: Avoid hardcoding keys directly in source code for production. Consider environment variables.
-const GEMINI_API_KEY = 'AIzaSyCEibIAu1vBrMGXLlo4l-b-ylWSoTyI2E8'; 
-// Use a valid and recent model, like gemini-1.5-flash
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+// Get Gemini API key and model from environment variables
+const GEMINI_API_KEY = Constants.expoConfig?.extra?.EXPO_PUBLIC_GEMINI_API_KEY || '';
+const GEMINI_MODEL = Constants.expoConfig?.extra?.EXPO_PUBLIC_GEMINI_MODEL || 'gemini-1.5-flash-latest';
+
+// Construct the Gemini API URL with the key and model
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 export interface HealthTipRecommendation {
   id: string;

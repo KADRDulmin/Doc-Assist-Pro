@@ -66,10 +66,11 @@ export default {
   ],
   experiments: {
     typedRoutes: true
-  },
-  extra: {
+  },  extra: {
     apiUrl: getApiUrl(),
     isProduction: process.env.NODE_ENV === 'production',
+    EXPO_PUBLIC_GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY,
+    EXPO_PUBLIC_GEMINI_MODEL: process.env.EXPO_PUBLIC_GEMINI_MODEL,
     eas: {
       projectId: "your-project-id"
     }

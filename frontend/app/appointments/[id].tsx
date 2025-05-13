@@ -308,6 +308,34 @@ export default function AppointmentDetailsScreen() {
             )}
           </ThemedView>
 
+          {/* Add Parent Appointment Info for follow-up appointments */}
+          {appointment.parent_appointment_id && appointment.appointment_type === 'follow-up' && (
+            <ThemedView style={[
+              styles.detailsCard,
+              {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+            ]}>
+              <ThemedText style={styles.sectionTitle}>Follow-up Information</ThemedText>
+              
+              <View style={styles.detailRow}>
+                <View style={styles.detailIconContainer}>
+                  <Ionicons name="git-branch" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                </View>
+                <View>
+                  <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Previous Appointment</ThemedText>
+                  <TouchableOpacity 
+                    onPress={() => router.push(`/appointments/${appointment.parent_appointment_id}`)}
+                    style={styles.linkButton}
+                  >
+                    <ThemedText style={[styles.detailValue, styles.linkText]}>
+                      View Original Appointment
+                    </ThemedText>
+                    <Ionicons name="open-outline" size={16} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ThemedView>
+          )}
+
           {/* Notes Section */}
           {appointment.notes && (
             <ThemedView style={[
