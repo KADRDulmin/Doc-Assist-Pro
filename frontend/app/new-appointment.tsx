@@ -30,8 +30,7 @@ export default function NewAppointmentScreen() {
   const isDarkMode = colorScheme === 'dark';
   const router = useRouter();
   const params = useLocalSearchParams();
-  
-  // Get pre-filled data from params if coming from symptom analysis
+    // Get pre-filled data from params if coming from symptom analysis
   const doctorIdFromParams = params.doctorId ? String(params.doctorId) : undefined;
   const symptomsFromParams = params.symptoms ? String(params.symptoms) : '';
   const possibleIllness1FromParams = params.possibleIllness1 ? String(params.possibleIllness1) : '';
@@ -40,20 +39,42 @@ export default function NewAppointmentScreen() {
   const recommendedSpecialty2FromParams = params.recommendedSpecialty2 ? String(params.recommendedSpecialty2) : '';
   const criticalityFromParams = params.criticality ? String(params.criticality) : '';
   const explanationFromParams = params.explanation ? String(params.explanation) : '';
+  const forceEmergencyAppointmentFromParams = params.forceEmergencyAppointment === 'true';
+    // Check for emergency cases - redirect to the emergency screen
+  useEffect(() => {
+    if (criticalityFromParams === 'Emergency') {
+      // Use setTimeout to ensure this happens after initial render
+      setTimeout(() => {
+        router.replace({
+          pathname: '/medical-emergency',
+          params: {
+            symptoms: symptomsFromParams,
+            possibleIllness1: possibleIllness1FromParams,
+            possibleIllness2: possibleIllness2FromParams,
+            recommendedSpecialty1: recommendedSpecialty1FromParams,
+            recommendedSpecialty2: recommendedSpecialty2FromParams,
+            criticality: criticalityFromParams,
+            explanation: explanationFromParams
+          }
+        });
+      }, 100);
+    }
+  }, [criticalityFromParams]);
   
   // State variables
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [doctors, setDoctors] = useState<DoctorData[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState(doctorIdFromParams || '');
-  const [appointmentTypes, setAppointmentTypes] = useState<string[]>([
+  const [selectedDoctor, setSelectedDoctor] = useState(doctorIdFromParams || '');  const [appointmentTypes, setAppointmentTypes] = useState<string[]>([
     'General Consultation',
     'Follow-up',
     'Check-up',
     'Emergency'
   ]);
   
-  const [appointmentType, setAppointmentType] = useState('General Consultation');
+  const [appointmentType, setAppointmentType] = useState(
+    forceEmergencyAppointmentFromParams ? 'Emergency' : 'General Consultation'
+  );
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);

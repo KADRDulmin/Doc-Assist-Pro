@@ -54,11 +54,27 @@ export default function SymptomAnalysisScreen() {
     try {
       // Call the symptom analysis service
       const result = await symptomAnalysisService.analyzeSymptoms(symptoms.trim());
-      
-      if (result.success && result.data) {
+        if (result.success && result.data) {
         setAnalysisResult(result.data);
         
-        // Move to results step
+        // If criticality is Emergency, redirect to medical emergency screen
+        if (result.data.criticality === 'Emergency') {
+          router.push({
+            pathname: '/medical-emergency',
+            params: {
+              symptoms,
+              possibleIllness1: result.data.possibleIllness1,
+              possibleIllness2: result.data.possibleIllness2,
+              recommendedSpecialty1: result.data.recommendedDoctorSpeciality1,
+              recommendedSpecialty2: result.data.recommendedDoctorSpeciality2,
+              criticality: result.data.criticality,
+              explanation: result.data.explanation
+            }
+          });
+          return;
+        }
+        
+        // For non-emergency cases, move to results step
         setStep('results');
         
         // Find matching doctors based on specialties
@@ -130,13 +146,29 @@ export default function SymptomAnalysisScreen() {
       default: return { bg: '#9E9E9E', text: '#fff' };
     }
   };
-
   // Handle selecting a doctor and creating an appointment
   const handleSelectDoctor = async (doctorId: number) => {
     if (!analysisResult || !symptoms) return;
 
     try {
-      // Navigate to the appointment booking page with pre-filled information
+      // If criticality is Emergency, redirect to medical emergency screen
+      if (analysisResult.criticality === 'Emergency') {
+        router.push({
+          pathname: '/medical-emergency',
+          params: {
+            symptoms,
+            possibleIllness1: analysisResult.possibleIllness1,
+            possibleIllness2: analysisResult.possibleIllness2,
+            recommendedSpecialty1: analysisResult.recommendedDoctorSpeciality1,
+            recommendedSpecialty2: analysisResult.recommendedDoctorSpeciality2,
+            criticality: analysisResult.criticality,
+            explanation: analysisResult.explanation
+          }
+        });
+        return;
+      }
+      
+      // For non-emergency cases, navigate to the appointment booking page
       router.push({
         pathname: '/new-appointment',
         params: {
@@ -231,14 +263,34 @@ export default function SymptomAnalysisScreen() {
                 {analysisResult.criticality} Severity
               </ThemedText>
             </View>
-          </View>
-
-          {analysisResult.criticality === 'Emergency' && (
+          </View>          {analysisResult.criticality === 'Emergency' && (
             <View style={styles.emergencyAlert}>
-              <Ionicons name="alert-circle" size={24} color="#fff" />
-              <ThemedText style={styles.emergencyText}>
-                Seek immediate medical attention!
-              </ThemedText>
+              <View style={styles.emergencyAlertRow}>
+                <Ionicons name="alert-circle" size={24} color="#fff" />
+                <View style={styles.emergencyAlertContent}>
+                  <ThemedText style={styles.emergencyText}>
+                    This appears to be a medical emergency! Immediate medical attention is recommended.
+                  </ThemedText>
+                  <TouchableOpacity
+                    style={styles.emergencyAlertButton}
+                    onPress={() => router.push({
+                      pathname: '/medical-emergency',
+                      params: {
+                        symptoms,
+                        possibleIllness1: analysisResult.possibleIllness1,
+                        possibleIllness2: analysisResult.possibleIllness2,
+                        recommendedSpecialty1: analysisResult.recommendedDoctorSpeciality1,
+                        recommendedSpecialty2: analysisResult.recommendedDoctorSpeciality2,
+                        criticality: analysisResult.criticality,
+                        explanation: analysisResult.explanation
+                      }
+                    })}
+                  >
+                    <Ionicons name="call" size={14} color="#fff" style={{marginRight: 4}} />
+                    <Text style={styles.emergencyAlertButtonText}>Emergency Services</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           )}
           
@@ -508,21 +560,42 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  emergencyAlert: {
+  },  emergencyAlert: {
     backgroundColor: '#B71C1C',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
+    padding: 15,
     borderRadius: 8,
     marginBottom: 20,
+  },
+  emergencyAlertRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  emergencyAlertContent: {
+    flex: 1,
+    marginLeft: 8,
   },
   emergencyText: {
     color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 8,
     fontSize: 16,
+    marginBottom: 8,
+  },
+  emergencyAlertButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emergencyAlertButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
   resultSection: {
     marginBottom: 20,
