@@ -9,6 +9,14 @@ export interface FeedbackData {
   comment?: string;
   created_at?: string;
   updated_at?: string;
+  doctor?: any; // Adding doctor field to match the data structure in the response
+}
+
+export interface NewFeedback {
+  doctor_id: number;
+  appointment_id?: number;
+  rating: number;
+  comment?: string;
 }
 
 interface ApiResponse<T> {
@@ -17,13 +25,20 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-class FeedbackService {
-  /**
+class FeedbackService {  /**
    * Submit feedback for an appointment
    */
-  async submitFeedback(feedbackData: FeedbackData): Promise<ApiResponse<FeedbackData>> {
+  async submitFeedback(feedbackData: NewFeedback): Promise<ApiResponse<FeedbackData>> {
     const response = await api.post('/api/feedback', feedbackData);
     return response as ApiResponse<FeedbackData>;
+  }
+
+  /**
+   * Get all feedback submitted by the current user
+   */
+  async getMyFeedback(): Promise<ApiResponse<FeedbackData[]>> {
+    const response = await api.get('/api/feedback/my-feedback');
+    return response as ApiResponse<FeedbackData[]>;
   }
 
   /**

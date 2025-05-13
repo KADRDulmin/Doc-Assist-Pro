@@ -87,13 +87,16 @@ class AppointmentService extends BaseApiService {
   constructor() {
     super('/api/appointments');
   }
-
   async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
     return this.get('/my-appointments');
   }
 
   async getUpcomingAppointments(): Promise<ApiResponse<AppointmentData[]>> {
     return this.get('/my-appointments?status=upcoming');
+  }
+
+  async getCompletedAppointments(): Promise<ApiResponse<AppointmentData[]>> {
+    return this.get('/my-appointments?status=completed');
   }
 
   async getAppointmentById(id: number): Promise<ApiResponse<AppointmentData>> {

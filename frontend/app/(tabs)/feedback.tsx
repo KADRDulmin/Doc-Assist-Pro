@@ -19,6 +19,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import feedbackService, { FeedbackData, NewFeedback } from '@/src/services/feedback.service';
+import appointmentService from '@/src/services/appointment.service';
 import { useAuth } from '@/src/hooks/useAuth';
 
 const windowWidth = Dimensions.get('window').width;
@@ -66,7 +67,6 @@ export default function FeedbackScreen() {
       loadFeedbackData();
     }
   }, [isAuthenticated]);
-
   // Function to load feedback data from API
   const loadFeedbackData = async () => {
     setIsLoading(true);
@@ -98,14 +98,39 @@ export default function FeedbackScreen() {
         }));
         
         setSubmittedFeedbacks(submittedData);
+      }
+      
+      // Get completed appointments to find ones that need feedback
+      // In a real app, we should have an endpoint to get appointments without feedback
+      // For now we're getting all completed appointments and filtering on the client side
+      const completedAppointmentsResponse = await appointmentService.getCompletedAppointments();
+      
+      if (completedAppointmentsResponse.success && completedAppointmentsResponse.data) {
+        // Get IDs of appointments that already have feedback
+        const feedbackAppointmentIds = myFeedbackResponse.success && myFeedbackResponse.data ? 
+          myFeedbackResponse.data.map(feedback => feedback.appointment_id) : [];
         
-        // For now, we'll use a simplified approach for pending feedbacks
-        // In a real app, you might want to fetch completed appointments that don't have feedback yet
-        // This is a placeholder and should be replaced with proper API endpoint when available
-        // For example: const pendingResponse = await appointmentService.getCompletedAppointmentsWithoutFeedback();
+        // Filter appointments that don't have feedback yet
+        const appointmentsNeedingFeedback = completedAppointmentsResponse.data.filter(appointment => 
+          !feedbackAppointmentIds.includes(appointment.id)
+        );
         
-        // For now we'll keep the mock data for pending feedbacks
-        // but in a production app, this should come from the API
+        // Transform to match our UI structure
+        const pendingData = appointmentsNeedingFeedback.map(appointment => ({
+          id: appointment.id,
+          doctorId: appointment.doctor_id,
+          doctorName: appointment.doctor?.user.first_name + ' ' + appointment.doctor?.user.last_name,
+          specialty: appointment.doctor?.specialization || 'Doctor',
+          appointmentDate: new Date(appointment.appointment_date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          appointmentType: appointment.appointment_type,
+          imageUrl: appointment.doctor?.profile_image_url,
+        }));
+        
+        setPendingFeedbacks(pendingData);
       }
     } catch (err) {
       console.error('Error loading feedback data:', err);
@@ -135,10 +160,10 @@ export default function FeedbackScreen() {
       return;
     }
     
-    try {
-      // Create feedback data for API
+    try {      // Create feedback data for API
       const feedbackData: NewFeedback = {
         doctor_id: currentFeedbackDoctor.doctorId,
+        appointment_id: currentFeedbackDoctor.id,
         rating,
         comment: feedbackText,
       };
@@ -368,6 +393,12 @@ export default function FeedbackScreen() {
         {/* Loading state */}
         {isLoading && (
           <ThemedView style={styles.emptyState}>
+            <MaterialIcons 
+              name="refresh" 
+              size={40} 
+              color={Colors[colorScheme ?? 'light'].text}
+              style={{ opacity: 0.7 }}
+            />
             <ThemedText style={styles.emptyStateText}>
               Loading feedback data...
             </ThemedText>
@@ -399,9 +430,7 @@ export default function FeedbackScreen() {
 
         {/* Bottom space for bottom tabs */}
         <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Feedback form modal overlay */}
+      </ScrollView>      {/* Feedback form modal overlay */}
       {currentFeedbackDoctor && (
         <View style={styles.modalOverlay}>
           <ThemedView style={styles.modalContainer}>
