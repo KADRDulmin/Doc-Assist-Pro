@@ -1,5 +1,6 @@
 import BaseApiService from './api/base-api.service';
 import { ApiResponse } from './api/api-response.type';
+import { AppointmentNotificationManager } from './appointment-notification.service';
 
 export interface AppointmentData {
   id: number;
@@ -87,7 +88,9 @@ export interface PrescriptionData {
 class AppointmentService extends BaseApiService {
   constructor() {
     super('/api/appointments');
-  }  async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
+  }
+
+  async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
     return this.get<ApiResponse<AppointmentData[]>>('/my-appointments');
   }
 
@@ -95,10 +98,6 @@ class AppointmentService extends BaseApiService {
     const response = await this.get<ApiResponse<AppointmentData[]>>('/my-appointments');
     if (response.success) {
       const now = new Date();
-      // Filter appointments that are:
-      // 1. In the future
-      // 2. Have status 'upcoming'
-      // 3. Not cancelled or missed
       const upcomingAppointments = response.data.filter((appointment: AppointmentData) => {
         const appointmentDate = new Date(`${appointment.appointment_date} ${appointment.appointment_time}`);
         return appointmentDate > now && 
@@ -116,25 +115,46 @@ class AppointmentService extends BaseApiService {
   async getCompletedAppointments(): Promise<ApiResponse<AppointmentData[]>> {
     return this.get<ApiResponse<AppointmentData[]>>('/my-appointments?status=completed');
   }
+
   async getAppointmentById(id: number): Promise<ApiResponse<AppointmentData>> {
     return this.get<ApiResponse<AppointmentData>>(`/${id}`);
   }
 
   async createAppointment(appointmentData: Partial<AppointmentData>): Promise<ApiResponse<AppointmentData>> {
-    return this.post<ApiResponse<AppointmentData>>('', appointmentData);
+    const response = await this.post<ApiResponse<AppointmentData>>('', appointmentData);
+    if (response.success) {
+      await AppointmentNotificationManager.scheduleAppointmentNotifications(response.data);
+    }
+    return response;
   }
 
   async updateAppointment(id: number, appointmentData: Partial<AppointmentData>): Promise<ApiResponse<AppointmentData>> {
-    return this.put<ApiResponse<AppointmentData>>(`/${id}`, appointmentData);
+    const response = await this.put<ApiResponse<AppointmentData>>(`/${id}`, appointmentData);
+    if (response.success) {
+      await AppointmentNotificationManager.cancelAppointmentNotifications();
+      if (response.data.status === 'upcoming') {
+        await AppointmentNotificationManager.scheduleAppointmentNotifications(response.data);
+      }
+    }
+    return response;
   }
 
   async cancelAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
-    return this.post<ApiResponse<AppointmentData>>(`/${id}/cancel`, {});
+    const response = await this.post<ApiResponse<AppointmentData>>(`/${id}/cancel`, {});
+    if (response.success) {
+      await AppointmentNotificationManager.cancelAppointmentNotifications();
+    }
+    return response;
   }
 
   async completeAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
-    return this.put<ApiResponse<AppointmentData>>(`/${id}/complete`, {});
+    const response = await this.put<ApiResponse<AppointmentData>>(`/${id}/complete`, {});
+    if (response.success) {
+      await AppointmentNotificationManager.cancelAppointmentNotifications();
+    }
+    return response;
   }
+
   async getConsultationByAppointment(appointmentId: number): Promise<ApiResponse<ConsultationData>> {
     return this.get<ApiResponse<ConsultationData>>(`/${appointmentId}/consultation`);
   }
@@ -145,6 +165,10 @@ class AppointmentService extends BaseApiService {
 
   async getTodaysAppointments(): Promise<ApiResponse<AppointmentData[]>> {
     return this.get<ApiResponse<AppointmentData[]>>('/today');
+  }
+
+  private async handleMissedAppointment(appointment: AppointmentData) {
+    await AppointmentNotificationManager.sendMissedAppointmentNotification(appointment);
   }
 }
 

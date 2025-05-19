@@ -17,11 +17,25 @@ export default {
   scheme: "myapp",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
-  platforms: ["ios", "android", "web"],
+  platforms: ["ios", "android", "web"],  notification: {
+    icon: "./assets/images/notification-icon.png",
+    color: "#ffffff",
+    androidMode: "default",
+    androidCollapsedTitle: "DocAssistPro",
+    iosDisplayInForeground: true,
+    androidBehavior: {
+      shouldShowBanner: true,
+      shouldShowList: true,
+      priority: "high",
+    }
+  },
   ios: {
     supportsTablet: true,
     config: {
       googleMapsApiKey: process.env.EXPO_PUBLIC_IOS_GOOGLE_MAPS_API_KEY || "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
+    },
+    infoPlist: {
+      UIBackgroundModes: ["location", "fetch", "remote-notification"]
     }
   },
   android: {
@@ -35,7 +49,16 @@ export default {
       }
     },
     package: "com.docassistpro.app",
-    permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    permissions: [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION",
+      "RECEIVE_BOOT_COMPLETED",
+      "NOTIFICATIONS",
+      "SCHEDULE_EXACT_ALARM",
+      "USE_EXACT_ALARM",
+      "VIBRATE",
+      "POST_NOTIFICATIONS"
+    ]
   },
   web: {
     bundler: "metro",
@@ -47,6 +70,14 @@ export default {
   },
   plugins: [
     "expo-router",
+    "expo-dev-client",    ["expo-notifications", {
+      icon: "./assets/images/notification-icon.png",
+      color: "#ffffff",
+      sounds: ["./assets/sounds/notification.wav"],
+      androidMode: "default",
+      androidCollapsedTitle: "DocAssistPro",
+      iosDisplayInForeground: true
+    }],
     [
       "expo-splash-screen",
       {
@@ -66,13 +97,14 @@ export default {
   ],
   experiments: {
     typedRoutes: true
-  },  extra: {
+  },
+  extra: {
     apiUrl: getApiUrl(),
     isProduction: process.env.NODE_ENV === 'production',
     EXPO_PUBLIC_GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY,
     EXPO_PUBLIC_GEMINI_MODEL: process.env.EXPO_PUBLIC_GEMINI_MODEL,
     eas: {
-      projectId: "your-project-id"
+      projectId: process.env.EXPO_PUBLIC_PROJECT_ID || "your-project-id"
     }
   }
 };

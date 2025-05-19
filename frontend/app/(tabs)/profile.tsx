@@ -23,6 +23,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
 import patientService, { PatientProfileData } from '@/src/services/patient.service';
+import NotificationService from '@/src/services/notification.service';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -113,6 +114,29 @@ export default function ProfileScreen() {
       await AsyncStorage.setItem('notifications_enabled', value ? 'true' : 'false');
     } catch (err) {
       console.error('Error saving notification preference:', err);
+    }
+  };
+
+  const sendTestNotification = async () => {
+    if (!notificationsEnabled) {
+      Alert.alert(
+        'Notifications Disabled',
+        'Please enable notifications first to test them.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      await NotificationService.scheduleLocalNotification(
+        'Test Notification',
+        'This is a test notification from Doc-Assist Pro.',
+        new Date()
+      );
+      Alert.alert('Success', 'Test notification sent! You should receive it shortly.');
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      Alert.alert('Error', 'Failed to send test notification. Please try again.');
     }
   };
 
@@ -385,6 +409,19 @@ export default function ProfileScreen() {
             />
           </View>
 
+          {/* Test Notification Button */}
+          {notificationsEnabled && (
+            <TouchableOpacity
+              style={[styles.testButton, { backgroundColor: primaryColor }]}
+              onPress={sendTestNotification}
+            >
+              <Ionicons name="notifications" size={20} color="#fff" />
+              <ThemedText style={styles.testButtonText}>Test Notifications</ThemedText>
+            </TouchableOpacity>
+          )}
+
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+
           <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
               <Ionicons name="moon" size={20} color={iconColor} />
@@ -641,8 +678,24 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 8,
     fontSize: 16,
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  testButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
   },
   versionText: {
     textAlign: 'center',
