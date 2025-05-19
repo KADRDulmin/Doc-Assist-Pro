@@ -115,8 +115,7 @@ export default function HomeScreen() {
           nextAppointment: null // Will be updated with dashboard data
         });
       }
-      
-      // Load dashboard data
+        // Load dashboard data
       const dashboardResponse = await patientService.getDashboardData();
       if (dashboardResponse.success && dashboardResponse.data) {
         setDashboardData(dashboardResponse.data);
@@ -131,12 +130,29 @@ export default function HomeScreen() {
             };
           });
         }
+      } else {
+        // Create a default dashboard data structure if API call fails
+        const defaultDashboardData: PatientDashboardData = {
+          appointmentsCount: {
+            upcoming: 0,
+            completed: 0,
+            cancelled: 0,
+            total: 0
+          },
+          upcomingAppointment: null,
+          recentAppointments: [],
+          medicalRecordsCount: 0
+        };
+        setDashboardData(defaultDashboardData);
       }
-      
-      // Load upcoming appointments
-      const appointmentsResponse = await appointmentService.getMyAppointments('upcoming');
+        // Load upcoming appointments
+      const appointmentsResponse = await appointmentService.getMyAppointments();
       if (appointmentsResponse.success && appointmentsResponse.data) {
-        setUpcomingAppointments(appointmentsResponse.data.slice(0, 5)); // Limit to 5 appointments
+        // Filter for upcoming appointments
+        const upcoming = appointmentsResponse.data.filter(appointment => 
+          appointment.status === 'upcoming' && !['cancelled', 'missed'].includes(appointment.status)
+        );
+        setUpcomingAppointments(upcoming.slice(0, 5)); // Limit to 5 appointments
       }
       
       // Load medical records

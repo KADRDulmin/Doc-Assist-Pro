@@ -93,20 +93,21 @@ export default function AppointmentsScreen() {
       ]
     );
   };
+  // Filter appointments based on active tab and date
+  const filteredAppointments = appointments.filter(appointment => {
+    const appointmentDate = new Date(`${appointment.appointment_date} ${appointment.appointment_time}`);
+    const now = new Date();
 
-  // Filter appointments based on active tab
-  const filteredAppointments = appointments.filter(
-    appointment => {
-      if (activeTab === 'upcoming') {
-        return appointment.status === 'upcoming';
-      } else if (activeTab === 'missed') {
-        return appointment.status === 'missed';
-      } else {
-        // 'past' tab
-        return appointment.status === 'completed' || appointment.status === 'cancelled';
-      }
+    if (activeTab === 'upcoming') {
+      // Only show appointments that are in the future and have 'upcoming' status
+      return appointmentDate > now && appointment.status === 'upcoming';
+    } else if (activeTab === 'missed') {
+      return appointment.status === 'missed';
+    } else {
+      // 'past' tab shows completed and cancelled appointments
+      return appointment.status === 'completed' || appointment.status === 'cancelled';
     }
-  );
+  });
 
   // Format date for display
   const formatDate = (dateString: string) => {

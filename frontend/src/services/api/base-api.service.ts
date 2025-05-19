@@ -48,9 +48,15 @@ const getApiUrl = (): string => {
     console.log('Using Expo config API URL:', Constants.expoConfig.extra.apiUrl);
     return Constants.expoConfig.extra.apiUrl;
   }
-
   // Development environment settings
   if (__DEV__) {
+    // Check if running in Expo Go with direct device connection
+    if (process.env.EXPO_PUBLIC_API_URL && Platform.OS !== 'web') {
+      const deviceUrl = process.env.EXPO_PUBLIC_API_URL;
+      console.log('Using direct device API URL from env:', deviceUrl);
+      return deviceUrl;
+    }
+    
     if (Platform.OS === 'web') {
       // For web development, use the same origin if in browser
       if (isBrowser) {
@@ -66,9 +72,21 @@ const getApiUrl = (): string => {
       // Fallback for server-side rendering on web
       return 'http://localhost:3000';
     } else if (Platform.OS === 'android') {
+      // Try to use the dynamic IP if available
+      if (process.env.REACT_NATIVE_PACKAGER_HOSTNAME) {
+        const hostIP = process.env.REACT_NATIVE_PACKAGER_HOSTNAME;
+        console.log('Using host IP for Android:', `http://${hostIP}:3000`);
+        return `http://${hostIP}:3000`;
+      }
       // Android emulator needs special IP for localhost
       return 'http://10.0.2.2:3000';
     } else if (Platform.OS === 'ios') {
+      // Try to use the dynamic IP if available
+      if (process.env.REACT_NATIVE_PACKAGER_HOSTNAME) {
+        const hostIP = process.env.REACT_NATIVE_PACKAGER_HOSTNAME;
+        console.log('Using host IP for iOS:', `http://${hostIP}:3000`);
+        return `http://${hostIP}:3000`;
+      }
       // iOS simulator can use localhost
       return 'http://localhost:3000';
     }
@@ -86,6 +104,8 @@ if (isBrowser || Platform.OS !== 'web') {
   console.log('API URL configured as:', API_URL);
   console.log('Running on platform:', Platform.OS);
   console.log('Development mode:', __DEV__ ? 'Yes' : 'No');
+  console.log('EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+  console.log('REACT_NATIVE_PACKAGER_HOSTNAME:', process.env.REACT_NATIVE_PACKAGER_HOSTNAME);
 }
 
 class BaseApiService {

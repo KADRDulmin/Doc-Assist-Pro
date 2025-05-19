@@ -16,10 +16,28 @@ function getLocalIpAddress() {
     for (const iface of ifaces) {
       // Skip internal and non-IPv4 interfaces
       if (!iface.internal && iface.family === 'IPv4') {
+        // WiFi interfaces are usually preferred
+        if (ifaceName.toLowerCase().includes('wi') || 
+            ifaceName.toLowerCase().includes('wlan') || 
+            ifaceName.toLowerCase().includes('wireless')) {
+          console.log(`Found WiFi interface: ${ifaceName} with IP: ${iface.address}`);
+          return iface.address;
+        }
+      }
+    }
+  }
+  
+  // If no WiFi interface found, try any non-internal IPv4 interface
+  for (const ifaceName in interfaces) {
+    const ifaces = interfaces[ifaceName];
+    for (const iface of ifaces) {
+      if (!iface.internal && iface.family === 'IPv4') {
+        console.log(`Found non-WiFi interface: ${ifaceName} with IP: ${iface.address}`);
         return iface.address;
       }
     }
   }
+  
   return '127.0.0.1'; // Fallback to localhost
 }
 

@@ -87,49 +87,64 @@ export interface PrescriptionData {
 class AppointmentService extends BaseApiService {
   constructor() {
     super('/api/appointments');
-  }
-  async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
-    return this.get('/my-appointments');
+  }  async getMyAppointments(): Promise<ApiResponse<AppointmentData[]>> {
+    return this.get<ApiResponse<AppointmentData[]>>('/my-appointments');
   }
 
   async getUpcomingAppointments(): Promise<ApiResponse<AppointmentData[]>> {
-    return this.get('/my-appointments?status=upcoming');
+    const response = await this.get<ApiResponse<AppointmentData[]>>('/my-appointments');
+    if (response.success) {
+      const now = new Date();
+      // Filter appointments that are:
+      // 1. In the future
+      // 2. Have status 'upcoming'
+      // 3. Not cancelled or missed
+      const upcomingAppointments = response.data.filter((appointment: AppointmentData) => {
+        const appointmentDate = new Date(`${appointment.appointment_date} ${appointment.appointment_time}`);
+        return appointmentDate > now && 
+               appointment.status === 'upcoming' && 
+               !['cancelled', 'missed'].includes(appointment.status);
+      });
+      return {
+        success: true,
+        data: upcomingAppointments
+      };
+    }
+    return response;
   }
 
   async getCompletedAppointments(): Promise<ApiResponse<AppointmentData[]>> {
-    return this.get('/my-appointments?status=completed');
+    return this.get<ApiResponse<AppointmentData[]>>('/my-appointments?status=completed');
   }
-
   async getAppointmentById(id: number): Promise<ApiResponse<AppointmentData>> {
-    return this.get(`/${id}`);
+    return this.get<ApiResponse<AppointmentData>>(`/${id}`);
   }
 
-  async createAppointment(appointmentData: any): Promise<ApiResponse<AppointmentData>> {
-    return this.post('', appointmentData);
+  async createAppointment(appointmentData: Partial<AppointmentData>): Promise<ApiResponse<AppointmentData>> {
+    return this.post<ApiResponse<AppointmentData>>('', appointmentData);
   }
 
-  async updateAppointment(id: number, appointmentData: any): Promise<ApiResponse<AppointmentData>> {
-    return this.put(`/${id}`, appointmentData);
+  async updateAppointment(id: number, appointmentData: Partial<AppointmentData>): Promise<ApiResponse<AppointmentData>> {
+    return this.put<ApiResponse<AppointmentData>>(`/${id}`, appointmentData);
   }
 
   async cancelAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
-    return this.put(`/${id}/cancel`);
+    return this.post<ApiResponse<AppointmentData>>(`/${id}/cancel`, {});
   }
 
   async completeAppointment(id: number): Promise<ApiResponse<AppointmentData>> {
-    return this.put(`/${id}/complete`);
+    return this.put<ApiResponse<AppointmentData>>(`/${id}/complete`, {});
   }
-
   async getConsultationByAppointment(appointmentId: number): Promise<ApiResponse<ConsultationData>> {
-    return this.get(`/${appointmentId}/consultation`);
+    return this.get<ApiResponse<ConsultationData>>(`/${appointmentId}/consultation`);
   }
 
-  async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<any>> {
-    return this.get(`/availability/${doctorId}?date=${date}`);
+  async getDoctorAvailability(doctorId: number, date: string): Promise<ApiResponse<{available: boolean; slots: string[]}>> {
+    return this.get<ApiResponse<{available: boolean; slots: string[]}>>(`/availability/${doctorId}?date=${date}`);
   }
 
   async getTodaysAppointments(): Promise<ApiResponse<AppointmentData[]>> {
-    return this.get('/today');
+    return this.get<ApiResponse<AppointmentData[]>>('/today');
   }
 }
 
