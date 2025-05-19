@@ -163,9 +163,15 @@ export default function HomeScreen() {
       if (appointmentsResponse.success && appointmentsResponse.data) {
         // Filter for upcoming appointments
         const appointments = appointmentsResponse.data;
-        const upcoming = appointments.filter(appointment => 
-          appointment.status === 'upcoming' && !['cancelled', 'missed'].includes(appointment.status)
-        );
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Reset time to start of day
+
+        const upcoming = appointments.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointment_date);
+          appointmentDate.setHours(0, 0, 0, 0); // Reset time to start of day
+          return appointmentDate >= now && appointment.status === 'upcoming';
+        });
+
         const completed = appointments.filter(appointment => 
           appointment.status === 'completed'
         );
@@ -181,7 +187,14 @@ export default function HomeScreen() {
           }
         }));
         
-        setUpcomingAppointments(upcoming.slice(0, 5)); // Limit to 5 appointments
+        // Sort upcoming appointments by date
+        const sortedUpcoming = [...upcoming].sort((a, b) => {
+          const dateA = new Date(a.appointment_date);
+          const dateB = new Date(b.appointment_date);
+          return dateA.getTime() - dateB.getTime();
+        });
+        
+        setUpcomingAppointments(sortedUpcoming.slice(0, 5)); // Limit to 5 appointments
       }
       
       // Load medical records and update count
@@ -636,21 +649,33 @@ export default function HomeScreen() {
           <ScrollView 
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.appointmentsScrollContent}
+            contentContainerStyle={styles.appointmentsScrollContainer}
             decelerationRate="fast"
           >
             {upcomingAppointments.length > 0 ? upcomingAppointments.map((appointment) => (
               <TouchableOpacity 
                 key={appointment.id} 
                 onPress={() => handleAppointmentPress(appointment.id)}
-                style={styles.appointmentCard}
+                style={[
+                  styles.appointmentCard,
+                  colorScheme === 'dark' ? styles.appointmentCardDark : null
+                ]}
               >
                 <View style={styles.appointmentCardHeader}>
-                  <View style={styles.appointmentDateContainer}>
-                    <ThemedText style={styles.appointmentDateText}>
+                  <View style={[
+                    styles.appointmentDateContainer,
+                    colorScheme === 'dark' ? styles.appointmentDateContainerDark : null
+                  ]}>
+                    <ThemedText style={[
+                      styles.appointmentDateText,
+                      colorScheme === 'dark' ? styles.appointmentDateTextDark : null
+                    ]}>
                       {new Date(appointment.appointment_date).toLocaleDateString()}
                     </ThemedText>
-                    <ThemedText style={styles.appointmentTimeText}>
+                    <ThemedText style={[
+                      styles.appointmentTimeText,
+                      colorScheme === 'dark' ? styles.appointmentTimeTextDark : null
+                    ]}>
                       {appointment.appointment_time}
                     </ThemedText>
                   </View>
@@ -677,7 +702,7 @@ export default function HomeScreen() {
                   <View style={styles.doctorAvatarContainer}>
                     <View style={[
                       styles.doctorAvatarCircle, 
-                      { backgroundColor: colorScheme === 'dark' ? 'rgba(161, 206, 220, 0.1)' : 'rgba(10, 126, 164, 0.1)' }
+                      colorScheme === 'dark' ? { backgroundColor: 'rgba(161, 206, 220, 0.1)' } : { backgroundColor: 'rgba(33, 150, 243, 0.1)' }
                     ]}>
                       <Ionicons 
                         name="person" 
@@ -695,9 +720,15 @@ export default function HomeScreen() {
                       }
                     </ThemedText>
                     
-                    <View style={styles.specialtyContainer}>
+                    <View style={[
+                      styles.specialtyContainer,
+                      colorScheme === 'dark' ? styles.specialtyContainerDark : null
+                    ]}>
                       <FontAwesome5 name="stethoscope" size={12} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
-                      <ThemedText style={styles.doctorSpecialtyText}>
+                      <ThemedText style={[
+                        styles.doctorSpecialtyText,
+                        colorScheme === 'dark' ? styles.doctorSpecialtyTextDark : null
+                      ]}>
                         {appointment.doctor?.specialization || 'Specialist'}
                       </ThemedText>
                     </View>
@@ -708,7 +739,10 @@ export default function HomeScreen() {
                         { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
                       ]}
                     >
-                      <ThemedText style={styles.appointmentTypeText}>
+                      <ThemedText style={[
+                        styles.appointmentTypeText,
+                        colorScheme === 'dark' ? { color: '#fff' } : null
+                      ]}>
                         {appointment.appointment_type}
                       </ThemedText>
                     </View>
@@ -782,18 +816,11 @@ export default function HomeScreen() {
                   style={styles.healthTipCard}
                   onPress={() => router.push({
                     pathname: '/health-tip/[id]',
-                    params: {
-                      id: tip.id,
-                      title: tip.title,
-                      category: tip.category
-                    }
+                    params: { id: tip.id, title: tip.title, category: tip.category }
                   })}
                 >
                   <LinearGradient
-                    colors={colorScheme === 'dark' ? 
-                      ['#1D3D47', '#2d5a6b'] :
-                      ['#78b1c4', '#A1CEDC']
-                    }
+                    colors={colorScheme === 'dark' ? ['#1D3D47', '#2d5a6b'] : ['#78b1c4', '#A1CEDC']}
                     style={styles.healthTipGradient}
                   >
                     <View style={styles.healthTipIconContainer}>
@@ -1011,117 +1038,143 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   appointmentsScrollContent: {
-    paddingLeft: 5,
-    paddingRight: 25,
-    paddingBottom: 15,
-    paddingTop: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   appointmentCard: {
-    width: 240,
-    marginRight: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.12 : 0.2,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    marginRight: 16,
+    marginVertical: 8,
+    width: windowWidth * 0.85,
+    shadowColor: '#2196F3',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 6,
-    position: 'relative',
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  appointmentCardDark: {
+    backgroundColor: '#1D3D47',
+    borderColor: 'rgba(161, 206, 220, 0.1)',
+    shadowColor: '#000',
   },
   appointmentCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   appointmentDateContainer: {
-    alignItems: 'flex-start',
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+    minWidth: 120,
+  },
+  appointmentDateContainerDark: {
+    backgroundColor: 'rgba(161, 206, 220, 0.1)',
   },
   appointmentDateText: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 5,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#0a7ea4',
+  },
+  appointmentDateTextDark: {
+    color: '#A1CEDC',
   },
   appointmentTimeText: {
     fontSize: 14,
-    opacity: 0.7,
+    opacity: 0.8,
+    color: '#0a7ea4',
+  },
+  appointmentTimeTextDark: {
+    color: '#A1CEDC',
   },
   appointmentStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
-  },
-  confirmedBadgeLight: {
-    backgroundColor: 'rgba(46, 204, 113, 0.15)',
-  },
-  confirmedBadgeDark: {
-    backgroundColor: 'rgba(46, 204, 113, 0.25)',
-  },
-  pendingBadgeLight: {
-    backgroundColor: 'rgba(243, 156, 18, 0.15)',
-  },
-  pendingBadgeDark: {
-    backgroundColor: 'rgba(243, 156, 18, 0.25)',
-  },
-  appointmentStatusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  confirmedText: {
-    color: '#27ae60',
-  },
-  pendingText: {
-    color: '#d35400',
-  },
-  appointmentDivider: {
-    height: 1,
-    marginHorizontal: 16,
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
   },
   appointmentCardBody: {
-    flexDirection: 'row',
     padding: 16,
-    paddingTop: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   doctorAvatarContainer: {
-    marginRight: 14,
+    marginRight: 16,
   },
   doctorAvatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
   },
   appointmentDetails: {
     flex: 1,
+    paddingRight: 8,
   },
   doctorNameText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   specialtyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
+    backgroundColor: 'rgba(33, 150, 243, 0.05)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  specialtyContainerDark: {
+    backgroundColor: 'rgba(161, 206, 220, 0.1)',
   },
   doctorSpecialtyText: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginLeft: 4,
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#0a7ea4',
+  },
+  doctorSpecialtyTextDark: {
+    color: '#A1CEDC',
   },
   appointmentTypeContainer: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    marginTop: 4,
   },
   appointmentTypeText: {
+    fontSize: 13,
+    opacity: 0.8,
+  },
+  confirmedBadgeLight: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  },
+  confirmedBadgeDark: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+  },
+  confirmedText: {
+    color: '#4CAF50',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  appointmentDivider: {
+    height: 1,
+    opacity: 0.1,
+  },
+  appointmentsScrollContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   newAppointmentCard: {
     width: 240,
