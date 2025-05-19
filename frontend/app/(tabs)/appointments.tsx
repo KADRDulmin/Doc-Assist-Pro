@@ -95,18 +95,30 @@ export default function AppointmentsScreen() {
   };
   // Filter appointments based on active tab and date
   const filteredAppointments = appointments.filter(appointment => {
-    const appointmentDate = new Date(`${appointment.appointment_date} ${appointment.appointment_time}`);
-    const now = new Date();
+    const appointmentDate = new Date(appointment.appointment_date);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    appointmentDate.setHours(0, 0, 0, 0);
 
-    if (activeTab === 'upcoming') {
-      // Only show appointments that are in the future and have 'upcoming' status
-      return appointmentDate > now && appointment.status === 'upcoming';
-    } else if (activeTab === 'missed') {
-      return appointment.status === 'missed';
-    } else {
-      // 'past' tab shows completed and cancelled appointments
-      return appointment.status === 'completed' || appointment.status === 'cancelled';
+    const isFutureAppointment = appointmentDate >= currentDate;
+
+    switch (activeTab) {
+      case 'upcoming':
+        return isFutureAppointment && appointment.status === 'upcoming';
+      case 'missed':
+        return appointment.status === 'missed';
+      default: // 'past'
+        return appointment.status === 'completed' || appointment.status === 'cancelled';
     }
+  });
+
+  // Sort appointments by date
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+    const dateA = new Date(a.appointment_date);
+    const dateB = new Date(b.appointment_date);
+    return activeTab === 'upcoming' 
+      ? dateA.getTime() - dateB.getTime()  // Show nearest first for upcoming
+      : dateB.getTime() - dateA.getTime(); // Show most recent first for others
   });
 
   // Format date for display
@@ -321,7 +333,7 @@ export default function AppointmentsScreen() {
       </LinearGradient>
 
       <FlatList
-        data={filteredAppointments}
+        data={sortedAppointments}
         renderItem={renderAppointmentItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
