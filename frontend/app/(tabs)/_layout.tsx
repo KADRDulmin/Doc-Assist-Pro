@@ -45,10 +45,6 @@ export default function TabLayout() {
     inputRange: [0, 1],
     outputRange: [0, 1]
   });
-  const checkupScale = fabMenuAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1]
-  });
 
   const fabRotation = fabMenuAnimation.interpolate({
     inputRange: [0, 1],
@@ -63,11 +59,6 @@ export default function TabLayout() {
   const handleFollowUpAppointment = () => {
     toggleFabMenu();
     router.push('/appointments/follow-up');
-  };
-
-  const handleCheckUpAppointment = () => {
-    toggleFabMenu();
-    router.push('/appointments/checkup');
   };
 
   return (
@@ -170,53 +161,40 @@ export default function TabLayout() {
           <View style={styles.fabMenuContainer}>
             <Animated.View 
               style={[
-                styles.fabMenuItem,
-                { transform: [{ scale: newConsultationScale }] }
+              styles.fabMenuItem,
+              { transform: [{ scale: newConsultationScale }] }
               ]}
             >
               <TouchableOpacity
-                style={[styles.fabMenuButton, { backgroundColor: '#4fb6e0' }]}
-                onPress={handleNewConsultation}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              onPress={handleNewConsultation}
               >
+              <View style={[styles.fabMenuButton, { backgroundColor: '#4fb6e0' }]}>
                 <FontAwesome5 name="stethoscope" size={20} color="#fff" />
-              </TouchableOpacity>
+              </View>
               <View style={styles.fabMenuLabel}>
                 <Animated.Text style={styles.fabMenuLabelText}>New Consultation</Animated.Text>
               </View>
+              </TouchableOpacity>
             </Animated.View>
             
             <Animated.View 
               style={[
-                styles.fabMenuItem,
-                { transform: [{ scale: followUpScale }] }
+              styles.fabMenuItem,
+              { transform: [{ scale: followUpScale }] }
               ]}
             >
               <TouchableOpacity
-                style={[styles.fabMenuButton, { backgroundColor: '#9f84bd' }]}
-                onPress={handleFollowUpAppointment}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              onPress={handleFollowUpAppointment}
               >
+              <View style={[styles.fabMenuButton, { backgroundColor: '#9f84bd' }]}>
                 <Ionicons name="calendar-outline" size={20} color="#fff" />
-              </TouchableOpacity>
+              </View>
               <View style={styles.fabMenuLabel}>
                 <Animated.Text style={styles.fabMenuLabelText}>Follow-up Appointment</Animated.Text>
               </View>
-            </Animated.View>
-            
-            <Animated.View 
-              style={[
-                styles.fabMenuItem,
-                { transform: [{ scale: checkupScale }] }
-              ]}
-            >
-              <TouchableOpacity
-                style={[styles.fabMenuButton, { backgroundColor: '#6abf8a' }]}
-                onPress={handleCheckUpAppointment}
-              >
-                <MaterialCommunityIcons name="clipboard-check-outline" size={20} color="#fff" />
               </TouchableOpacity>
-              <View style={styles.fabMenuLabel}>
-                <Animated.Text style={styles.fabMenuLabelText}>Schedule Check-up</Animated.Text>
-              </View>
             </Animated.View>
           </View>
         )}
