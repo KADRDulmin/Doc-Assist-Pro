@@ -2,8 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-class NotificationService {
-  static async registerForPushNotifications() {
+class NotificationService {  static async registerForPushNotifications() {
     let token;
     
     if (!Device.isDevice) {
@@ -52,101 +51,66 @@ class NotificationService {
       console.warn('Error getting push token:', error);
       return null;
     }
-  }
-
-  static async scheduleLocalNotification(title: string, body: string, date: Date) {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-        },
-        trigger: {
-          date: date
-        },
-      });
-    } catch (error) {
-      console.warn('Error scheduling local notification:', error);
-    }
+  }  static async scheduleLocalNotification(title: string, body: string, date: Date) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: date
+      },
+    });
   }
 
   static async scheduleAppointmentReminders(appointmentDate: Date, appointmentTitle: string) {
-    try {
-      const notificationTimes = [
-        { minutes: 60, title: '1 Hour Reminder' },
-        { minutes: 30, title: '30 Minutes Reminder' },
-        { minutes: 10, title: '10 Minutes Reminder' },
-      ];
+    const notificationTimes = [
+      { minutes: 60, title: '1 Hour Reminder' },
+      { minutes: 30, title: '30 Minutes Reminder' },
+      { minutes: 10, title: '10 Minutes Reminder' },
+    ];
 
-      for (const reminder of notificationTimes) {
-        const triggerDate = new Date(appointmentDate);
-        triggerDate.setMinutes(triggerDate.getMinutes() - reminder.minutes);
+    for (const reminder of notificationTimes) {
+      const triggerDate = new Date(appointmentDate);
+      triggerDate.setMinutes(triggerDate.getMinutes() - reminder.minutes);
 
-        if (triggerDate > new Date()) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: reminder.title,
-              body: `Your appointment "${appointmentTitle}" starts in ${reminder.minutes} minutes.`,
-            },
-            trigger: {
-              date: triggerDate
-            },
-          });
-        }
+      if (triggerDate > new Date()) {
+        await this.scheduleLocalNotification(
+          reminder.title,
+          `Your appointment "${appointmentTitle}" starts in ${reminder.minutes} minutes.`,
+          triggerDate
+        );
       }
-    } catch (error) {
-      console.warn('Error scheduling appointment reminders:', error);
     }
   }
 
   static async sendConsultationStartNotification(doctorName: string) {
-    try {
-      return await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Consultation Starting',
-          body: `Your consultation with Dr. ${doctorName} is starting now.`,
-        },
-        trigger: null, // Send immediately
-      });
-    } catch (error) {
-      console.warn('Error sending consultation start notification:', error);
-    }
+    return await this.scheduleLocalNotification(
+      'Consultation Starting',
+      `Your consultation with Dr. ${doctorName} is starting now.`,
+      new Date()
+    );
   }
 
   static async sendConsultationEndNotification() {
-    try {
-      return await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Consultation Ended',
-          body: 'Your consultation has ended. Don\'t forget to provide feedback!',
-        },
-        trigger: null, // Send immediately
-      });
-    } catch (error) {
-      console.warn('Error sending consultation end notification:', error);
-    }
+    return await this.scheduleLocalNotification(
+      'Consultation Ended',
+      'Your consultation has ended. Don\'t forget to provide feedback!',
+      new Date()
+    );
   }
 
   static async sendMissedAppointmentNotification(appointmentTitle: string) {
-    try {
-      return await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Missed Appointment',
-          body: `You missed your appointment: ${appointmentTitle}. Please reschedule if needed.`,
-        },
-        trigger: null, // Send immediately
-      });
-    } catch (error) {
-      console.warn('Error sending missed appointment notification:', error);
-    }
+    return await this.scheduleLocalNotification(
+      'Missed Appointment',
+      `You missed your appointment: ${appointmentTitle}. Please reschedule if needed.`,
+      new Date()
+    );
   }
 
   static async cancelScheduledNotifications() {
-    try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-    } catch (error) {
-      console.warn('Error cancelling scheduled notifications:', error);
-    }
+    await Notifications.cancelAllScheduledNotificationsAsync();
   }
 }
 

@@ -343,45 +343,60 @@ export default function FeedbackScreen() {
                 {submittedFeedbacks.map(feedback => (
                   <ThemedView key={feedback.id} style={styles.feedbackHistoryCard}>
                     <View style={styles.feedbackCardHeader}>
-                      <View style={styles.doctorInfoSection}>
-                        <View style={styles.doctorAvatarContainer}>
-                          <Ionicons name="person-circle" size={40} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+                      <View style={styles.doctorInfoRow}>
+                        <View style={styles.avatarContainer}>
+                          <Ionicons name="person-circle" size={45} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
                         </View>
                         
-                        <View style={styles.doctorDetails}>
-                          <ThemedText style={styles.doctorName}>{feedback.doctorName}</ThemedText>
-                          <View style={styles.specialtyContainer}>
+                        <View style={styles.doctorInfo}>
+                          <View style={styles.doctorNameRow}>
+                            <ThemedText style={styles.doctorName}>{feedback.doctorName}</ThemedText>
+                            <View style={styles.feedbackDateContainer}>
+                              <Ionicons name="calendar-outline" size={14} color={Colors[colorScheme ?? 'light'].text} style={{ opacity: 0.7 }} />
+                              <ThemedText style={styles.feedbackDate}>{feedback.date}</ThemedText>
+                            </View>
+                          </View>
+                          <View style={styles.specialtyRow}>
                             <FontAwesome5 name="stethoscope" size={12} color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
                             <ThemedText style={styles.specialtyText}>{feedback.specialty}</ThemedText>
                           </View>
                         </View>
                       </View>
-                      
-                      <ThemedText style={styles.feedbackDate}>
-                        Submitted on {feedback.date}
-                      </ThemedText>
                     </View>
-                    
-                    <View style={styles.feedbackRatingContainer}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <MaterialIcons
-                          key={star}
-                          name="star"
-                          size={20}
-                          color={star <= feedback.rating ? '#FFC107' : '#D1D1D1'}
-                        />
-                      ))}
-                    </View>
-                    
-                    {feedback.comment && (
-                      <ThemedText style={styles.feedbackComment}>
-                        "{feedback.comment}"
-                      </ThemedText>
-                    )}
-                    
-                    <View style={styles.appointmentDateContainer}>
-                      <ThemedText style={styles.appointmentDateLabel}>Appointment Date:</ThemedText>
-                      <ThemedText style={styles.appointmentDateValue}>{feedback.appointmentDate}</ThemedText>
+
+                    <View style={styles.feedbackContent}>
+                      <View style={styles.ratingSection}>
+                        <View style={styles.starsRow}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <MaterialIcons
+                              key={star}
+                              name="star"
+                              size={24}
+                              color={star <= feedback.rating ? '#FFC107' : '#D1D1D1'}
+                              style={styles.starSpacing}
+                            />
+                          ))}
+                        </View>
+                        <ThemedText style={styles.ratingText}>
+                          {feedback.rating === 5 ? 'Excellent' : 
+                          feedback.rating === 4 ? 'Very Good' : 
+                          feedback.rating === 3 ? 'Good' : 
+                          feedback.rating === 2 ? 'Fair' : 'Poor'}
+                        </ThemedText>
+                      </View>
+
+                      {feedback.comment && (
+                        <View style={styles.commentSection}>
+                          <ThemedView style={styles.commentBox}>
+                            <ThemedText style={styles.commentText}>"{feedback.comment}"</ThemedText>
+                          </ThemedView>
+                        </View>
+                      )}
+
+                      <View style={styles.appointmentInfo}>
+                        <Ionicons name="time-outline" size={16} color={Colors[colorScheme ?? 'light'].text} style={{ opacity: 0.7 }} />
+                        <ThemedText style={styles.appointmentDate}>Appointment on {feedback.appointmentDate}</ThemedText>
+                      </View>
                     </View>
                   </ThemedView>
                 ))}
@@ -605,45 +620,106 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   feedbackHistoryCard: {
-    borderRadius: 15,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   feedbackCardHeader: {
+    marginBottom: 16,
+  },
+  doctorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  avatarContainer: {
+    marginRight: 12,
+  },
+  doctorInfo: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  doctorNameRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  doctorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    flexShrink: 1,
+    marginRight: 8,
+    maxWidth: '70%',
+  },
+  specialtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  specialtyText: {
+    fontSize: 14,
+    marginLeft: 6,
+    opacity: 0.7,
+  },
+  feedbackDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    paddingLeft: 4,
   },
   feedbackDate: {
     fontSize: 12,
+    marginLeft: 4,
     opacity: 0.7,
   },
-  feedbackRatingContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  feedbackComment: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  appointmentDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  feedbackContent: {
     marginTop: 8,
   },
-  appointmentDateLabel: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginRight: 6,
+  ratingSection: {
+    marginBottom: 16,
   },
-  appointmentDateValue: {
-    fontSize: 13,
+  starsRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  starSpacing: {
+    marginRight: 4,
+  },
+  ratingText: {
+    fontSize: 14,
     fontWeight: '500',
+    marginTop: 4,
+    color: '#0a7ea4',
+  },
+  commentSection: {
+    marginBottom: 16,
+  },
+  commentBox: {
+    backgroundColor: 'rgba(10, 126, 164, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  commentText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  appointmentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    opacity: 0.7,
+  },
+  appointmentDate: {
+    fontSize: 13,
+    marginLeft: 6,
   },
   emptyState: {
     alignItems: 'center',
