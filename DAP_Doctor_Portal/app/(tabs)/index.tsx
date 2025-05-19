@@ -81,10 +81,10 @@ export default function DashboardScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadDashboard();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  };  const getStatusColor = (status: string | undefined) => {
+    if (!status) return Colors[theme].textTertiary;
+    
+    switch (status.toLowerCase()) {
       case 'upcoming':
         return Colors[theme].primary;
       case 'completed':
@@ -95,6 +95,32 @@ export default function DashboardScreen() {
         return '#FF9800'; // amber
       default:
         return Colors[theme].textTertiary;
+    }
+  };// Helper function to get patient display name
+  const getPatientDisplayName = (appointment: AppointmentData): string => {
+    try {
+      // Check if appointment is null or undefined
+      if (!appointment) {
+        return 'Unknown Patient';
+      }
+      
+      // Check if patient exists with user property
+      if (appointment.patient?.user) {
+        const firstName = appointment.patient.user.first_name || '';
+        const lastName = appointment.patient.user.last_name || '';
+        return `${firstName} ${lastName}`.trim() || 'Unknown Patient';
+      }
+      
+      // Fallback to name property if it exists
+      if (appointment.patient?.name) {
+        return appointment.patient.name;
+      }
+      
+      // Default fallback
+      return 'Unknown Patient';
+    } catch (err) {
+      console.error('Error formatting patient name:', err);
+      return 'Unknown Patient';
     }
   };
 
@@ -204,48 +230,48 @@ export default function DashboardScreen() {
                 todayAppointments.map((appointment, index) => (
                   <React.Fragment key={appointment.id}>
                     <ThemedView 
-                      variant="cardAlt"
-                      style={styles.appointmentItem}
+                      variant="cardAlt"                      style={styles.appointmentItem}
                     >
                       <View style={styles.appointmentInfo}>
-                        <View style={styles.appointmentTimeContainer}>
-                          <ThemedText weight="semibold" style={styles.appointmentTime}>
-                            {appointment.appointment_time || appointment.time}
-                          </ThemedText>
-                        </View>
-                        <View style={styles.appointmentDetails}>
-                          <ThemedText weight="semibold">
-                            {appointment.patient?.name || 'Unknown Patient'}
-                          </ThemedText>
-                          <ThemedText variant="tertiary" style={styles.appointmentType}>
-                            {appointment.appointment_type || appointment.type || 'General'}
-                          </ThemedText>
-                        </View>
-                      </View>
-                      
-                      <View style={styles.appointmentActions}>
-                        <View style={[
-                          styles.statusBadge, 
-                          { backgroundColor: `${getStatusColor(appointment.status)}20` }
-                        ]}>
-                          <ThemedText
-                            style={[styles.statusText, { color: getStatusColor(appointment.status) }]}
-                          >
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                          </ThemedText>
-                        </View>
-                        
-                        {appointment.status === 'upcoming' && (
-                          <TouchableRipple
-                            style={[styles.consultButton, { backgroundColor: Colors[theme].success }]}
-                            onPress={() => handleStartConsultation(appointment.id)}
-                          >
-                            <ThemedText style={styles.consultButtonText}>
-                              Consult
+                          <View style={styles.appointmentTimeContainer}>
+                            <ThemedText weight="semibold" style={styles.appointmentTime}>
+                              {appointment.appointment_time || appointment.time || ''}
                             </ThemedText>
-                          </TouchableRipple>
-                        )}
-                      </View>
+                          </View>
+                          <View style={styles.appointmentDetails}>
+                            <ThemedText weight="semibold">
+                              {getPatientDisplayName(appointment)}
+                            </ThemedText>
+                            <ThemedText variant="tertiary" style={styles.appointmentType}>
+                              {appointment.appointment_type || appointment.type || 'General'}
+                            </ThemedText>                          </View>
+                        </View>
+                        <View style={styles.appointmentActions}>
+                          <View style={[
+                            styles.statusBadge, 
+                            { backgroundColor: `${getStatusColor(appointment.status)}20` }
+                          ]}>
+                            <ThemedText
+                              style={[styles.statusText, { color: getStatusColor(appointment.status) }]}
+                            >
+                              {appointment.status ? 
+                                `${appointment.status.charAt(0).toUpperCase()}${appointment.status.slice(1)}` : 
+                                ''
+                              }
+                            </ThemedText>
+                          </View>
+                          
+                          {appointment.status === 'upcoming' && (
+                            <TouchableRipple
+                              style={[styles.consultButton, { backgroundColor: Colors[theme].success }]}
+                              onPress={() => handleStartConsultation(appointment.id)}
+                            >
+                              <ThemedText style={styles.consultButtonText}>
+                                Consult
+                              </ThemedText>
+                            </TouchableRipple>
+                          )}
+                        </View>
                     </ThemedView>
                     {index < todayAppointments.length - 1 && <Divider style={styles.divider} />}
                   </React.Fragment>

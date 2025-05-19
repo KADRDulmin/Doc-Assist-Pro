@@ -5,7 +5,7 @@ import Colors from '../constants/Colors';
 
 interface ThemedTextProps extends TextProps {
   variant?: 'primary' | 'secondary' | 'tertiary';
-  type?: 'default' | 'heading' | 'subheading' | 'error';
+  type?: 'default' | 'heading' | 'subheading' | 'error' | 'link';
   weight?: 'normal' | 'medium' | 'semibold' | 'bold';
   children: React.ReactNode;
 }
@@ -34,7 +34,6 @@ export const ThemedText: React.FC<ThemedTextProps> = ({
         return Colors[theme].text;
     }
   };
-
   // Get text styles based on type
   const getTypeStyle = () => {
     switch (type) {
@@ -44,6 +43,8 @@ export const ThemedText: React.FC<ThemedTextProps> = ({
         return styles.subheading;
       case 'error':
         return { color: Colors[theme].danger };
+      case 'link':
+        return { color: Colors[theme].primary };
       default:
         return {};
     }

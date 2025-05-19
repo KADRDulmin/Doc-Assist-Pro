@@ -467,10 +467,10 @@ export default function FeedbackScreen() {
               </View>
               <ThemedText style={styles.ratingText}>
                 {rating > 0 ? 
-                  rating === 5 ? 'Excellent' : 
+                  (rating === 5 ? 'Excellent' : 
                   rating === 4 ? 'Very Good' : 
                   rating === 3 ? 'Good' : 
-                  rating === 2 ? 'Fair' : 'Poor'
+                  rating === 2 ? 'Fair' : 'Poor')
                   : ''}
               </ThemedText>
             </View>

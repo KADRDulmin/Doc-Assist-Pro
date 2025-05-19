@@ -645,12 +645,12 @@ export default function ConsultationScreen() {
         return null;
     }
   };
-
   const renderNavButtons = () => {
     if (currentStep === ConsultationStep.LOADING) return null;
     
     return (
       <View style={styles.navButtonContainer}>
+        {/* Show Back button for all pages except Patient Info */}
         {currentStep !== ConsultationStep.PATIENT_INFO && (
           <TouchableOpacity
             style={[styles.button, styles.secondaryButton]}
@@ -661,7 +661,16 @@ export default function ConsultationScreen() {
           </TouchableOpacity>
         )}
 
-        {currentStep !== ConsultationStep.COMPLETION ? (
+        {/* Show Mark as Missed button on the Patient Info page */}
+        {currentStep === ConsultationStep.PATIENT_INFO && (
+          <TouchableOpacity
+            style={[styles.button, styles.missedButton]}
+            onPress={() => handleSubmitConsultation('missed')}
+            disabled={submitting}
+          >
+            <Text style={styles.missedButtonText}>Mark as Missed</Text>
+          </TouchableOpacity>
+        )}        {currentStep !== ConsultationStep.COMPLETION ? (
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
             onPress={handleNextStep}
@@ -670,27 +679,17 @@ export default function ConsultationScreen() {
             <Text style={styles.primaryButtonText}>Next</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.completionButtons}>
-            <TouchableOpacity
-              style={[styles.button, styles.missedButton]}
-              onPress={() => handleSubmitConsultation('missed')}
-              disabled={submitting}
-            >
-              <Text style={styles.missedButtonText}>Mark as Missed</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.button, styles.primaryButton]}
-              onPress={() => handleSubmitConsultation('completed')}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Complete</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={() => handleSubmitConsultation('completed')}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Complete</Text>
+            )}
+          </TouchableOpacity>
         )}
       </View>
     );
