@@ -118,15 +118,28 @@ export default function HomeScreen() {
         // Load dashboard data
       const dashboardResponse = await patientService.getDashboardData();
       if (dashboardResponse.success && dashboardResponse.data) {
-        setDashboardData(dashboardResponse.data);
+        const data = dashboardResponse.data;
+        // Ensure we have valid numbers for the stats
+        const stats = {
+          appointmentsCount: {
+            upcoming: Number(data.appointmentsCount?.upcoming) || 0,
+            completed: Number(data.appointmentsCount?.completed) || 0,
+            cancelled: Number(data.appointmentsCount?.cancelled) || 0,
+            total: Number(data.appointmentsCount?.total) || 0
+          },
+          medicalRecordsCount: Number(data.medicalRecordsCount) || 0,
+          upcomingAppointment: data.upcomingAppointment || null,
+          recentAppointments: data.recentAppointments || []
+        };
+        setDashboardData(stats);
         
         // Update next appointment in user profile
-        if (dashboardResponse.data.upcomingAppointment && userProfile) {
+        if (stats.upcomingAppointment && userProfile) {
           setUserProfile(prev => {
             if (!prev) return prev;
             return {
               ...prev,
-              nextAppointment: dashboardResponse.data.upcomingAppointment.appointment_date
+              nextAppointment: stats.upcomingAppointment.appointment_date
             };
           });
         }
@@ -145,17 +158,33 @@ export default function HomeScreen() {
         };
         setDashboardData(defaultDashboardData);
       }
-        // Load upcoming appointments
+        // Load appointments and update dashboard counts
       const appointmentsResponse = await appointmentService.getMyAppointments();
       if (appointmentsResponse.success && appointmentsResponse.data) {
         // Filter for upcoming appointments
-        const upcoming = appointmentsResponse.data.filter(appointment => 
+        const appointments = appointmentsResponse.data;
+        const upcoming = appointments.filter(appointment => 
           appointment.status === 'upcoming' && !['cancelled', 'missed'].includes(appointment.status)
         );
+        const completed = appointments.filter(appointment => 
+          appointment.status === 'completed'
+        );
+        
+        // Update dashboard data with actual counts
+        setDashboardData(prevData => ({
+          ...prevData,
+          appointmentsCount: {
+            upcoming: upcoming.length,
+            completed: completed.length,
+            cancelled: appointments.filter(a => a.status === 'cancelled').length,
+            total: appointments.length
+          }
+        }));
+        
         setUpcomingAppointments(upcoming.slice(0, 5)); // Limit to 5 appointments
       }
       
-      // Load medical records
+      // Load medical records and update count
       const medicalRecordsResponse = await patientService.getMedicalRecords();
       if (medicalRecordsResponse.success && medicalRecordsResponse.data) {
         // Transform to expected format
@@ -164,6 +193,12 @@ export default function HomeScreen() {
           type: record.type || 'Medical Record',
           title: record.title || 'Medical Document',
           date: new Date(record.created_at).toLocaleDateString()
+        }));
+        
+        // Update medical records count in dashboard data
+        setDashboardData(prevData => ({
+          ...prevData,
+          medicalRecordsCount: medicalRecordsResponse.data.length
         }));
         
         setMedicalRecords(formattedRecords.slice(0, 3)); // Limit to 3 records
