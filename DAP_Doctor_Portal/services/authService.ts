@@ -174,8 +174,7 @@ export const authService = {
   getToken: async (): Promise<string | null> => {
     return AsyncStorage.getItem(AUTH_TOKEN_KEY);
   },
-  
-  // Get current user data
+    // Get current user data
   getCurrentUser: async (): Promise<DoctorUser | null> => {
     try {
       const userData = await AsyncStorage.getItem(USER_DATA_KEY);
@@ -183,6 +182,15 @@ export const authService = {
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
+    }
+  },
+  
+  // Update stored user data
+  updateUserData: async (userData: DoctorUser): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error updating user data:', error);
     }
   },
   

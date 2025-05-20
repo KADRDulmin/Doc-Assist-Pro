@@ -80,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     });
   }, [router]);
-
   // Check if user is authenticated
   useEffect(() => {
     const checkAuth = async () => {
@@ -91,6 +90,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isAuthenticated) {
           const userData = await authService.getCurrentUser();
           const authToken = await authService.getToken();
+          
+          // Load dashboard data to get stats for the user
+          if (userData && authToken) {
+            try {
+              // Import doctorService here to avoid circular dependency
+              const doctorService = require('../services/doctorService').default;
+              const dashboardResponse = await doctorService.getDashboard(authToken);
+              
+              if (dashboardResponse.success && dashboardResponse.data) {
+                // Update the user object with the dashboard stats
+                const stats = dashboardResponse.data.stats;
+                userData.appointments_count = stats.appointmentCount;
+                userData.patients_count = stats.patientCount;
+                userData.experience_years = userData.experience_years || 
+                  dashboardResponse.data.profile.years_of_experience || 0;
+                
+                // Save the updated user data
+                await authService.updateUserData(userData);
+              }
+            } catch (dashboardError) {
+              console.error('Error loading dashboard data:', dashboardError);
+              // Continue with the existing user data even if dashboard fetch fails
+            }
+          }
+          
           setUser(userData);
           setToken(authToken); // Store token in state
         } else {
@@ -123,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.replace('/(tabs)');
     }
   }, [user, isLoading, segments, router]);
-
   // Sign in function
   const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -143,8 +166,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         console.log('AuthContext: Setting authenticated user state');
-        setUser(response.data.user);
-        setToken(response.data.token); // Store token when signing in
+        
+        // Save login information first
+        const userData = response.data.user;
+        const authToken = response.data.token;
+        
+        // Load dashboard data to get stats
+        try {
+          if (authToken) {
+            // Import doctorService here to avoid circular dependency
+            const doctorService = require('../services/doctorService').default;
+            const dashboardResponse = await doctorService.getDashboard(authToken, userData.id);
+            
+            if (dashboardResponse.success && dashboardResponse.data) {
+              // Update the user object with the dashboard stats
+              const stats = dashboardResponse.data.stats;
+              userData.appointments_count = stats.appointmentCount;
+              userData.patients_count = stats.patientCount;
+              userData.experience_years = userData.experience_years || 
+                dashboardResponse.data.profile.years_of_experience || 0;
+              
+              // Save the updated user data
+              await authService.updateUserData(userData);
+            }
+          }
+        } catch (dashboardError) {
+          console.error('Error loading dashboard data after login:', dashboardError);
+        }
+        
+        // Update state with user and token
+        setUser(userData);
+        setToken(authToken); // Store token when signing in
         
         // Force navigation to the tabs
         setTimeout(() => {

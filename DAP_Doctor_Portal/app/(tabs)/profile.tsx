@@ -13,9 +13,9 @@ import { ThemedView } from '../../components/ThemedView';
 import { ThemedText } from '../../components/ThemedText';
 import Colors from '../../constants/Colors';
 import ModernHeader from '../../components/ui/ModernHeader';
+import doctorService from '../../services/doctorService';
 
-export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+export default function ProfileScreen() {  const { user, signOut } = useAuth();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   
@@ -24,6 +24,7 @@ export default function ProfileScreen() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [darkModeEnabled, setDarkModeEnabled] = useState(colorScheme === 'dark');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [localUser, setLocalUser] = useState(user);
   
   // Load saved preferences on mount
   useEffect(() => {
@@ -46,15 +47,63 @@ export default function ProfileScreen() {
     
     loadPreferences();
   }, []);
-  
-  const onRefresh = useCallback(() => {
+
+  // Update local user state when user changes
+  useEffect(() => {
+    setLocalUser(user);
+  }, [user]);  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate a data refresh
-    setTimeout(() => {
-      setRefreshing(false);
-      // Would typically reload user profile data here
-    }, 1000);
-  }, []);
+    // Refresh user profile data, including stats
+    const refreshUserData = async () => {
+      try {
+        const token = await AsyncStorage.getItem('doctor_auth_token');
+        if (!token) {
+          console.error('No auth token found');
+          setRefreshing(false);
+          return;
+        }
+        
+        // Get updated dashboard data
+        const dashboardResponse = await doctorService.getDashboard(token);
+        
+        if (dashboardResponse.success && dashboardResponse.data) {
+          // Create a copy of the current user
+          const updatedUser = localUser ? { ...localUser } : null;
+          
+          if (updatedUser) {
+            // Update with latest stats
+            updatedUser.appointments_count = dashboardResponse.data.stats.appointmentCount;
+            updatedUser.patients_count = dashboardResponse.data.stats.patientCount;
+            updatedUser.experience_years = dashboardResponse.data.profile.years_of_experience;
+            
+            // Update local state
+            setLocalUser(updatedUser);
+            
+            // Save to AsyncStorage
+            await AsyncStorage.setItem('doctor_user_data', JSON.stringify(updatedUser));
+            
+            // Show a success alert
+            Alert.alert(
+              "Profile Updated",
+              "Your profile statistics have been refreshed.",
+              [{ text: "OK" }]
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to refresh profile data:', error);
+        Alert.alert(
+          "Refresh Failed",
+          "There was a problem refreshing your profile data. Please try again.",
+          [{ text: "OK" }]
+        );
+      } finally {
+        setRefreshing(false);
+      }
+    };
+    
+    refreshUserData();
+  }, [localUser]);
 
   const pickImage = async () => {
     try {
@@ -128,25 +177,23 @@ export default function ProfileScreen() {
     setLogoutDialogVisible(false);
     signOut();
   };
-
   // Default data if user object is incomplete
-  const userFullName = user 
-    ? `Dr. ${user.first_name || ''} ${user.last_name || ''}`.trim() 
+  const userFullName = localUser 
+    ? `Dr. ${localUser.first_name || ''} ${localUser.last_name || ''}`.trim() 
     : 'Doctor';
   
-  const userSpecialty = user?.specialty || 'General Practitioner';
-  const userEmail = user?.email || 'doctor@example.com';
-  const userPhone = user?.phone || '+1 123-456-7890';
+  const userSpecialty = localUser?.specialty || 'General Practitioner';
+  const userEmail = localUser?.email || 'doctor@example.com';
+  const userPhone = localUser?.phone || '+1 123-456-7890';
   
   // Get user initials for avatar
-  const userInitials = `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase();
+  const userInitials = `${localUser?.first_name?.[0] || ''}${localUser?.last_name?.[0] || ''}`.toUpperCase();
   
   return (
-    <ThemedView variant="secondary" style={styles.container}>
-      <ModernHeader 
+    <ThemedView variant="secondary" style={styles.container}>      <ModernHeader 
         title="My Profile"
         showBackButton={false}
-        userName={`Dr. ${user?.last_name || 'Smith'}`}
+        userName={`Dr. ${localUser?.last_name || 'Smith'}`}
       />
       
       <ScrollView
@@ -211,13 +258,12 @@ export default function ProfileScreen() {
             </ThemedText>
           </View>
           
-          <View style={styles.statsContainer}>
-            <ThemedView 
+          <View style={styles.statsContainer}>            <ThemedView 
               variant="cardAlt" 
               style={styles.statItem}
             >
               <ThemedText type="heading" style={styles.statNumber}>
-                {user?.appointments_count || 0}
+                {localUser?.appointments_count || 0}
               </ThemedText>
               <ThemedText variant="tertiary">Appointments</ThemedText>
             </ThemedView>
@@ -227,7 +273,7 @@ export default function ProfileScreen() {
               style={styles.statItem}
             >
               <ThemedText type="heading" style={styles.statNumber}>
-                {user?.patients_count || 0}
+                {localUser?.patients_count || 0}
               </ThemedText>
               <ThemedText variant="tertiary">Patients</ThemedText>
             </ThemedView>
@@ -237,7 +283,7 @@ export default function ProfileScreen() {
               style={styles.statItem}
             >
               <ThemedText type="heading" style={styles.statNumber}>
-                {user?.experience_years || 0}
+                {localUser?.experience_years || 0}
               </ThemedText>
               <ThemedText variant="tertiary">Years</ThemedText>
             </ThemedView>
@@ -276,8 +322,7 @@ export default function ProfileScreen() {
               <ThemedText>{userPhone}</ThemedText>
             </View>
           </View>
-          
-          {user?.address && (
+            {localUser?.address && (
             <View style={styles.contactItem}>
               <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
                 <FontAwesome5 name="map-marker-alt" size={16} color={Colors[theme].primary} />
@@ -286,12 +331,12 @@ export default function ProfileScreen() {
                 <ThemedText variant="secondary" style={styles.contactLabel}>
                   Office Address
                 </ThemedText>
-                <ThemedText>{user.address}</ThemedText>
+                <ThemedText>{localUser.address}</ThemedText>
               </View>
             </View>
           )}
           
-          {user?.hospital && (
+          {localUser?.hospital && (
             <View style={styles.contactItem}>
               <View style={[styles.contactIconContainer, { backgroundColor: `${Colors[theme].primary}15` }]}>
                 <FontAwesome5 name="hospital" size={16} color={Colors[theme].primary} />
@@ -300,7 +345,7 @@ export default function ProfileScreen() {
                 <ThemedText variant="secondary" style={styles.contactLabel}>
                   Hospital
                 </ThemedText>
-                <ThemedText>{user.hospital}</ThemedText>
+                <ThemedText>{localUser.hospital}</ThemedText>
               </View>
             </View>
           )}
