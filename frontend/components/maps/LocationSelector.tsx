@@ -4,12 +4,8 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 import CustomMapView from './CustomMapView';
-
-export interface LocationData {
-  latitude: number;
-  longitude: number;
-  address?: string;
-}
+import { Marker } from '../common';
+import type { LocationData, Region, Marker as MarkerType } from './types';
 
 interface LocationSelectorProps {
   onLocationChange: (location: LocationData) => void;
@@ -18,14 +14,14 @@ interface LocationSelectorProps {
   height?: number;
 }
 
-export function LocationSelector({
+export default function LocationSelector({
   onLocationChange,
   initialLocation,
   title = 'Select your location',
   height = 350,
 }: LocationSelectorProps) {
   const [location, setLocation] = useState<LocationData | null>(initialLocation || null);
-  const [markers, setMarkers] = useState<any[]>([]);
+  const [markers, setMarkers] = useState<MarkerType[]>([]);
   const [loading, setLoading] = useState(false);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -229,8 +225,7 @@ export function LocationSelector({
   return (
     <View style={[styles.container, { height }]}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
-      
-      <View style={styles.mapContainer}>
+        <View style={styles.mapContainer}>
         {location ? (
           <CustomMapView
             style={styles.map}
@@ -242,7 +237,7 @@ export function LocationSelector({
             }}
             markers={markers}
             onPress={handleMapPress}
-            showsUserLocation={true}
+            showUserLocation={true}
           />
         ) : (
           <View style={styles.loadingContainer}>

@@ -12,12 +12,12 @@ const patientRepository = require('../repositories/patientRepository');
 class DoctorController {
     /**
      * Register a new doctor
-     */
-    async registerDoctor(req, res, next) {
+     */    async registerDoctor(req, res, next) {
         try {
             const { 
                 email, password, first_name, last_name, phone,  // User data
-                specialization, license_number, years_of_experience, education, bio, consultation_fee  // Doctor profile data
+                specialization, license_number, years_of_experience, education, bio, consultation_fee,  // Doctor profile data
+                latitude, longitude, address  // Location data
             } = req.body;
             
             console.log('Doctor registration request received:', {
@@ -66,8 +66,7 @@ class DoctorController {
             try {
                 // Create doctor with both user and profile data
                 const doctor = await authService.registerDoctor(
-                    { email, password, first_name, last_name, phone },
-                    { specialization, license_number, years_of_experience, education, bio, consultation_fee }
+                    { email, password, first_name, last_name, phone },                { specialization, license_number, years_of_experience, education, bio, consultation_fee, latitude, longitude, address }
                 );
                 
                 res.status(201).json({

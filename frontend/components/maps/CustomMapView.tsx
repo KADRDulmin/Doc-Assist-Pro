@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import loadGoogleMapsAPI from '@/src/utils/loadGoogleMapsAPI';
-import { SafeMapView, Marker, PROVIDER_GOOGLE } from '@/components/common';
+import loadGoogleMapsAPI from '../../src/utils/loadGoogleMapsAPI';
+import { SafeMapView, Marker } from '../common';
+import type { MapViewProps } from './types';
 
 /**
  * Cross-platform Map component that works on iOS, Android, and Web
  */
-export function CustomMapView({ 
+export default function CustomMapView({ 
   style, 
   initialRegion,
   markers = [],
@@ -14,10 +15,13 @@ export function CustomMapView({
   showUserLocation = false,
   onPress,
   ...props 
-}) {
+}: MapViewProps) {
   // When on web platform, we need to ensure Google Maps is loaded
   const [mapsLoaded, setMapsLoaded] = useState(Platform.OS !== 'web');
-  const [webMapComponent, setWebMapComponent] = useState(null);
+  const [webMapComponent, setWebMapComponent] = useState<{
+    MapView: any;
+    Marker: any;
+  } | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -55,72 +59,66 @@ export function CustomMapView({
       );
     }
 
-    // Use the dynamically loaded web components
-    const WebMapView = webMapComponent.MapView;
-    const WebMarker = webMapComponent.Marker;
+    const { MapView, Marker } = webMapComponent;
 
     return (
-      <WebMapView
+      <MapView
         style={[styles.container, style]}
-        initialRegion={initialRegion || defaultRegion}
-        onRegionChange={onRegionChange}
-        onClick={onPress} // Web uses onClick instead of onPress
+        center={{ lat: initialRegion?.latitude || defaultRegion.latitude, lng: initialRegion?.longitude || defaultRegion.longitude }}
+        zoom={12}
+        onClick={onPress}
         {...props}
       >
         {markers.map((marker, index) => (
-          <WebMarker
+          <Marker
             key={index}
-            coordinate={marker.coordinate}
+            position={{ 
+              lat: marker.coordinate.latitude, 
+              lng: marker.coordinate.longitude 
+            }}
             title={marker.title}
-            description={marker.description}
+            {...(marker.description && { label: marker.description })}
           />
         ))}
-      </WebMapView>
+      </MapView>
     );
   }
 
-  // For native platforms, use our SafeMapView component instead of direct MapView
   return (
     <SafeMapView
       style={[styles.container, style]}
-      provider={PROVIDER_GOOGLE}
+      provider="google"
       initialRegion={initialRegion || defaultRegion}
       onRegionChange={onRegionChange}
-      showUserLocation={showUserLocation}
+      showsUserLocation={showUserLocation}
       onPress={onPress}
-      markers={markers}
       {...props}
-    />
+    >      {markers.map((marker, index) => (
+        <Marker
+          key={index}
+          coordinate={marker.coordinate}
+          title={marker.title}
+          description={marker.description}
+        />
+      ))}
+    </SafeMapView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    height: 300, // Default height
   },
   loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#f5f5f5',
   },
   loading: {
     width: 50,
     height: 50,
+    backgroundColor: '#e0e0e0',
     borderRadius: 25,
-    borderWidth: 4,
-    borderColor: '#0a7ea4',
-    borderTopColor: 'transparent',
-    borderRightColor: 'rgba(10, 126, 164, 0.5)',
-    borderBottomColor: 'rgba(10, 126, 164, 0.8)',
-    // Add animation for the loading indicator
-    animationName: 'spin',
-    animationDuration: '1s',
-    animationIterationCount: 'infinite',
-    animationTimingFunction: 'linear',
   },
 });
-
-export default CustomMapView;

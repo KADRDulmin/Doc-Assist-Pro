@@ -16,11 +16,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '../../components/ThemedText';
+import { ThemedView } from '../../components/ThemedView';
 import { DatePicker } from '../../src/components/DatePicker';
-import { useAuth } from '@/src/hooks/useAuth';
-import { API_URL } from '@/src/services/api/base-api.service';
+import { LocationSelector } from '../../components/maps';
+import type { LocationData } from '../../components/maps/types';
+import { API_URL } from '../../src/services/api/base-api.service';
+import { useAuth } from '../../src/hooks/useAuth';
 
 // Blood group options
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -45,8 +47,7 @@ export default function PatientRegisterScreen() {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [apiUrl, setApiUrl] = useState('');
-  const [currentSection, setCurrentSection] = useState<'basic' | 'medical'>('basic');
-  const [errors, setErrors] = useState({
+  const [currentSection, setCurrentSection] = useState<'basic' | 'medical'>('basic');  const [errors, setErrors] = useState({
     email: '',
     password: '',
     confirmPassword: '',
@@ -55,7 +56,8 @@ export default function PatientRegisterScreen() {
     phone: '',
     dateOfBirth: '',
     gender: '',
-    bloodGroup: ''
+    bloodGroup: '',
+    location: ''
   });
   
   const { isLoading, registerPatient } = useAuth();
@@ -156,6 +158,11 @@ export default function PatientRegisterScreen() {
       isValid = false;
     } else {
       newErrors.bloodGroup = '';
+    }    if (!location) {
+      newErrors.location = 'Please select your location';
+      isValid = false;
+    } else {
+      newErrors.location = '';
     }
 
     setErrors(newErrors);
@@ -202,7 +209,11 @@ export default function PatientRegisterScreen() {
 
     try {
       console.log('Attempting patient registration...');
-      
+        if (!location) {
+        Alert.alert('Error', 'Please select your location');
+        return;
+      }
+
       const patientData = {
         email,
         password,
@@ -215,7 +226,10 @@ export default function PatientRegisterScreen() {
         allergies,
         medical_history: medicalHistory,
         emergency_contact_name: emergencyContactName,
-        emergency_contact_phone: emergencyContactPhone
+        emergency_contact_phone: emergencyContactPhone,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        address: location.address
       };
       
       await registerPatient(patientData);
@@ -239,10 +253,24 @@ export default function PatientRegisterScreen() {
       Alert.alert('Registration Failed', errorMessage);
     }
   };
+  const [location, setLocation] = useState<LocationData | null>(null);
+
+  const handleLocationChange = (newLocation: LocationData) => {
+    setLocation(newLocation);
+  };
 
   const renderBasicInfoSection = () => (
     <View style={styles.formContainer}>
       <ThemedText style={styles.sectionTitle}>Account Information</ThemedText>
+
+      <View style={styles.inputGroup}>
+        <ThemedText style={[styles.label, {color: textColor}]}>Your Location</ThemedText>        <LocationSelector
+          onLocationChange={handleLocationChange}
+          title=""
+          height={200}
+        />
+        {errors.location ? <ThemedText style={styles.errorText}>{errors.location}</ThemedText> : null}
+      </View>
       
       <View style={styles.inputGroup}>
         <ThemedText style={[styles.label, {color: textColor}]}>Email Address</ThemedText>

@@ -51,6 +51,9 @@ const DoctorInfoSchema = Yup.object().shape({
   bio: Yup.string(),
   consultation_fee: Yup.number()
     .min(0, 'Fee cannot be negative'),
+  address: Yup.string()
+    .required('Address is required')
+    .min(5, 'Please enter a complete address'),
 });
 
 // Combined schema
@@ -233,6 +236,7 @@ export default function SignupScreen() {
                 education: '',
                 bio: '',
                 consultation_fee: 0,
+                address: '',
               }}
               validationSchema={SignupSchema}
               onSubmit={handleSignup}
@@ -568,6 +572,28 @@ export default function SignupScreen() {
                       {touched.consultation_fee && errors.consultation_fee && (
                         <HelperText type="error" visible={!!errors.consultation_fee}>
                           {errors.consultation_fee}
+                        </HelperText>
+                      )}
+
+                      <TextInput
+                        label="Address"
+                        value={values.address}
+                        onChangeText={handleChange('address')}
+                        onBlur={handleBlur('address')}
+                        style={styles.input}
+                        mode="outlined"
+                        error={touched.address && !!errors.address}
+                        theme={{ colors: { primary: Colors[theme].primary } }}
+                        outlineColor={Colors[theme].borderLight}
+                        activeOutlineColor={Colors[theme].primary}
+                        textColor={Colors[theme].text}
+                        placeholderTextColor={Colors[theme].textTertiary}
+                        multiline
+                        numberOfLines={3}
+                      />
+                      {touched.address && errors.address && (
+                        <HelperText type="error" visible={!!errors.address}>
+                          {errors.address}
                         </HelperText>
                       )}
 

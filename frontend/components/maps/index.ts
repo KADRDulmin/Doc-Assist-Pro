@@ -1,4 +1,4 @@
-export { default as MapComponent } from './MapComponent';
+export { default as MapComponent } from './CustomMapView';
 export { default as DirectionsButton } from './DirectionsButton';
 export { default as LocationSelector } from './LocationSelector';
-export type { LocationData } from './MapComponent';
+export type { LocationData, Region, Marker, MapViewProps } from './types';

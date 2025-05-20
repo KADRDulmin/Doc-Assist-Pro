@@ -7,20 +7,21 @@ const authService = require('../services/authService');
 class PatientController {
     /**
      * Register a new patient
-     */
-    async registerPatient(req, res, next) {
+     */    async registerPatient(req, res, next) {
         try {
             const { 
                 email, password, first_name, last_name, phone,  // User data
                 date_of_birth, gender, blood_group, allergies, medical_history,  // Patient profile data
-                emergency_contact_name, emergency_contact_phone
+                emergency_contact_name, emergency_contact_phone,
+                latitude, longitude, address  // Location data
             } = req.body;
             
             // Create patient with both user and profile data
             const patient = await authService.registerPatient(
                 { email, password, first_name, last_name, phone },
                 { date_of_birth, gender, blood_group, allergies, medical_history, 
-                  emergency_contact_name, emergency_contact_phone }
+                  emergency_contact_name, emergency_contact_phone,
+                  latitude, longitude, address }
             );
             
             res.status(201).json({

@@ -3,9 +3,10 @@ import { View, StyleSheet, TouchableOpacity, Text, Platform, Linking, Alert, Vie
 import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeColor } from '@/hooks/useThemeColor';
+import { useThemeColor } from '../../hooks/useThemeColor';
 // Import our safe map component instead of using react-native-maps directly
-import { SafeMapView, Marker, PROVIDER_GOOGLE } from '@/components/common';
+import { SafeMapView, Marker, PROVIDER_GOOGLE } from '../common';
+import type { Region } from './types';
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCzmBUcvmUy2bvfTASC90DtXWqQi9l84_4';
@@ -223,8 +224,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           />
         </View>
       )}
-      
-      {/* Replace MapView with SafeMapView */}
+        {/* Replace MapView with SafeMapView */}
       <SafeMapView
         ref={mapRef}
         style={styles.map}
@@ -232,18 +232,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
         initialRegion={currentRegion}
         onRegionChange={setCurrentRegion}
         onPress={handleMapPress}
-        showUserLocation={true}
-        markers={location ? [
-          {
-            coordinate: {
+        showsUserLocation={true}
+      >
+        {location && (
+          <Marker
+            coordinate={{
               latitude: location.latitude,
               longitude: location.longitude,
-            },
-            title: markerTitle,
-            description: location.address,
-          }
-        ] : []}
-      />
+            }}
+            title={markerTitle}
+            description={location.address}
+          />
+        )}
+      </SafeMapView>
       
       {editable && (
         <TouchableOpacity style={styles.currentLocationButton} onPress={getCurrentLocation}>

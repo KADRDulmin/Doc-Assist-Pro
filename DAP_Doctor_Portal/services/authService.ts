@@ -27,12 +27,11 @@ export interface DoctorSignupData {
   education?: string;
   bio?: string;
   consultation_fee?: number;
-  
-  // Location data
+    // Location data
   location?: LocationData;
   latitude?: number;
   longitude?: number;
-  address?: string;
+  address: string; // Making address required
 }
 
 export interface DoctorUser {

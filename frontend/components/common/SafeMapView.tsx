@@ -2,8 +2,23 @@ import React from 'react';
 import { StyleSheet, View, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// Define marker type to avoid any type errors
+interface MarkerProps {
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+  title?: string;
+  description?: string;
+  key?: string | number;
+  position?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 // Different imports for web vs. native
-let MapView, Marker, PROVIDER_GOOGLE;
+let MapView: any, Marker: any, PROVIDER_GOOGLE: any;
 
 if (Platform.OS === 'web') {
   try {
@@ -19,9 +34,10 @@ if (Platform.OS === 'web') {
       <View style={[styles.mapFallback, style]}>
         <Ionicons name="map-outline" size={48} color="#888" />
         <Text style={styles.fallbackText}>Map unavailable</Text>
+        {children}
       </View>
     );
-    Marker = () => null;
+    Marker = ({ children }) => children || null;
     PROVIDER_GOOGLE = null;
   }
 } else {
@@ -38,9 +54,10 @@ if (Platform.OS === 'web') {
       <View style={[styles.mapFallback, style]}>
         <Ionicons name="map-outline" size={48} color="#888" />
         <Text style={styles.fallbackText}>Map unavailable</Text>
+        {children}
       </View>
     );
-    Marker = () => null;
+    Marker = ({ children }) => children || null;
     PROVIDER_GOOGLE = null;
   }
 }
@@ -58,7 +75,7 @@ const SafeMapView = ({
   onPress,
   children,
   ...props
-}) => {
+}: any) => {
   // Default region (Sri Lanka)
   const defaultRegion = {
     latitude: 6.9271,
