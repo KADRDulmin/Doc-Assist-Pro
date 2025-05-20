@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 
@@ -24,6 +24,8 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
 import patientService, { PatientProfileData } from '@/src/services/patient.service';
 import NotificationService from '@/src/services/notification.service';
+import { LocationSelector } from '@/components/maps';
+import type { LocationData } from '@/components/maps/types';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -33,7 +35,6 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
-  const [isMapReady, setIsMapReady] = useState(false);
   const [mapRegion, setMapRegion] = useState({
     latitude: 6.9147, // Default to Sri Lanka
     longitude: 79.9729,
@@ -227,10 +228,6 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const onMapReady = () => {
-    setIsMapReady(true);
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#151718' : '#f8f8f8' }]}>
@@ -382,12 +379,53 @@ export default function ProfileScreen() {
                   style={[styles.callButton, { backgroundColor: accentColor }]}
                   onPress={() => Linking.openURL(`tel:${profile?.emergency_contact_phone}`)}
                 >
-                  <Ionicons name="call" size={16} color="#fff" />
-                </TouchableOpacity>
+                  <Ionicons name="call" size={16} color="#fff" />                </TouchableOpacity>
               )}
             </View>
           </View>
         </ThemedView>
+
+        {/* Patient Location */}
+        {profile?.latitude && profile?.longitude && (
+          <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>            <View style={styles.cardHeader}>
+              <Ionicons name="location" size={22} color={iconColor} />
+              <ThemedText style={styles.cardTitle}>Your Location</ThemedText>
+            </View>
+            <View style={styles.mapContainer}>
+              <LocationSelector
+                height={200}
+                title=""
+                initialLocation={{
+                  latitude: parseFloat(profile.latitude),
+                  longitude: parseFloat(profile.longitude),
+                  address: profile.address || 'Your saved location'
+                }}
+                onLocationChange={() => {}}
+              />
+            </View>
+            <View style={styles.addressInfoContainer}>
+              <Ionicons 
+                name="information-circle"
+                size={20} 
+                color={accentColor}
+              />
+              <ThemedText style={styles.addressInfoText}>
+                This is your saved location. If you're not currently at this location, please update your profile.
+              </ThemedText>
+            </View>            <TouchableOpacity
+              style={[styles.updateLocationButton, { backgroundColor: primaryColor }]}
+              onPress={() => router.push('/edit-profile')}
+            >
+              <MaterialIcons name="edit-location" size={18} color="#fff" />
+              <ThemedText style={styles.updateLocationButtonText}>Update Your Location</ThemedText>
+            </TouchableOpacity>
+            
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Address</ThemedText>
+              <ThemedText style={styles.addressValue}>{profile.address || 'No address specified'}</ThemedText>
+            </View>
+          </ThemedView>
+        )}
 
         {/* App Settings */}
         <ThemedView style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}>
@@ -634,8 +672,7 @@ const styles = StyleSheet.create({
   sectionValue: {
     fontSize: 14,
     opacity: 0.7,
-  },
-  phoneContainer: {
+  },  phoneContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -643,6 +680,49 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 6,
     borderRadius: 6,
+  },
+  mapContainer: {
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginVertical: 10,
+  },  mapView: {
+    flex: 1,
+  },
+  addressInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  addressInfoText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 13,
+  },
+  updateLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  updateLocationButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addressValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    maxWidth: '70%',
+    textAlign: 'right',
   },
   settingRow: {
     flexDirection: 'row',

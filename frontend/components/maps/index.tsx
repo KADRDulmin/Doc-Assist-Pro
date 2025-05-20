@@ -15,4 +15,4 @@ try {
 }
 
 export { CustomMapView, LocationSelector, FallbackMapView };
-export type { LocationData } from './LocationSelector';
+export type { LocationData } from './types';
