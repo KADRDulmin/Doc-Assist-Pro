@@ -30,14 +30,14 @@ if (Platform.OS === 'web') {
   } catch (error) {
     console.warn('Web map components could not be imported:', error);
     // Create placeholder components for web
-    MapView = ({ children, style }) => (
+    MapView = ({ children, style }: { children?: React.ReactNode, style?: any }) => (
       <View style={[styles.mapFallback, style]}>
         <Ionicons name="map-outline" size={48} color="#888" />
         <Text style={styles.fallbackText}>Map unavailable</Text>
-        {children}
+        <View>{children}</View>
       </View>
     );
-    Marker = ({ children }) => children || null;
+    Marker = ({ children }: { children?: React.ReactNode }) => <View>{children || null}</View>;
     PROVIDER_GOOGLE = null;
   }
 } else {
@@ -50,14 +50,14 @@ if (Platform.OS === 'web') {
   } catch (error) {
     console.warn('Map components could not be imported:', error);
     // Create placeholder components for native
-    MapView = ({ children, style }) => (
+    MapView = ({ children, style }: { children?: React.ReactNode, style?: any }) => (
       <View style={[styles.mapFallback, style]}>
         <Ionicons name="map-outline" size={48} color="#888" />
         <Text style={styles.fallbackText}>Map unavailable</Text>
-        {children}
+        <View>{children}</View>
       </View>
     );
-    Marker = ({ children }) => children || null;
+    Marker = ({ children }: { children?: React.ReactNode }) => <View>{children || null}</View>;
     PROVIDER_GOOGLE = null;
   }
 }
@@ -98,7 +98,7 @@ const SafeMapView = ({
           defaultZoom={12}
           {...props}
         >
-          {markers.map((marker, index) => (
+          {markers.map((marker: any, index: number) => (
             <Marker
               key={index}
               position={{
@@ -123,7 +123,7 @@ const SafeMapView = ({
           onPress={onPress}
           {...props}
         >
-          {markers.map((marker, index) => (
+          {markers.map((marker: any, index: number) => (
             <Marker
               key={index}
               coordinate={marker.coordinate}
