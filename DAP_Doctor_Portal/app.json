@@ -14,26 +14,24 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
       }
-    },
-    "android": {
+    },    "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_ANDROID_API_KEY_HERE"
+          "apiKey": "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
         }
       },
       "package": "com.dapdoctorportal.app",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
-    },
-    "web": {
+    },    "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png",
       "config": {
-        "googleMapsApiKey": "YOUR_WEB_API_KEY_HERE"
+        "googleMapsApiKey": "AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc"
       }
     },
     "plugins": [

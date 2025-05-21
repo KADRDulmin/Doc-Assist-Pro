@@ -42,10 +42,12 @@
     "expo-system-ui": "~4.0.9",
     "expo-web-browser": "~14.0.2",
     "formik": "^2.4.6",
+    "promise-polyfill": "^8.3.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
     "react-native-gesture-handler": "~2.20.2",
+    "react-native-get-random-values": "^1.11.0",
     "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-maps": "^1.22.6",
     "react-native-paper": "^5.13.5",
@@ -55,6 +57,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
+    "text-encoding": "^0.7.0",
     "yup": "^1.6.1"
   },
   "devDependencies": {

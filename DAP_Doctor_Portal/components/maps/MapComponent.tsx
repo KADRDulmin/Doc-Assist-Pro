@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Dimensions, Platform, Linking, Alert, ViewStyle } from 'react-native';
 // Import our safe map component instead of using react-native-maps directly
-import { SafeMapView, Marker, PROVIDER_GOOGLE } from '@/components/common';
+import { SafeMapView, Marker, PROVIDER_GOOGLE } from '../common';
 import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = 'AIzaSyCzmBUcvmUy2bvfTASC90DtXWqQi9l84_4';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCOZ2LqiS0C3fxrtMujZQU8O-_o02Tvgnc';
 
 // Default coordinates (center of Sri Lanka as fallback)
 const DEFAULT_LATITUDE = 7.8731;
@@ -175,13 +175,15 @@ const MapComponent: React.FC<MapComponentProps> = ({
   };
 
   return (
-    <View style={[styles.container, { height: height as number }]}>
-      {editable && (
+    <View style={[styles.container, { height: height as number }]}>      {editable && Platform.OS !== 'web' && (
         <View style={styles.searchContainer}>
           <GooglePlacesAutocomplete
             ref={autocompleteRef}
             placeholder="Search for a location"
             fetchDetails={true}
+            renderDescription={data => data.description}
+            suppressDefaultStyles={false}
+            enablePoweredByContainer={false}
             onPress={(data, details = null) => {
               if (details) {
                 const newRegion = {

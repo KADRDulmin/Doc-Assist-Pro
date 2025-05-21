@@ -10,6 +10,7 @@ import { ThemedView } from '../../components/ThemedView';
 import { ThemedText } from '../../components/ThemedText';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import LocationSelector, { LocationData } from '../../components/maps/LocationSelector';
 
 // Step 1 validation schema (user account information)
 const AccountInfoSchema = Yup.object().shape({
@@ -54,6 +55,10 @@ const DoctorInfoSchema = Yup.object().shape({
   address: Yup.string()
     .required('Address is required')
     .min(5, 'Please enter a complete address'),
+  latitude: Yup.number()
+    .nullable(),
+  longitude: Yup.number()
+    .nullable(),
 });
 
 // Combined schema
@@ -101,14 +106,19 @@ export default function SignupScreen() {
 
     fetchSpecializations();
   }, []);
-
-  const handleSignup = async (values: DoctorSignupData & { confirm_password: string }) => {
+  const handleSignup = async (values: DoctorSignupData & { confirm_password: string, location: LocationData | null }) => {
     try {
       setLoading(true);
       setError(null);
       
       // Remove confirm_password before sending to API
-      const { confirm_password, ...doctorData } = values;
+      const { confirm_password, location, ...doctorData } = values;
+      
+      // Add location data to the submission
+      if (values.latitude && values.longitude) {
+        doctorData.latitude = values.latitude;
+        doctorData.longitude = values.longitude;
+      }
       
       const response = await authService.signup(doctorData);
       
@@ -220,9 +230,7 @@ export default function SignupScreen() {
               <View style={[styles.errorContainer, { backgroundColor: `${Colors[theme].danger}15` }]}>
                 <ThemedText type="error" style={styles.errorText}>{error}</ThemedText>
               </View>
-            )}
-
-            <Formik
+            )}            <Formik
               initialValues={{
                 email: '',
                 password: '',
@@ -237,6 +245,9 @@ export default function SignupScreen() {
                 bio: '',
                 consultation_fee: 0,
                 address: '',
+                latitude: null,
+                longitude: null,
+                location: null,
               }}
               validationSchema={SignupSchema}
               onSubmit={handleSignup}
@@ -573,8 +584,20 @@ export default function SignupScreen() {
                         <HelperText type="error" visible={!!errors.consultation_fee}>
                           {errors.consultation_fee}
                         </HelperText>
-                      )}
-
+                      )}                      <ThemedText weight="semibold" style={styles.sectionTitle}>Practice Location</ThemedText>
+                      
+                      <LocationSelector 
+                        onLocationChange={(location: LocationData) => {
+                          setFieldValue('address', location.address || '');
+                          setFieldValue('latitude', location.latitude);
+                          setFieldValue('longitude', location.longitude);
+                          setFieldValue('location', location);
+                        }}
+                        initialLocation={values.location}
+                        title="Select your practice location"
+                        height={300}
+                      />
+                      
                       <TextInput
                         label="Address"
                         value={values.address}
@@ -589,8 +612,11 @@ export default function SignupScreen() {
                         textColor={Colors[theme].text}
                         placeholderTextColor={Colors[theme].textTertiary}
                         multiline
-                        numberOfLines={3}
+                        numberOfLines={2}
                       />
+                      <HelperText>
+                        You can adjust the address if needed
+                      </HelperText>
                       {touched.address && errors.address && (
                         <HelperText type="error" visible={!!errors.address}>
                           {errors.address}
@@ -664,6 +690,11 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 16,
     paddingBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    marginBottom: 10,
+    marginTop: 10,
   },
   formWrapper: {
     flex: 1,

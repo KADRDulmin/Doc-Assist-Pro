@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 import CustomMapView from './CustomMapView';
+import { Marker } from '../common';
+import type { LocationData, Region, Marker as MarkerType } from './types';
 
 export interface LocationData {
   latitude: number;
@@ -11,12 +13,28 @@ export interface LocationData {
   address?: string;
 }
 
+interface MarkerType {
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+  title?: string;
+  description?: string;
+}
+
 interface LocationSelectorProps {
   onLocationChange: (location: LocationData) => void;
-  initialLocation?: LocationData;
+  initialLocation?: LocationData | null;
   title?: string;
   height?: number;
 }
+
+// Default location (Colombo, Sri Lanka)
+const DEFAULT_LOCATION: LocationData = {
+  latitude: 6.9271,
+  longitude: 79.8612,
+  address: "Colombo, Sri Lanka"
+};
 
 export function LocationSelector({
   onLocationChange,
@@ -24,70 +42,123 @@ export function LocationSelector({
   title = 'Select your location',
   height = 350,
 }: LocationSelectorProps) {
-  const [location, setLocation] = useState<LocationData | null>(initialLocation || null);
-  const [markers, setMarkers] = useState<any[]>([]);
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [markers, setMarkers] = useState<MarkerType[]>([]);
   const [loading, setLoading] = useState(false);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [address, setAddress] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<boolean>(false);
   
-  // Request location permission and get current location
+  // Initialize the location data safely
   useEffect(() => {
+    // If we have an initial location from props, use it
+    if (initialLocation && 
+        typeof initialLocation.latitude === 'number' && 
+        typeof initialLocation.longitude === 'number') {
+      setLocation(initialLocation);
+      setAddress(initialLocation.address || null);
+      
+      // Create marker for initial location
+      if (initialLocation.latitude && initialLocation.longitude) {
+        updateMarkers(initialLocation);
+      }
+      
+      // No need to request location if we already have it
+      return;
+    }
+    
+    // Otherwise try to get the current location
     (async () => {
       setLoading(true);
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         setLocationPermission(status === 'granted');
         
+        // If permission granted, try to get current location
         if (status === 'granted') {
-          const currentLocation = await Location.getCurrentPositionAsync({});
-          const newLocation = {
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.longitude,
-          };
-          setLocation(newLocation);
-          updateMarkers(newLocation);
-          
-          // Get address from coordinates
-          const addressResponse = await Location.reverseGeocodeAsync({
-            latitude: newLocation.latitude,
-            longitude: newLocation.longitude,
-          });
-          
-          if (addressResponse && addressResponse.length > 0) {
-            const addressObj = addressResponse[0];
-            const formattedAddress = [
-              addressObj.name,
-              addressObj.street,
-              addressObj.district,
-              addressObj.city,
-              addressObj.region,
-              addressObj.country,
-            ]
-              .filter(Boolean)
-              .join(', ');
+          try {
+            const currentLocation = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 5000,
+            });
             
-            setAddress(formattedAddress);
-            
-            const locationWithAddress = {
-              ...newLocation,
-              address: formattedAddress,
+            const newLocation = {
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
             };
             
-            onLocationChange(locationWithAddress);
-          } else {
-            onLocationChange(newLocation);
+            setLocation(newLocation);
+            updateMarkers(newLocation);
+            
+            // Try to get address from coordinates
+            try {
+              const addressResponse = await Location.reverseGeocodeAsync(newLocation);
+              
+              if (addressResponse && addressResponse.length > 0) {
+                const addressObj = addressResponse[0];
+                const formattedAddress = [
+                  addressObj.name,
+                  addressObj.street,
+                  addressObj.district,
+                  addressObj.city,
+                  addressObj.region,
+                  addressObj.country,
+                ]
+                  .filter(Boolean)
+                  .join(', ');
+                
+                setAddress(formattedAddress);
+                
+                const locationWithAddress = {
+                  ...newLocation,
+                  address: formattedAddress,
+                };
+                
+                onLocationChange(locationWithAddress);
+              } else {
+                // No address found, but we still have coordinates
+                onLocationChange(newLocation);
+              }
+            } catch (geoError) {
+              console.log('Error getting address', geoError);
+              // Still have coordinates even if address lookup failed
+              onLocationChange(newLocation);
+            }
+          } catch (locError) {
+            console.log('Error getting current position', locError);
+            // Fall back to default location if getting current location fails
+            setLocation(DEFAULT_LOCATION);
+            updateMarkers(DEFAULT_LOCATION);
+            setAddress(DEFAULT_LOCATION.address || null);
+            onLocationChange(DEFAULT_LOCATION);
           }
+        } else {
+          // Permission denied, use default location
+          setLocation(DEFAULT_LOCATION);
+          updateMarkers(DEFAULT_LOCATION);
+          setAddress(DEFAULT_LOCATION.address || null);
+          onLocationChange(DEFAULT_LOCATION);
         }
       } catch (error) {
-        console.log('Error getting location', error);
+        console.log('Error in location initialization', error);
+        setMapError(true);
+        // Use default location as fallback
+        setLocation(DEFAULT_LOCATION);
+        updateMarkers(DEFAULT_LOCATION);
+        setAddress(DEFAULT_LOCATION.address || null);
+        onLocationChange(DEFAULT_LOCATION);
       } finally {
         setLoading(false);
       }
     })();
-  }, [initialLocation]);
-  
-  // Update markers when location changes
+  }, []);
+      // Update markers when location changes
   const updateMarkers = (newLocation: LocationData) => {
+    if (!newLocation || typeof newLocation.latitude !== 'number' || typeof newLocation.longitude !== 'number') {
+      console.log('Invalid location data provided to updateMarkers');
+      return;
+    }
+    
     setMarkers([
       {
         coordinate: {
@@ -95,85 +166,31 @@ export function LocationSelector({
           longitude: newLocation.longitude,
         },
         title: 'Selected Location',
-        description: address || 'Your selected location',
+        description: (newLocation.address || address) || 'Your selected location',
       },
     ]);
   };
-  
-  // Handle map press to update location
+    // Handle map press to update location
   const handleMapPress = async (event: any) => {
+    if (!event || !event.nativeEvent || !event.nativeEvent.coordinate) {
+      console.log('Invalid map press event');
+      return;
+    }
+    
     const coordinate = event.nativeEvent.coordinate;
     const newLocation = {
       latitude: coordinate.latitude,
       longitude: coordinate.longitude,
     };
-    
-    setLocation(newLocation);
+      setLocation(newLocation);
     updateMarkers(newLocation);
     
     setLoading(true);
-    try {
-      // Get address from coordinates
-      const addressResponse = await Location.reverseGeocodeAsync(coordinate);
-      
-      if (addressResponse && addressResponse.length > 0) {
-        const addressObj = addressResponse[0];
-        const formattedAddress = [
-          addressObj.name,
-          addressObj.street,
-          addressObj.district,
-          addressObj.city,
-          addressObj.region,
-          addressObj.country,
-        ]
-          .filter(Boolean)
-          .join(', ');
-        
-        setAddress(formattedAddress);
-        
-        const locationWithAddress = {
-          ...newLocation,
-          address: formattedAddress,
-        };
-        
-        onLocationChange(locationWithAddress);
-      } else {
-        onLocationChange(newLocation);
-      }
-    } catch (error) {
-      console.log('Error getting address', error);
-      onLocationChange(newLocation);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Use current location
-  const useCurrentLocation = async () => {
-    if (!locationPermission) {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
-      
-      if (status !== 'granted') {
-        return;
-      }
-    }
-    
-    setLoading(true);
-    try {
-      const currentLocation = await Location.getCurrentPositionAsync({});
-      const newLocation = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      };
-      
-      setLocation(newLocation);
-      updateMarkers(newLocation);
-      
+      try {      
       // Get address from coordinates
       const addressResponse = await Location.reverseGeocodeAsync({
         latitude: newLocation.latitude,
-        longitude: newLocation.longitude,
+        longitude: newLocation.longitude
       });
       
       if (addressResponse && addressResponse.length > 0) {
@@ -201,7 +218,98 @@ export function LocationSelector({
         onLocationChange(newLocation);
       }
     } catch (error) {
+      console.log('Error getting address', error);
+      // Still update with coordinates even if getting address fails
+      onLocationChange(newLocation);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Use current location
+  const useCurrentLocation = async () => {
+    if (!locationPermission) {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        setLocationPermission(status === 'granted');
+        
+        if (status !== 'granted') {
+          Alert.alert(
+            "Permission Required",
+            "Please allow location access to use this feature",
+            [{ text: "OK" }]
+          );
+          return;
+        }
+      } catch (error) {
+        console.log('Error requesting location permission', error);
+        return;
+      }
+    }
+    
+    setLoading(true);
+    try {
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000,
+      });
+      
+      const newLocation = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      };
+      
+      setLocation(newLocation);
+      updateMarkers(newLocation);
+      
+      // Get address from coordinates
+      try {
+        const addressResponse = await Location.reverseGeocodeAsync(newLocation);
+        
+        if (addressResponse && addressResponse.length > 0) {
+          const addressObj = addressResponse[0];
+          const formattedAddress = [
+            addressObj.name,
+            addressObj.street,
+            addressObj.district,
+            addressObj.city,
+            addressObj.region,
+            addressObj.country,
+          ]
+            .filter(Boolean)
+            .join(', ');
+          
+          setAddress(formattedAddress);
+          
+          const locationWithAddress = {
+            ...newLocation,
+            address: formattedAddress,
+          };
+          
+          onLocationChange(locationWithAddress);
+        } else {
+          onLocationChange(newLocation);
+        }
+      } catch (geoError) {
+        console.log('Error getting address', geoError);
+        // Still update with coordinates even if getting address fails
+        onLocationChange(newLocation);
+      }
+    } catch (error) {
       console.log('Error getting current location', error);
+      Alert.alert(
+        "Location Error",
+        "Could not get your current location. Please check your device settings.",
+        [{ text: "OK" }]
+      );
+      
+      // If we don't have a location yet, use the default
+      if (!location) {
+        setLocation(DEFAULT_LOCATION);
+        updateMarkers(DEFAULT_LOCATION);
+        setAddress(DEFAULT_LOCATION.address || null);
+        onLocationChange(DEFAULT_LOCATION);
+      }
     } finally {
       setLoading(false);
     }
@@ -227,12 +335,9 @@ export function LocationSelector({
   }
   
   return (
-    <View style={[styles.container, { height }]}>
-      {title ? <Text style={styles.title}>{title}</Text> : null}
-      
-      <View style={styles.mapContainer}>
-        {location ? (
-          <CustomMapView
+    <View style={[styles.container, { height }]}>      {title ? <Text style={styles.title}>{title}</Text> : null}
+        <View style={styles.mapContainer}>
+        {location ? (          <CustomMapView
             style={styles.map}
             initialRegion={{
               latitude: location.latitude,
@@ -242,7 +347,7 @@ export function LocationSelector({
             }}
             markers={markers}
             onPress={handleMapPress}
-            showsUserLocation={true}
+            showUserLocation={true}
           />
         ) : (
           <View style={styles.loadingContainer}>

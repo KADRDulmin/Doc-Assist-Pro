@@ -1,87 +1,88 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
-// Import our safe map component instead of using react-native-maps directly
-import { SafeMapView, Marker, PROVIDER_GOOGLE } from '@/components/common';
-
-// Import the web map loader utility (only used on web platform)
-import loadGoogleMapsAPI from '@/src/utils/loadGoogleMapsAPI';
+import { StyleSheet, View, Platform, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeMapView, Marker } from '../common';
+import type { MapViewProps } from './types';
 
 /**
  * Cross-platform Map component that works on iOS, Android, and Web
  */
-export function CustomMapView({ 
+export default function CustomMapView({ 
   style, 
   initialRegion,
   markers = [],
   onRegionChange,
   showUserLocation = false,
+  onPress,
   ...props 
-}) {
-  // When on web platform, we need to ensure Google Maps is loaded
-  const [mapsLoaded, setMapsLoaded] = useState(Platform.OS !== 'web');
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      loadGoogleMapsAPI(() => {
-        setMapsLoaded(true);
-      });
-    }
-  }, []);
-
-  // Default region (Colombo, Sri Lanka)
-  const defaultRegion = {
-    latitude: 6.9271,
-    longitude: 79.8612,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  };
-
-  if (Platform.OS === 'web' && !mapsLoaded) {
+}: MapViewProps) {
+  const [mapError, setMapError] = useState<string | null>(null);
+  // If there's an error loading the map
+  if (mapError) {
     return (
       <View style={[styles.container, style]}>
-        <View style={styles.loadingContainer}>
-          {/* You can replace this with a loading indicator */}
-          <View style={styles.loading} />
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
+          <Text style={styles.errorText}>
+            {mapError || 'There was a problem loading the map'}
+          </Text>
         </View>
       </View>
     );
   }
 
   return (
-    <SafeMapView
-      style={[styles.container, style]}
-      provider={PROVIDER_GOOGLE}
-      initialRegion={initialRegion || defaultRegion}
-      onRegionChange={onRegionChange}
-      showUserLocation={showUserLocation}
-      markers={markers}
-      {...props}
-    />
+    <View style={[styles.container, style]}>
+      <SafeMapView
+        style={styles.map}
+        initialRegion={initialRegion}
+        showUserLocation={showUserLocation}
+        onRegionChange={onRegionChange}
+        onPress={onPress}
+        markers={markers}
+        {...props}
+      >
+        {markers && markers.map((marker, index) => (
+          <Marker
+            key={index}
+            coordinate={marker.coordinate}
+            title={marker.title}
+            description={marker.description}
+          />
+        ))}      </SafeMapView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    position: 'relative',
+    height: 300,
     width: '100%',
-    height: 300, // Default height
+    overflow: 'hidden',
+    borderRadius: 8,
+  },
+  map: {
+    flex: 1,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 10,
+    textAlign: 'center',
+    color: '#495057',
+    fontSize: 16,
   },
   loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loading: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 4,
-    borderColor: '#0a7ea4',
-    borderTopColor: 'transparent',
-    borderRightColor: 'rgba(10, 126, 164, 0.5)',
-    borderBottomColor: 'rgba(10, 126, 164, 0.8)',
-  },
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    zIndex: 5,
+  }
 });
-
-export default CustomMapView;
