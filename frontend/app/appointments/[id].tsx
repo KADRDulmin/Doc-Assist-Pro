@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import appointmentService, { AppointmentData } from '@/src/services/appointment.service';
+import doctorService from '@/src/services/doctor.service';
 
 export default function AppointmentDetailsScreen() {
   const params = useLocalSearchParams();
@@ -28,6 +29,7 @@ export default function AppointmentDetailsScreen() {
   const [appointment, setAppointment] = useState<AppointmentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [doctorAddress, setDoctorAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (appointmentId) {
@@ -37,7 +39,6 @@ export default function AppointmentDetailsScreen() {
       setLoading(false);
     }
   }, [appointmentId]);
-
   const loadAppointmentDetails = async () => {
     setLoading(true);
     setError(null);
@@ -47,6 +48,19 @@ export default function AppointmentDetailsScreen() {
       
       if (response.success && response.data) {
         setAppointment(response.data);
+        
+        // Fetch doctor details to get address
+        if (response.data.doctor?.id) {
+          try {
+            const doctorResponse = await doctorService.getDoctorById(response.data.doctor.id);
+            if (doctorResponse.success && doctorResponse.data) {
+              setDoctorAddress(doctorResponse.data.address || null);
+            }
+          } catch (doctorErr) {
+            console.error('Error loading doctor address:', doctorErr);
+            // We don't show an error for this as it's not critical
+          }
+        }
       } else {
         setError(response.message || 'Failed to load appointment details');
       }
@@ -87,15 +101,16 @@ export default function AppointmentDetailsScreen() {
       ]
     );
   };
-
   // Function to open Google Maps with directions to the clinic
   const handleNavigateToClinic = () => {
-    if (!appointment?.location) {
+    const locationToUse = appointment?.location || doctorAddress;
+    
+    if (!locationToUse) {
       Alert.alert('Error', 'No location information available for this appointment');
       return;
     }
 
-    const destination = encodeURIComponent(appointment.location);
+    const destination = encodeURIComponent(locationToUse);
     const url = Platform.select({
       ios: `maps://app?daddr=${destination}&dirflg=d`,
       android: `google.navigation:q=${destination}`,
@@ -360,8 +375,7 @@ export default function AppointmentDetailsScreen() {
                   }
                 </ThemedText>
               </View>
-            </View>
-              {appointment.location && (
+            </View>              {(appointment.location || doctorAddress) && (
               <View style={styles.detailRow}>
                 <View style={[styles.detailIconContainer, {
                   backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
@@ -372,7 +386,19 @@ export default function AppointmentDetailsScreen() {
                 <View style={styles.detailContent}>
                   <ThemedText style={styles.detailLabel}>Location</ThemedText>
                   <View style={styles.locationContainer}>
-                    <ThemedText style={[styles.detailValue, {flex: 1, marginRight: 10}]}>{appointment.location}</ThemedText>
+                    <View style={{flex: 1, marginRight: 10}}>
+                      {/* Show clinic name */}
+                      {appointment.location && (
+                        <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
+                      )}
+                      
+                      {/* Show doctor address if available */}
+                      {doctorAddress && (
+                        <ThemedText style={[styles.detailValueAddress, {marginTop: appointment.location ? 4 : 0}]}>
+                          {doctorAddress}
+                        </ThemedText>
+                      )}
+                    </View>
                     <TouchableOpacity 
                       style={styles.locationDirectionsButton}
                       onPress={handleNavigateToClinic}
@@ -582,7 +608,17 @@ export default function AppointmentDetailsScreen() {
           {appointment.doctor && appointment.status !== 'cancelled' && (
             <TouchableOpacity
               style={styles.contactDoctorButton}
-              onPress={() => router.push(`/doctors/${appointment.doctor?.id}`)}
+              onPress={() => {
+                if (appointment.doctor?.user?.phone) {
+                  // Make an actual phone call
+                  const phoneNumber = appointment.doctor.user.phone.replace(/\s/g, '');
+                  Linking.openURL(`tel:${phoneNumber}`);
+                } else {
+                  // If no phone number, redirect to doctor profile
+                  router.push(`/doctors/${appointment.doctor?.id}`);
+                  Alert.alert('No phone number', 'No phone number available for this doctor. Redirecting to profile.');
+                }
+              }}
             >
               <LinearGradient
                 colors={isDarkMode ? ['#1D3D47', '#0f1e23'] : ['#0a7ea4', '#055976']}
@@ -591,7 +627,7 @@ export default function AppointmentDetailsScreen() {
                 style={styles.contactBtnGradient}
               >
                 <Ionicons name="call" size={20} color="#fff" style={styles.contactBtnIcon} />
-                <ThemedText style={styles.contactBtnText}>Contact Doctor</ThemedText>
+                <ThemedText style={styles.contactBtnText}>Call Doctor</ThemedText>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -733,6 +769,11 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  detailValueAddress: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#888',
   },
   notesContent: {
     fontSize: 15,
