@@ -112,14 +112,11 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
                     name="bell" 
                     size={22} 
                     color="#fff" 
-                  />
-                  {unreadCount > 0 && (
+                  />                  {unreadCount > 0 && (
                     <View style={styles.notificationBadge}>
-                      {unreadCount > 9 ? (
-                        <Text style={styles.badgeText}>9+</Text>
-                      ) : unreadCount > 0 ? (
-                        <Text style={styles.badgeText}>{unreadCount}</Text>
-                      ) : null}
+                      <Text style={styles.badgeText}>
+                        {unreadCount > 9 ? '9+' : unreadCount.toString()}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -131,10 +128,9 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
                 style={styles.avatarContainer} 
                 onPress={openProfile}
                 activeOpacity={0.7}
-              >
-                <View style={styles.avatar}>
+              >                <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {userName.split(' ').map(name => name[0]).join('')}
+                    {userName ? userName.split(' ').map(name => name && name[0] ? name[0] : '').join('') : 'U'}
                   </Text>
                 </View>
               </TouchableOpacity>

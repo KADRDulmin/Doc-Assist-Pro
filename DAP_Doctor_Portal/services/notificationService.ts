@@ -36,101 +36,61 @@ class NotificationService {
       }),
     });
   }
-
   /**
-   * Register for push notifications
-   * @returns The Expo push token if successful
+   * Register for local notifications
+   * @returns A mock token for compatibility with existing code
    */
   static async registerForPushNotifications(): Promise<string | undefined> {
     try {
-      // Check if physical device (push notifications don't work on simulators)
-      if (!Device.isDevice) {
-        console.log('Push notifications require a physical device');
+      // Request permissions for local notifications
+      const { status } = await Notifications.requestPermissionsAsync();
+      
+      if (status !== 'granted') {
+        console.log('Failed to get notification permissions');
         return undefined;
       }
-
-      // Check for existing permissions
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      // If no permission, request it
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push notification permissions');
-        return undefined;
-      }      // Get the token - read projectId from Constants
-      const Constants = require('expo-constants');
-      const projectId = Constants?.expoConfig?.projectId || '3a1c5942-57b7-4642-b11e-0612871190d9';
-      
-      try {
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId
-        });
-        // Store token locally
-      await AsyncStorage.setItem(PUSH_TOKEN_KEY, token.data);
       
       // Configure for Android
       if (Platform.OS === 'android') {
-        Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#0466C8',
-        });
+        try {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#0466C8',
+          });
+        } catch (channelError) {
+          console.log('Error setting up notification channel', channelError);
+        }
       }
       
-      return token.data;
-      } catch (tokenError) {
-        console.log('Push notifications may not be supported in Expo Go for SDK 52+');
-        console.log('For development, we will continue without push notifications');
-        
-        // Configure for Android anyway for local notifications
-        if (Platform.OS === 'android') {
-          try {
-            await Notifications.setNotificationChannelAsync('default', {
-              name: 'default',
-              importance: Notifications.AndroidImportance.MAX,
-              vibrationPattern: [0, 250, 250, 250],
-              lightColor: '#0466C8',
-            });
-          } catch (channelError) {
-            console.log('Error setting up notification channel', channelError);
-          }
-        }
-        
-        // Return a mock token for development
-        return 'expo-push-token-development-mock';
-      }
+      // Return a mock token - we're not actually registering for push notifications
+      // but this keeps the existing code working
+      console.log('Using notification system (local only)');
+      return 'local-notifications-only';
+      
     } catch (error) {
-      console.error('Error registering for push notifications:', error);
+      console.error('Error setting up notifications:', error);
       return undefined;
     }
   }
-
   /**
    * Register the doctor's push token with the backend
+   * (Simplified version - no server integration)
    */
   static async registerPushTokenWithServer(token: string, authToken: string): Promise<boolean> {
-    try {
-      const response: ApiResponse = await api.post('/doctors/register-push-token', { expoPushToken: token }, authToken);
-      return response.success;
-    } catch (error) {
-      console.error('Failed to register push token with server:', error);
-      return false;
-    }
+    // This is a dummy implementation that always succeeds
+    // No server call is made
+    console.log('Push token registration simplified - no server call made');
+    return true;
   }
-
   /**
    * Schedule a local notification
    */
   static async scheduleLocalNotification(
     title: string,
     body: string,
-    trigger: Notifications.NotificationTriggerInput = null,
+    trigger: any = null,
     data: any = {}
   ): Promise<string> {
     try {

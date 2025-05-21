@@ -314,8 +314,7 @@ export function LocationSelector({
       setLoading(false);
     }
   };
-  
-  if (locationPermission === false) {
+    if (locationPermission === false) {
     return (
       <View style={[styles.container, { height }]}>
         <Text style={styles.permissionText}>
