@@ -270,7 +270,66 @@ export default function PatientsScreen() {
                 {selectedPatient.missed_appointments}
               </ThemedText>
               <ThemedText variant="secondary" style={styles.statBoxLabel}>Missed</ThemedText>
-            </ThemedView>
+            </ThemedView>          </View>
+
+          <Divider style={styles.divider} />
+
+          <ThemedText type="subheading" style={styles.appointmentSummaryTitle}>
+            Medical Information
+          </ThemedText>
+
+          <View style={styles.medicalInfoContainer}>
+            {selectedPatient.date_of_birth && (
+              <View style={styles.medicalInfoItem}>
+                <FontAwesome5 name="birthday-cake" size={14} color={Colors[theme].primary} />
+                <View style={styles.medicalInfoContent}>
+                  <ThemedText type="default" style={styles.medicalInfoLabel}>Date of Birth:</ThemedText>
+                  <ThemedText variant="secondary" style={styles.medicalInfoValue}>
+                    {new Date(selectedPatient.date_of_birth).toLocaleDateString()}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+
+            {selectedPatient.blood_group && (
+              <View style={styles.medicalInfoItem}>
+                <FontAwesome5 name="tint" size={14} color={Colors[theme].primary} />
+                <View style={styles.medicalInfoContent}>
+                  <ThemedText type="default" style={styles.medicalInfoLabel}>Blood Group:</ThemedText>
+                  <ThemedText variant="secondary" style={styles.medicalInfoValue}>
+                    {selectedPatient.blood_group}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+
+            {selectedPatient.allergies && (
+              <View style={styles.medicalInfoItem}>
+                <FontAwesome5 name="exclamation-triangle" size={14} color={Colors[theme].warning} />
+                <View style={styles.medicalInfoContent}>
+                  <ThemedText type="default" style={styles.medicalInfoLabel}>Allergies:</ThemedText>
+                  <ThemedText variant="secondary" style={styles.medicalInfoValue}>
+                    {selectedPatient.allergies}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+
+            {selectedPatient.medical_history && (
+              <View style={[styles.medicalInfoItem, {marginBottom: 0}]}>
+                <FontAwesome5 name="file-medical-alt" size={14} color={Colors[theme].primary} />
+                <View style={styles.medicalInfoContent}>
+                  <ThemedText type="default" style={styles.medicalInfoLabel}>Prior Medical History:</ThemedText>
+                  <ThemedText 
+                    variant="secondary" 
+                    style={styles.medicalInfoValue}
+                    numberOfLines={3}
+                  >
+                    {selectedPatient.medical_history}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
           </View>
           
           <View style={styles.actionButtonsContainer}>
@@ -572,10 +631,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionButtonText: {
+  },  actionButtonText: {
     color: 'white',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  medicalInfoContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  medicalInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  medicalInfoContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  medicalInfoLabel: {
+    fontWeight: '500',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  medicalInfoValue: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

@@ -130,6 +130,9 @@ export interface PatientData {
   };
   date_of_birth?: string; // Added to support age calculation
   age?: number; // Added to support age property access
+  blood_group?: string;
+  allergies?: string;
+  medical_history?: string;
   appointment_count: number;
   completed_appointments: number;
   cancelled_appointments: number;
