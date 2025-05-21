@@ -227,11 +227,10 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#151718' : '#f8f8f8' }]}>
-        <ActivityIndicator size="large" color={iconColor} />
+        <ActivityIndicator testID="profile-loading" size="large" color={iconColor} />
         <ThemedText style={styles.loadingText}>Loading your profile...</ThemedText>
       </SafeAreaView>
     );
@@ -265,9 +264,8 @@ export default function ProfileScreen() {
 
           <View style={styles.profileInfo}>
             <ThemedText style={styles.profileName}>{profile?.name || 'User'}</ThemedText>
-            <ThemedText style={styles.profileEmail}>{profile?.email || 'user@example.com'}</ThemedText>
-
-            <TouchableOpacity
+            <ThemedText style={styles.profileEmail}>{profile?.email || 'user@example.com'}</ThemedText>            <TouchableOpacity
+              testID="edit-profile-button"
               style={[styles.editProfileButton, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}
               onPress={() => router.push('/edit-profile')}
             >
@@ -432,14 +430,13 @@ export default function ProfileScreen() {
           <View style={styles.cardHeader}>
             <Ionicons name="settings" size={22} color={iconColor} />
             <ThemedText style={styles.cardTitle}>App Settings</ThemedText>
-          </View>
-
-          <View style={styles.settingRow}>
+          </View>          <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
               <Ionicons name="notifications" size={20} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Notifications</ThemedText>
             </View>
             <Switch
+              testID="notifications-switch"
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
               trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}
@@ -458,27 +455,25 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
-          <View style={[styles.divider, { backgroundColor: dividerColor }]} />
-
-          <View style={styles.settingRow}>
+          <View style={[styles.divider, { backgroundColor: dividerColor }]} />          <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
               <Ionicons name="moon" size={20} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
             </View>
             <Switch
+              testID="darkmode-switch"
               value={darkModeEnabled}
               onValueChange={toggleDarkMode}
               trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}
               thumbColor={darkModeEnabled ? '#f4f3f4' : '#f4f3f4'}
             />
-          </View>
-
-          <View style={styles.settingRow}>
+          </View>          <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
               <Ionicons name="location" size={20} color={iconColor} />
               <ThemedText style={styles.settingLabel}>Location Services</ThemedText>
             </View>
             <Switch
+              testID="location-switch"
               value={locationEnabled}
               onValueChange={toggleLocation}
               trackColor={{ false: '#767577', true: isDarkMode ? '#A1CEDC' : '#0a7ea4' }}

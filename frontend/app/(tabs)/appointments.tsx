@@ -364,10 +364,9 @@ export default function AppointmentsScreen() {
             colors={colorScheme === 'dark' ? 
               ['rgba(161, 206, 220, 0.15)', 'rgba(161, 206, 220, 0.05)'] : 
               ['rgba(10, 126, 164, 0.1)', 'rgba(10, 126, 164, 0.03)']
-            }
-            style={styles.emptyGradient}
+            }            style={styles.emptyGradient}
           >
-            <ActivityIndicator size="large" color={primaryColor} />
+            <ActivityIndicator testID="appointments-loading" size="large" color={primaryColor} />
           </LinearGradient>
         </View>
         <ThemedText style={styles.emptyTitle}>Loading Appointments</ThemedText>
@@ -526,9 +525,8 @@ export default function AppointmentsScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
-
-      <FlatList
+      </LinearGradient>      <FlatList
+        testID="appointments-list"
         data={sortedAppointments}
         renderItem={renderAppointmentItem}
         keyExtractor={(item) => item.id.toString()}

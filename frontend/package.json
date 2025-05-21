@@ -11,7 +11,14 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "CI=false expo start --web",
-    "test": "jest --watchAll",
+    "test": "jest",
+    "test:watch": "jest --watchAll",
+    "test:coverage": "jest --coverage",
+    "test:debug": "jest --detectOpenHandles",
+    "test:ci": "powershell.exe -Command \"$env:NODE_OPTIONS='--max_old_space_size=4096'; jest --config=jest.config.js --runInBand --forceExit --detectOpenHandles\"",
+    "test:prepare": "node ./scripts/add-test-ids.js",
+    "test:one": "powershell.exe -Command \"$env:NODE_OPTIONS='--max_old_space_size=4096'; jest --config=jest.config.js --testTimeout=30000 --runInBand\"",
+    "test:batch": "scripts\\run-tests.bat",
     "lint": "expo lint",
     "docker-start": "CI=false EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 expo start --web",
     "docker-start-expo": "CI=false EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0 PORT=8081 expo start --port 8081",
@@ -21,7 +28,31 @@
     "expo": "expo"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "./jest.setup.js"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
+    "collectCoverageFrom": [
+      "app/**/*.{js,jsx,ts,tsx}",
+      "!**/node_modules/**",
+      "!**/coverage/**"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
+    "testEnvironment": "node",
+    "verbose": true
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
@@ -73,6 +104,8 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@svgr/webpack": "^8.1.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^12.9.0",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.3.12",
     "@types/react-test-renderer": "^18.3.0",

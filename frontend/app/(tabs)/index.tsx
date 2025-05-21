@@ -463,11 +463,10 @@ export default function HomeScreen() {
   
   const sidebarGradientDark = ['#1D3D47', '#0f1e23'] as const;
   const sidebarGradientLight = ['#ffffff', '#f7f7f7'] as const;
-
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
+        <ActivityIndicator testID="loading-indicator" size="large" color={colorScheme === 'dark' ? '#A1CEDC' : '#0a7ea4'} />
         <ThemedText style={{ marginTop: 20 }}>Loading your data...</ThemedText>
       </SafeAreaView>
     );
@@ -540,10 +539,9 @@ export default function HomeScreen() {
             </ThemedText>
           </TouchableOpacity>
         </LinearGradient>
-      </Animated.View>
-
-      {/* Main Dashboard Content */}
+      </Animated.View>      {/* Main Dashboard Content */}
       <ScrollView
+        testID="home-scroll-view"
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         refreshControl={

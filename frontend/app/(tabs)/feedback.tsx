@@ -364,9 +364,8 @@ export default function FeedbackScreen() {
                       </View>
                     </View>
 
-                    <View style={styles.feedbackContent}>
-                      <View style={styles.ratingSection}>
-                        <View style={styles.starsRow}>
+                    <View style={styles.feedbackContent}>                      <View style={styles.ratingSection}>
+                        <View testID="rating-stars" style={styles.starsRow}>
                           {[1, 2, 3, 4, 5].map(star => (
                             <MaterialIcons
                               key={star}
@@ -403,11 +402,9 @@ export default function FeedbackScreen() {
               </>
             )}
           </>
-        )}
-
-        {/* Loading state */}
+        )}        {/* Loading state */}
         {isLoading && (
-          <ThemedView style={styles.emptyState}>
+          <ThemedView testID="feedback-loading" style={styles.emptyState}>
             <MaterialIcons 
               name="refresh" 
               size={40} 
