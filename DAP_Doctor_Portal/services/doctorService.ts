@@ -150,6 +150,17 @@ export interface DoctorWithDistanceData extends DoctorProfile {
   availableToday?: boolean;
 }
 
+interface UpdateProfileData {
+  specialization: string;
+  years_of_experience: number;
+  education: string;
+  bio: string;
+  consultation_fee: number;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 // Helper function to get current user ID
 const getCurrentUserId = async (token: string): Promise<number | undefined> => {
   try {
@@ -167,15 +178,34 @@ const getCurrentUserId = async (token: string): Promise<number | undefined> => {
 const doctorService = {
   // Include the BASE_URL for access in other components
   BASE_URL,
-  
-  // Get doctor's profile
+    // Get doctor's profile
   getProfile: async (token: string): Promise<ApiResponse<DoctorProfile>> => {
     return api.get<DoctorProfile>('/doctors/profile/me', token);
   },
-  
+
   // Update doctor's profile
-  updateProfile: async (profileData: Partial<DoctorProfile>, token: string): Promise<ApiResponse<DoctorProfile>> => {
-    return api.put<DoctorProfile>('/doctors/profile/me', profileData, token);
+  updateProfile: async (token: string, data: UpdateProfileData): Promise<ApiResponse<DoctorProfile>> => {
+    try {
+      return await api.put('/doctors/me/profile', data, token);
+    } catch (error) {
+      console.error('Error updating doctor profile:', error);
+      return {
+        success: false,
+        error: 'Failed to update profile'
+      };
+    }
+  },
+    // Update doctor's profile
+  updateProfile: async (token: string, data: UpdateProfileData): Promise<ApiResponse<DoctorProfile>> => {
+    try {
+      return await api.put('/doctors/me/profile', data, token);
+    } catch (error) {
+      console.error('Error updating doctor profile:', error);
+      return {
+        success: false,
+        error: 'Failed to update profile'
+      };
+    }
   },
   
   // Get doctor's dashboard data - Now always gets user ID first
@@ -378,6 +408,7 @@ const doctorService = {
   getFeedbackByAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<FeedbackData>> => {
     return api.get<FeedbackData>(`/feedback/appointment/${appointmentId}`, token);
   },
+
 };
 
 export default doctorService;

@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { ThemedView } from '../../components/ThemedView';
@@ -15,9 +16,11 @@ import Colors from '../../constants/Colors';
 import ModernHeader from '../../components/ui/ModernHeader';
 import doctorService from '../../services/doctorService';
 
-export default function ProfileScreen() {  const { user, signOut } = useAuth();
+export default function ProfileScreen() {
+  const { user, signOut } = useAuth();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const router = useRouter();
   
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -450,10 +453,9 @@ export default function ProfileScreen() {  const { user, signOut } = useAuth();
         </ThemedView>
         
         {/* Actions */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity 
+        <View style={styles.actionsContainer}>          <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => Alert.alert('Edit Profile', 'This feature will be available in the next update.')}
+            onPress={() => router.push("/edit-profile")}
           >
             <LinearGradient
               colors={Colors[theme].primary === Colors.light.primary 
