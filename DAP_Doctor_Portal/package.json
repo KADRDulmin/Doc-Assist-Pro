@@ -1,8 +1,7 @@
 {
   "name": "dap_doctor_portal",
   "main": "expo-router/entry",
-  "version": "1.0.0",
-  "scripts": {
+  "version": "1.0.0",  "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
@@ -12,10 +11,9 @@
     "device:android": "node ./scripts/start-with-device-ip.js --android",
     "device:ios": "node ./scripts/start-with-device-ip.js --ios",
     "test": "jest --watchAll",
+    "test:ci": "jest",
+    "test:coverage": "jest --coverage",
     "lint": "expo lint"
-  },
-  "jest": {
-    "preset": "jest-expo"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
@@ -78,6 +76,8 @@
     "@babel/plugin-syntax-jsx": "^7.27.1",
     "@babel/preset-react": "^7.27.1",
     "@svgr/webpack": "^8.1.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.3.12",
     "@types/react-test-renderer": "^18.3.0",
@@ -86,7 +86,29 @@
     "jest-expo": "~52.0.6",
     "react-test-renderer": "18.3.1",
     "typescript": "^5.3.3",
-    "url-loader": "^4.1.1"
+    "url-loader": "^4.1.1"  },  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+    ],
+    "setupFilesAfterEnv": ["./jest.setup.js"],    "testMatch": [
+      "**/__tests__/SimpleComponent-test.js",
+      "**/__tests__/setup-test.js", 
+      "**/__tests__/BasicUtils-test.js",
+      "**/__tests__/MathUtils-test.js",
+      "**/__tests__/DateUtils-test.js",
+      "**/__tests__/MockComponents-test.js",
+      "**/__tests__/ModernHeader-test.js",
+      "**/__tests__/NumberOperations-test.js",
+      "**/__tests__/ReactBasics-test.js",
+      "**/components/__tests__/ThemedText-test.tsx"
+    ],
+    "collectCoverage": false,
+    "testEnvironment": "node",
+    "verbose": true,
+    "moduleNameMapper": {
+      "@/(.*)": "<rootDir>/$1"
+    }
   },
   "private": true
 }

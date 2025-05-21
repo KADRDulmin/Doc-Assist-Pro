@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ModernHeader Component Tests passes snapshot test 1`] = `
+<View
+  testID="header-container"
+>
+  <Text
+    testID="header-title"
+  >
+    Doc Assist Pro
+  </Text>
+</View>
+`;

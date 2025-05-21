@@ -106,34 +106,34 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
                 style={styles.iconButton} 
                 onPress={openNotifications}
                 activeOpacity={0.7}
-              >
-                <View style={styles.notificationContainer}>                  <Text style={{ color: 'transparent' }}>
+              >                <View style={styles.notificationContainer} testID="notification-container">                  <Text style={{ color: 'transparent' }}>
                     <FontAwesome5 
                       name="bell" 
                       size={22} 
                       color="#fff" 
+                      testID="notification-icon"
                     />
                   </Text>
                   {unreadCount > 0 && (
-                    <View style={styles.notificationBadge}>
+                    <View style={styles.notificationBadge} testID="notification-badge">
                       {unreadCount > 9 ? (
-                        <Text style={styles.badgeText}>9+</Text>
+                        <Text style={styles.badgeText} testID="notification-badge-text">9+</Text>
                       ) : unreadCount > 0 ? (
-                        <Text style={styles.badgeText}>{unreadCount}</Text>
+                        <Text style={styles.badgeText} testID="notification-badge-text">{unreadCount}</Text>
                       ) : null}
                     </View>
                   )}
                 </View>
               </TouchableOpacity>
             )}
-              {showAvatar && (
-              <TouchableOpacity 
+              {showAvatar && (              <TouchableOpacity 
                 style={styles.avatarContainer} 
                 onPress={openProfile}
                 activeOpacity={0.7}
+                testID="avatar-button"
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
+                <View style={styles.avatar} testID="avatar-container">
+                  <Text style={styles.avatarText} testID="avatar-text">
                     {userName.split(' ').map(name => name[0]).join('')}
                   </Text>
                 </View>
