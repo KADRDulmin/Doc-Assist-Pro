@@ -211,7 +211,6 @@ export default function AppointmentDetailsScreen() {
   const headerGradientLight = ['#A1CEDC', '#78b1c4'] as const;
 
   const statusStyles = getStatusStyles();
-
   return (
     <>
       <Stack.Screen
@@ -222,22 +221,36 @@ export default function AppointmentDetailsScreen() {
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: '600',
+            fontSize: 18,
           },
           headerShadowVisible: false,
         }}
       />
 
-      <ScrollView style={[styles.container, {backgroundColor: isDarkMode ? '#151718' : '#f8f8f8'}]}>
+      <ScrollView style={[styles.container, {backgroundColor: isDarkMode ? '#121212' : '#F5F7FA'}]}>
         <View style={styles.content}>
           {/* Status Badge */}
           <View style={styles.statusContainer}>
-            <View 
-              style={[
-                styles.statusBadge, 
-                { backgroundColor: statusStyles.backgroundColor }
+            <LinearGradient
+              colors={[
+                statusStyles.color + '40', // Adding 40 for 25% opacity
+                statusStyles.color + '20'  // Adding 20 for 12% opacity
               ]}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.statusBadge}
             >
+              <Ionicons 
+                name={
+                  appointment.status === 'upcoming' ? 'time-outline' : 
+                  appointment.status === 'completed' ? 'checkmark-circle-outline' :
+                  appointment.status === 'cancelled' ? 'close-circle-outline' : 'alert-circle-outline'
+                } 
+                size={18} 
+                color={statusStyles.color} 
+                style={{marginRight: 8}}
+              />
               <ThemedText 
                 style={[
                   styles.statusText, 
@@ -246,20 +259,27 @@ export default function AppointmentDetailsScreen() {
               >
                 {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
               </ThemedText>
-            </View>
-          </View>
-
-          {/* Doctor Information */}
+            </LinearGradient>
+          </View>          {/* Doctor Information */}
           <ThemedView style={[
             styles.doctorCard, 
-            {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+            {
+              backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+              shadowColor: isDarkMode ? '#000' : '#2C3E50',
+              shadowOffset: {width: 0, height: 4},
+              shadowOpacity: isDarkMode ? 0.3 : 0.1,
+              shadowRadius: 8,
+              elevation: 4
+            }
           ]}>
             <View style={styles.doctorAvatarContainer}>
               <LinearGradient
-                colors={isDarkMode ? headerGradientDark : headerGradientLight}
+                colors={isDarkMode ? ['#2E78B7', '#144272'] : ['#3498DB', '#2980B9']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
                 style={styles.doctorAvatar}
               >
-                <Ionicons name="person" size={40} color="#fff" />
+                <Ionicons name="person" size={32} color="#fff" />
               </LinearGradient>
             </View>
             
@@ -270,25 +290,38 @@ export default function AppointmentDetailsScreen() {
                   : 'Doctor'
                 }
               </ThemedText>
-              <ThemedText style={[styles.doctorSpecialty, {opacity: isDarkMode ? 0.8 : 0.7}]}>
-                {appointment.doctor?.specialization || 'Specialist'}
-              </ThemedText>
+              <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
+                <Ionicons name="medical" size={14} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} style={{marginRight: 6}} />
+                <ThemedText style={styles.doctorSpecialty}>
+                  {appointment.doctor?.specialization || 'Specialist'}
+                </ThemedText>
+              </View>
             </View>
+            
           </ThemedView>
 
-          {/* Appointment Details */}
-          <ThemedView style={[
+          {/* Appointment Details */}          <ThemedView style={[
             styles.detailsCard,
-            {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+            {
+              backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+              shadowColor: isDarkMode ? '#000' : '#2C3E50',
+              shadowOffset: {width: 0, height: 4},
+              shadowOpacity: isDarkMode ? 0.3 : 0.1,
+              shadowRadius: 8,
+              elevation: 4
+            }
           ]}>
             <ThemedText style={styles.sectionTitle}>Appointment Details</ThemedText>
             
             <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Ionicons name="calendar" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+              <View style={[styles.detailIconContainer, {
+                backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
+                borderRadius: 10
+              }]}>
+                <Ionicons name="calendar" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
-              <View>
-                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Date</ThemedText>
+              <View style={styles.detailContent}>
+                <ThemedText style={styles.detailLabel}>Date</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {formatDate(appointment.appointment_date)}
                 </ThemedText>
@@ -296,11 +329,14 @@ export default function AppointmentDetailsScreen() {
             </View>
             
             <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Ionicons name="time" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+              <View style={[styles.detailIconContainer, {
+                backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
+                borderRadius: 10
+              }]}>
+                <Ionicons name="time" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
-              <View>
-                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Time</ThemedText>
+              <View style={styles.detailContent}>
+                <ThemedText style={styles.detailLabel}>Time</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {formatTime(appointment.appointment_time)}
                 </ThemedText>
@@ -308,11 +344,14 @@ export default function AppointmentDetailsScreen() {
             </View>
             
             <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Ionicons name="medical" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+              <View style={[styles.detailIconContainer, {
+                backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
+                borderRadius: 10
+              }]}>
+                <Ionicons name="medical" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
               </View>
-              <View>
-                <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Type</ThemedText>
+              <View style={styles.detailContent}>
+                <ThemedText style={styles.detailLabel}>Type</ThemedText>
                 <ThemedText style={styles.detailValue}>
                   {appointment.appointment_type
                     .split('_')
@@ -322,141 +361,238 @@ export default function AppointmentDetailsScreen() {
                 </ThemedText>
               </View>
             </View>
-            
-            {appointment.location && (
+              {appointment.location && (
               <View style={styles.detailRow}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="location" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                <View style={[styles.detailIconContainer, {
+                  backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
+                  borderRadius: 10
+                }]}>
+                  <Ionicons name="location" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
                 </View>
-                <View style={{flex: 1}}>
-                  <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Location</ThemedText>
+                <View style={styles.detailContent}>
+                  <ThemedText style={styles.detailLabel}>Location</ThemedText>
                   <View style={styles.locationContainer}>
-                    <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
+                    <ThemedText style={[styles.detailValue, {flex: 1, marginRight: 10}]}>{appointment.location}</ThemedText>
                     <TouchableOpacity 
                       style={styles.locationDirectionsButton}
                       onPress={handleNavigateToClinic}
                     >
-                      <Ionicons name="navigate-circle-outline" size={18} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
-                      <ThemedText style={styles.locationDirectionsText}>Directions</ThemedText>
+                      <LinearGradient
+                        colors={isDarkMode ? ['#1D3D47', '#0f1e23'] : ['#A1CEDC', '#78b1c4']}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                        style={styles.directionsBtnGradient}
+                      >
+                        <Ionicons name="navigate" size={14} color="#fff" />
+                        <ThemedText style={styles.locationDirectionsText}>Directions</ThemedText>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
             )}
-          </ThemedView>
-
-          {/* Add Parent Appointment Info for follow-up appointments */}
+          </ThemedView>          {/* Add Parent Appointment Info for follow-up appointments */}
           {appointment.parent_appointment_id && appointment.appointment_type === 'follow-up' && (
             <ThemedView style={[
               styles.detailsCard,
-              {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+              {
+                backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+                shadowColor: isDarkMode ? '#000' : '#2C3E50',
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: isDarkMode ? 0.3 : 0.1,
+                shadowRadius: 8,
+                elevation: 4
+              }
             ]}>
               <ThemedText style={styles.sectionTitle}>Follow-up Information</ThemedText>
               
               <View style={styles.detailRow}>
-                <View style={styles.detailIconContainer}>
-                  <Ionicons name="git-branch" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                <View style={[styles.detailIconContainer, {
+                  backgroundColor: isDarkMode ? 'rgba(161, 206, 220, 0.15)' : 'rgba(10, 126, 164, 0.08)',
+                  borderRadius: 10
+                }]}>
+                  <Ionicons name="git-branch" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
                 </View>
-                <View>
-                  <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Previous Appointment</ThemedText>
+                <View style={styles.detailContent}>
+                  <ThemedText style={styles.detailLabel}>Previous Appointment</ThemedText>
                   <TouchableOpacity 
                     onPress={() => router.push(`/appointments/${appointment.parent_appointment_id}`)}
-                    style={styles.linkButton}
+                    style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}
                   >
-                    <ThemedText style={[styles.detailValue, styles.linkText]}>
+                    <ThemedText style={[styles.detailValue, {color: isDarkMode ? '#A1CEDC' : '#0a7ea4'}]}>
                       View Original Appointment
                     </ThemedText>
-                    <Ionicons name="open-outline" size={16} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                    <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} style={{marginLeft: 4}} />
                   </TouchableOpacity>
                 </View>
               </View>
             </ThemedView>
-          )}
-
-          {/* Notes Section */}
+          )}          {/* Notes Section */}
           {appointment.notes && (
             <ThemedView style={[
               styles.detailsCard,
-              {borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}
+              {
+                backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+                shadowColor: isDarkMode ? '#000' : '#2C3E50',
+                shadowOffset: {width: 0, height: 4},
+                shadowOpacity: isDarkMode ? 0.3 : 0.1,
+                shadowRadius: 8,
+                elevation: 4
+              }
             ]}>
-              <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
-              <ThemedText style={styles.notesContent}>{appointment.notes}</ThemedText>
+              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 12}}>
+                <Ionicons name="document-text-outline" size={20} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} style={{marginRight: 8}} />
+                <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
+              </View>
+              <View style={{
+                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                borderRadius: 12,
+                padding: 12
+              }}>
+                <ThemedText style={styles.notesContent}>{appointment.notes}</ThemedText>
+              </View>
             </ThemedView>
-          )}
-
-          {/* Action Buttons */}
+          )}{/* Action Buttons */}
           {appointment.status === 'upcoming' && (
-            <>
-              <View style={styles.actionsContainer}>
+            <ThemedView style={[styles.actionsCard, {
+              backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+              shadowColor: isDarkMode ? '#000' : '#2C3E50',
+              shadowOffset: {width: 0, height: 4},
+              shadowOpacity: isDarkMode ? 0.3 : 0.1,
+              shadowRadius: 8,
+              elevation: 4
+            }]}>
+              <ThemedText style={styles.sectionTitle}>Quick Actions</ThemedText>
+              
+              <View style={styles.actionsGrid}>
+                {/* Navigate Button */}
+                {appointment.location && (
+                  <TouchableOpacity
+                    style={styles.actionGridItem}
+                    onPress={handleNavigateToClinic}
+                  >
+                    <LinearGradient
+                      colors={['#FF9800', '#F57C00']}
+                      style={styles.actionIconContainer}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                    >
+                      <Ionicons name="navigate" size={22} color="#fff" />
+                    </LinearGradient>
+                    <ThemedText style={styles.actionGridText}>Navigate</ThemedText>
+                  </TouchableOpacity>
+                )}
+                
+                {/* Reschedule Button */}
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.rescheduleButton]}
+                  style={styles.actionGridItem}
                   onPress={() => router.push(`/appointments/${appointmentId}/reschedule`)}
                 >
-                  <Ionicons name="calendar" size={20} color="#fff" />
-                  <ThemedText style={styles.actionButtonText}>Reschedule</ThemedText>
+                  <LinearGradient
+                    colors={['#2196F3', '#1976D2']}
+                    style={styles.actionIconContainer}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                  >
+                    <Ionicons name="calendar" size={22} color="#fff" />
+                  </LinearGradient>
+                  <ThemedText style={styles.actionGridText}>Reschedule</ThemedText>
                 </TouchableOpacity>
                 
+                {/* Cancel Button */}
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.cancelButton]}
+                  style={styles.actionGridItem}
                   onPress={handleCancelAppointment}
                 >
-                  <Ionicons name="close-circle" size={20} color="#fff" />
-                  <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
+                  <LinearGradient
+                    colors={['#FF5252', '#D32F2F']}
+                    style={styles.actionIconContainer}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                  >
+                    <Ionicons name="close-circle" size={22} color="#fff" />
+                  </LinearGradient>
+                  <ThemedText style={styles.actionGridText}>Cancel</ThemedText>
                 </TouchableOpacity>
               </View>
-              
-              {/* Navigate to Clinic Button */}
-              {appointment.location && (
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.navigateButton]}
-                  onPress={handleNavigateToClinic}
-                >
-                  <Ionicons name="navigate" size={20} color="#fff" />
-                  <ThemedText style={styles.actionButtonText}>Navigate to Clinic</ThemedText>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-
-          {/* Leave Feedback Button for completed appointments */}
+            </ThemedView>
+          )}          {/* Completed appointment actions */}
           {appointment.status === 'completed' && (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.feedbackButton]}
-                onPress={() => router.push(`/feedback/${appointmentId}`)}
-              >
-                <Ionicons name="star" size={20} color="#fff" />
-                <ThemedText style={styles.actionButtonText}>Leave Feedback</ThemedText>
-              </TouchableOpacity>
+            <ThemedView style={[styles.actionsCard, {
+              backgroundColor: isDarkMode ? '#1D2939' : '#fff',
+              shadowColor: isDarkMode ? '#000' : '#2C3E50',
+              shadowOffset: {width: 0, height: 4},
+              shadowOpacity: isDarkMode ? 0.3 : 0.1,
+              shadowRadius: 8,
+              elevation: 4
+            }]}>
+              <ThemedText style={styles.sectionTitle}>Appointment Resources</ThemedText>
               
-              {/* Medical Records Button */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.medicalRecordsButton]}
-                onPress={() => router.push(`/appointments/${appointmentId}/medical-records`)}
-              >
-                <Ionicons name="document-text" size={20} color="#fff" />
-                <ThemedText style={styles.actionButtonText}>Medical Records</ThemedText>
-              </TouchableOpacity>
-              
-              {/* Prescriptions Button */}
-              <TouchableOpacity
-                style={[styles.actionButton, styles.prescriptionsButton]}
-                onPress={() => router.push(`/appointments/${appointmentId}/prescriptions`)}
-              >
-                <Ionicons name="medical" size={20} color="#fff" />
-                <ThemedText style={styles.actionButtonText}>Prescriptions</ThemedText>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {/* Contact Doctor Button */}
-          {appointment.doctor && (
+              <View style={styles.actionsGrid}>
+                {/* Feedback Button */}
+                <TouchableOpacity
+                  style={styles.actionGridItem}
+                  onPress={() => router.push(`/feedback/${appointmentId}`)}
+                >
+                  <LinearGradient
+                    colors={['#FFC107', '#FFA000']}
+                    style={styles.actionIconContainer}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                  >
+                    <Ionicons name="star" size={22} color="#fff" />
+                  </LinearGradient>
+                  <ThemedText style={styles.actionGridText}>Feedback</ThemedText>
+                </TouchableOpacity>
+                
+                {/* Medical Records Button */}
+                <TouchableOpacity
+                  style={styles.actionGridItem}
+                  onPress={() => router.push(`/appointments/${appointmentId}/medical-records`)}
+                >
+                  <LinearGradient
+                    colors={['#4CAF50', '#388E3C']}
+                    style={styles.actionIconContainer}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                  >
+                    <Ionicons name="document-text" size={22} color="#fff" />
+                  </LinearGradient>
+                  <ThemedText style={styles.actionGridText}>Records</ThemedText>
+                </TouchableOpacity>
+                
+                {/* Prescriptions Button */}
+                <TouchableOpacity
+                  style={styles.actionGridItem}
+                  onPress={() => router.push(`/appointments/${appointmentId}/prescriptions`)}
+                >
+                  <LinearGradient
+                    colors={['#9C27B0', '#7B1FA2']}
+                    style={styles.actionIconContainer}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                  >
+                    <Ionicons name="medical" size={22} color="#fff" />
+                  </LinearGradient>
+                  <ThemedText style={styles.actionGridText}>Prescriptions</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+          )}          {/* Contact Doctor Button - shown when the appointment is not cancelled */}
+          {appointment.doctor && appointment.status !== 'cancelled' && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.contactButton]}
+              style={styles.contactDoctorButton}
               onPress={() => router.push(`/doctors/${appointment.doctor?.id}`)}
             >
-              <Ionicons name="call" size={20} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>Contact Doctor</ThemedText>
+              <LinearGradient
+                colors={isDarkMode ? ['#1D3D47', '#0f1e23'] : ['#0a7ea4', '#055976']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.contactBtnGradient}
+              >
+                <Ionicons name="call" size={20} color="#fff" style={styles.contactBtnIcon} />
+                <ThemedText style={styles.contactBtnText}>Contact Doctor</ThemedText>
+              </LinearGradient>
             </TouchableOpacity>
           )}
 
@@ -468,10 +604,12 @@ export default function AppointmentDetailsScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    top: 50,
     flex: 1,
+    marginBottom: 30,
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   loadingContainer: {
@@ -498,9 +636,9 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#0a7ea4',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
   },
   retryButtonText: {
     color: '#fff',
@@ -511,29 +649,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 50,
+    minWidth: 120,
+    justifyContent: 'center',
   },
   statusText: {
     fontWeight: '600',
+    fontSize: 14,
   },
   doctorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   doctorAvatarContainer: {
     marginRight: 15,
   },
   doctorAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -542,37 +683,52 @@ const styles = StyleSheet.create({
   },
   doctorName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontWeight: '700',
   },
   doctorSpecialty: {
     fontSize: 14,
-    opacity: 0.7,
+    opacity: 0.8,
+  },
+  doctorContactButton: {
+    padding: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailsCard: {
-    padding: 15,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  actionsCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 15,
+    marginBottom: 16,
+    alignItems: 'center',
   },
   detailIconContainer: {
-    width: 40,
-    marginRight: 10,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  detailContent: {
+    flex: 1,
   },
   detailLabel: {
     fontSize: 14,
-    opacity: 0.6,
-    marginBottom: 2,
+    color: '#888',
+    marginBottom: 4,
   },
   detailValue: {
     fontSize: 16,
@@ -580,79 +736,83 @@ const styles = StyleSheet.create({
   },
   notesContent: {
     fontSize: 15,
-    lineHeight: 22,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  rescheduleButton: {
-    backgroundColor: '#2196F3',
-    flex: 1,
-    marginRight: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#FF5252',
-    flex: 1,
-    marginLeft: 10,
-  },
-  feedbackButton: {
-    backgroundColor: '#FFC107',
-    width: '100%',
-  },
-  medicalRecordsButton: {
-    backgroundColor: '#4CAF50',
-    width: '100%',
-    marginTop: 15,
-  },
-  prescriptionsButton: {
-    backgroundColor: '#9C27B0',
-    width: '100%',
-    marginTop: 15,
-  },
-  contactButton: {
-    backgroundColor: '#0a7ea4',
-    width: '100%',
-    marginTop: 15,
-  },
-  navigateButton: {
-    backgroundColor: '#FF9800',
-    width: '100%',
-    marginBottom: 15,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    marginLeft: 10,
-    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.9,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flex: 1,
+    marginTop: 4,
   },
   locationDirectionsButton: {
+    alignItems: 'center',
+    justifyContent: 'center', 
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  directionsBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 15,
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
   locationDirectionsText: {
     fontSize: 12,
     marginLeft: 4,
-    color: '#0a7ea4',
+    color: '#fff',
+    fontWeight: '500',
+  },
+  // New Grid Action Styles
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -8,
+  },
+  actionGridItem: {
+    width: '33.33%',
+    padding: 8,
+    alignItems: 'center',
+  },
+  actionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionGridText: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  // Contact doctor button
+  contactDoctorButton: {
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 5,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  contactBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  contactBtnIcon: {
+    marginRight: 10,
+  },
+  contactBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
