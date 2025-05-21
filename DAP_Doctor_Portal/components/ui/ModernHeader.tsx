@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation, useRouter } from 'expo-router';
 import Colors, { Gradients } from '../../constants/Colors';
+import { useNotifications } from '../../contexts/notificationContext';
 
 type ModernHeaderProps = {
   title?: string;
@@ -30,7 +31,7 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
   showNotification = true,
   showAvatar = true,
   customRightComponent,
-  userName = 'Dr. Smith',
+  userName = 'Dr. ',
 }) => {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -38,6 +39,7 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
   const router = useRouter();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const colors = Colors[theme];
+  const { unreadCount } = useNotifications();
   
   // Define gradient colors with explicit typing for LinearGradient
   const headerGradient = Gradients[theme].header as readonly [ColorValue, ColorValue];
@@ -49,7 +51,6 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
   };
 
   const openNotifications = () => {
-    // Implement notification screen navigation
     router.push('/notifications');
   };
 
@@ -106,14 +107,21 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
                 style={styles.iconButton} 
                 onPress={openNotifications}
                 activeOpacity={0.7}
-              >
-                <View style={styles.notificationContainer}>
+              >                <View style={styles.notificationContainer}>
                   <FontAwesome5 
                     name="bell" 
                     size={22} 
                     color="#fff" 
                   />
-                  <View style={styles.notificationBadge} />
+                  {unreadCount > 0 && (
+                    <View style={styles.notificationBadge}>
+                      {unreadCount > 9 ? (
+                        <Text style={styles.badgeText}>9+</Text>
+                      ) : unreadCount > 0 ? (
+                        <Text style={styles.badgeText}>{unreadCount}</Text>
+                      ) : null}
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             )}
@@ -205,17 +213,25 @@ const styles = StyleSheet.create({
   },
   notificationContainer: {
     position: 'relative',
-  },
-  notificationBadge: {
+  },  notificationBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: -6,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#FF5C5C',
     borderWidth: 1.5,
     borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   avatarContainer: {
     marginLeft: 12,

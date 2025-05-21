@@ -13,6 +13,7 @@ import { useColorScheme as useDeviceColorScheme } from 'react-native';
 
 import { useColorScheme } from '../hooks/useColorScheme';
 import { AuthProvider } from '../contexts/AuthContext';
+import { NotificationProvider } from '../contexts/notificationContext';
 import Colors from '../constants/Colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -40,18 +41,19 @@ export default function RootLayout() {
     colorScheme === 'dark'
       ? { ...MD3DarkTheme, colors: { ...MD3DarkTheme.colors, primary: Colors.dark.primary } }
       : { ...MD3LightTheme, colors: { ...MD3LightTheme.colors, primary: Colors.light.primary } };
-
   return (
     <PaperProvider theme={paperTheme}>
       <AuthProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        </ThemeProvider>
+        <NotificationProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="auth" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          </ThemeProvider>
+        </NotificationProvider>
       </AuthProvider>
     </PaperProvider>
   );

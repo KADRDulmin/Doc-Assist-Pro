@@ -49,13 +49,25 @@ export default function AppointmentsScreen() {
         user?.id, 
         selectedFilter || undefined
       );
-      
-      if (response.success && response.data) {
+        if (response.success && response.data) {
         console.log(`Loaded ${response.data.length} appointments successfully`);
         
         // For completed appointments, fetch feedback data
         const appointmentsWithFeedback = await Promise.all(
           response.data.map(async (appointment) => {
+            // For upcoming appointments, schedule notifications
+            if (appointment.status === 'upcoming') {
+              try {
+                // Dynamically import to avoid circular dependencies
+                const AppointmentNotifications = (await import('../../utils/appointmentNotifications')).default;
+                // Schedule notifications for this appointment
+                await AppointmentNotifications.scheduleAppointmentNotifications(appointment);
+              } catch (err) {
+                console.error(`Failed to schedule notifications for appointment ${appointment.id}:`, err);
+              }
+            }
+            
+            // For completed appointments, fetch feedback data
             if (appointment.status === 'completed') {
               try {
                 // Fetch feedback for this appointment

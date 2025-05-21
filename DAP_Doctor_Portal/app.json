@@ -3,11 +3,11 @@
     "name": "DAP_Doctor_Portal",
     "slug": "DAP_Doctor_Portal",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "orientation": "portrait",    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "projectId": "3a1c5942-57b7-4642-b11e-0612871190d9",
     "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,

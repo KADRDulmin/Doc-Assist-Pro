@@ -43,6 +43,7 @@ export interface AppointmentData {
   criticality?: string;
   symptom_analysis_json?: string;
   feedback?: FeedbackData; // Add feedback data to appointments
+  consultation?: ConsultationData; // Add consultation data to appointments
 }
 
 export interface ConsultationData {
@@ -275,19 +276,53 @@ const doctorService = {
       throw error;
     }
   },
-  
-  // Update appointment status
+    // Update appointment status
   updateAppointmentStatus: async (
     appointmentId: number, 
     status: 'completed' | 'cancelled', 
     token: string
   ): Promise<ApiResponse<AppointmentData>> => {
-    return api.put<AppointmentData>(`/appointments/${appointmentId}`, { status }, token);
+    try {
+      const response = await api.put<AppointmentData>(`/appointments/${appointmentId}`, { status }, token);
+      
+      // Import dynamically to avoid circular dependency
+      if (response.success && status === 'cancelled') {
+        const AppointmentNotifications = (await import('../utils/appointmentNotifications')).default;
+        await AppointmentNotifications.handleAppointmentCancellation(response.data);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      return {
+        success: false,
+        error: 'Failed to update appointment status'
+      };
+    }
   },
   
   // Complete an appointment
   completeAppointment: async (appointmentId: number, token: string): Promise<ApiResponse<AppointmentData>> => {
-    return api.post<AppointmentData>(`/appointments/${appointmentId}/complete`, {}, token);
+    try {
+      const response = await api.post<AppointmentData>(`/appointments/${appointmentId}/complete`, {}, token);
+      
+      // If successful, add a notification
+      if (response.success && response.data) {
+        const AppointmentNotifications = (await import('../utils/appointmentNotifications')).default;
+        // The consultationId would typically be in the response data
+        if (response.data.consultation?.id) {
+          await AppointmentNotifications.notifyConsultationComplete(response.data, response.data.consultation.id);
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+      return {
+        success: false,
+        error: 'Failed to complete appointment'
+      };
+    }
   },
   
   // Get doctor's availability for a specific date
@@ -331,10 +366,25 @@ const doctorService = {
   completeConsultation: async (consultationId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
     return api.post<ConsultationData>(`/consultations/${consultationId}/complete`, {}, token);
   },
-  
-  // Mark a consultation as missed
+    // Mark a consultation as missed
   markConsultationAsMissed: async (consultationId: number, token: string): Promise<ApiResponse<ConsultationData>> => {
-    return api.post<ConsultationData>(`/consultations/${consultationId}/missed`, {}, token);
+    try {
+      const response = await api.post<ConsultationData>(`/consultations/${consultationId}/missed`, {}, token);
+      
+      // If successful and we have appointment data, trigger missed appointment notification
+      if (response.success && response.data && response.data.appointment) {
+        const AppointmentNotifications = (await import('../utils/appointmentNotifications')).default;
+        await AppointmentNotifications.handleMissedAppointment(response.data.appointment);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error marking consultation as missed:', error);
+      return {
+        success: false,
+        error: 'Failed to mark consultation as missed'
+      };
+    }
   },
   
   // Add medical record to a consultation
