@@ -7,7 +7,8 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,6 +86,33 @@ export default function AppointmentDetailsScreen() {
         }
       ]
     );
+  };
+
+  // Function to open Google Maps with directions to the clinic
+  const handleNavigateToClinic = () => {
+    if (!appointment?.location) {
+      Alert.alert('Error', 'No location information available for this appointment');
+      return;
+    }
+
+    const destination = encodeURIComponent(appointment.location);
+    const url = Platform.select({
+      ios: `maps://app?daddr=${destination}&dirflg=d`,
+      android: `google.navigation:q=${destination}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`
+    });
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        // Fallback to web URL if the app-specific URL fails
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`);
+      }
+    }).catch(err => {
+      console.error('Error opening maps:', err);
+      Alert.alert('Error', 'Could not open maps application');
+    });
   };
 
   // Format date for display (e.g., "Monday, May 15, 2023")
@@ -300,9 +328,18 @@ export default function AppointmentDetailsScreen() {
                 <View style={styles.detailIconContainer}>
                   <Ionicons name="location" size={24} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
                 </View>
-                <View>
+                <View style={{flex: 1}}>
                   <ThemedText style={[styles.detailLabel, {opacity: isDarkMode ? 0.7 : 0.6}]}>Location</ThemedText>
-                  <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
+                  <View style={styles.locationContainer}>
+                    <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
+                    <TouchableOpacity 
+                      style={styles.locationDirectionsButton}
+                      onPress={handleNavigateToClinic}
+                    >
+                      <Ionicons name="navigate-circle-outline" size={18} color={isDarkMode ? '#A1CEDC' : '#0a7ea4'} />
+                      <ThemedText style={styles.locationDirectionsText}>Directions</ThemedText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             )}
@@ -349,23 +386,36 @@ export default function AppointmentDetailsScreen() {
 
           {/* Action Buttons */}
           {appointment.status === 'upcoming' && (
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.rescheduleButton]}
-                onPress={() => router.push(`/appointments/${appointmentId}/reschedule`)}
-              >
-                <Ionicons name="calendar" size={20} color="#fff" />
-                <ThemedText style={styles.actionButtonText}>Reschedule</ThemedText>
-              </TouchableOpacity>
+            <>
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.rescheduleButton]}
+                  onPress={() => router.push(`/appointments/${appointmentId}/reschedule`)}
+                >
+                  <Ionicons name="calendar" size={20} color="#fff" />
+                  <ThemedText style={styles.actionButtonText}>Reschedule</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.cancelButton]}
+                  onPress={handleCancelAppointment}
+                >
+                  <Ionicons name="close-circle" size={20} color="#fff" />
+                  <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+              </View>
               
-              <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={handleCancelAppointment}
-              >
-                <Ionicons name="close-circle" size={20} color="#fff" />
-                <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
-              </TouchableOpacity>
-            </View>
+              {/* Navigate to Clinic Button */}
+              {appointment.location && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.navigateButton]}
+                  onPress={handleNavigateToClinic}
+                >
+                  <Ionicons name="navigate" size={20} color="#fff" />
+                  <ThemedText style={styles.actionButtonText}>Navigate to Clinic</ThemedText>
+                </TouchableOpacity>
+              )}
+            </>
           )}
 
           {/* Leave Feedback Button for completed appointments */}
@@ -409,7 +459,7 @@ export default function AppointmentDetailsScreen() {
               <ThemedText style={styles.actionButtonText}>Contact Doctor</ThemedText>
             </TouchableOpacity>
           )}
-          
+
         </View>
       </ScrollView>
     </>
@@ -575,10 +625,34 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 15,
   },
+  navigateButton: {
+    backgroundColor: '#FF9800',
+    width: '100%',
+    marginBottom: 15,
+  },
   actionButtonText: {
     color: '#fff',
     fontWeight: '600',
     marginLeft: 10,
     fontSize: 16,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  locationDirectionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 15,
+    backgroundColor: 'rgba(10, 126, 164, 0.1)',
+  },
+  locationDirectionsText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: '#0a7ea4',
   },
 });
