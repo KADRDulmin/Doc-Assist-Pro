@@ -73,14 +73,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       }
     };
   }, [user, token]);
-  // Set up local notifications only (no push notifications)
+
+  // Register for push notifications
   const registerForPushNotifications = async () => {
     try {
-      // This only sets up local notifications now
-      await NotificationService.registerForPushNotifications();
-      // No server registration needed
+      const pushToken = await NotificationService.registerForPushNotifications();
+      
+      if (pushToken && token) {
+        await NotificationService.registerPushTokenWithServer(pushToken, token);
+      }
     } catch (error) {
-      console.error('Error setting up notifications:', error);
+      console.error('Error registering for push notifications:', error);
     }
   };
 

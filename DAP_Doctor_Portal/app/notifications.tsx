@@ -106,18 +106,17 @@ export default function NotificationsScreen() {
       ]
     );
   };
-
   // Get icon for notification type
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'appointment':
-        return <FontAwesome5 name="calendar-alt" size={24} color={colors.primary} />;
+        return <Text style={{color: 'transparent'}}><FontAwesome5 name="calendar-alt" size={24} color={colors.primary} /></Text>;
       case 'consultation':
-        return <FontAwesome5 name="stethoscope" size={24} color={colors.primary} />;
+        return <Text style={{color: 'transparent'}}><FontAwesome5 name="stethoscope" size={24} color={colors.primary} /></Text>;
       case 'cancelled':
-        return <FontAwesome5 name="calendar-times" size={24} color={colors.danger} />;
+        return <Text style={{color: 'transparent'}}><FontAwesome5 name="calendar-times" size={24} color={colors.danger} /></Text>;
       default:
-        return <FontAwesome5 name="bell" size={24} color={colors.primary} />;
+        return <Text style={{color: 'transparent'}}><FontAwesome5 name="bell" size={24} color={colors.primary} /></Text>;
     }
   };
 
@@ -130,9 +129,10 @@ export default function NotificationsScreen() {
         !item.isRead && { borderLeftWidth: 4, borderLeftColor: colors.primary }
       ]}
       onPress={() => handleNotificationPress(item.id, item.data)}
-    >
-      <View style={styles.notificationIcon}>
-        {getNotificationIcon(item.type)}
+    >      <View style={styles.notificationIcon}>
+        <Text style={{ color: 'transparent' }}>
+          {getNotificationIcon(item.type)}
+        </Text>
       </View>
       <View style={styles.notificationContent}>
         <Text style={[styles.notificationTitle, { color: colors.text }]}>
@@ -144,12 +144,13 @@ export default function NotificationsScreen() {
         <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>
           {formatDistanceToNow(new Date(item.timestamp))}
         </Text>
-      </View>
-      <TouchableOpacity 
+      </View>      <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => handleDelete(item.id)}
       >
-        <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+        <Text style={{ color: 'transparent' }}>
+          <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+        </Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -166,8 +167,7 @@ export default function NotificationsScreen() {
         />
 
         {/* Actions Row */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity 
+        <View style={styles.actionsContainer}>          <TouchableOpacity 
             style={styles.actionButton}
             onPress={markAllAsRead}
           >
@@ -189,9 +189,10 @@ export default function NotificationsScreen() {
               Loading notifications...
             </Text>
           </View>
-        ) : notifications.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <FontAwesome5 name="bell-slash" size={64} color={colors.textTertiary} />
+        ) : notifications.length === 0 ? (          <View style={styles.emptyContainer}>
+            <Text style={{ color: 'transparent' }}>
+              <FontAwesome5 name="bell-slash" size={64} color={colors.textTertiary} />
+            </Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               No notifications yet
             </Text>

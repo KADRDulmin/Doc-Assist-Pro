@@ -70,18 +70,18 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
       ]}
     >
       <View style={styles.headerContent}>
-        <View style={styles.leftSection}>
-          {showBackButton ? (
+        <View style={styles.leftSection}>          {showBackButton ? (
             <TouchableOpacity 
               style={styles.backButton} 
               onPress={goBack}
               activeOpacity={0.7}
-            >
-              <FontAwesome5 
-                name="chevron-left" 
-                size={20} 
-                color="#fff" 
-              />
+            >              <Text style={{ color: 'transparent' }}>
+                <FontAwesome5 
+                  name="chevron-left" 
+                  size={20} 
+                  color="#fff" 
+                />
+              </Text>
             </TouchableOpacity>
           ) : (
             <Image
@@ -100,37 +100,41 @@ const ModernHeader: React.FC<ModernHeaderProps> = ({
         
         {customRightComponent ? (
           customRightComponent
-        ) : (
-          <View style={styles.rightSection}>
+        ) : (          <View style={styles.rightSection}>
             {showNotification && (
               <TouchableOpacity 
                 style={styles.iconButton} 
                 onPress={openNotifications}
                 activeOpacity={0.7}
-              >                <View style={styles.notificationContainer}>
-                  <FontAwesome5 
-                    name="bell" 
-                    size={22} 
-                    color="#fff" 
-                  />                  {unreadCount > 0 && (
+              >
+                <View style={styles.notificationContainer}>                  <Text style={{ color: 'transparent' }}>
+                    <FontAwesome5 
+                      name="bell" 
+                      size={22} 
+                      color="#fff" 
+                    />
+                  </Text>
+                  {unreadCount > 0 && (
                     <View style={styles.notificationBadge}>
-                      <Text style={styles.badgeText}>
-                        {unreadCount > 9 ? '9+' : unreadCount.toString()}
-                      </Text>
+                      {unreadCount > 9 ? (
+                        <Text style={styles.badgeText}>9+</Text>
+                      ) : unreadCount > 0 ? (
+                        <Text style={styles.badgeText}>{unreadCount}</Text>
+                      ) : null}
                     </View>
                   )}
                 </View>
               </TouchableOpacity>
             )}
-            
-            {showAvatar && (
+              {showAvatar && (
               <TouchableOpacity 
                 style={styles.avatarContainer} 
                 onPress={openProfile}
                 activeOpacity={0.7}
-              >                <View style={styles.avatar}>
+              >
+                <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {userName ? userName.split(' ').map(name => name && name[0] ? name[0] : '').join('') : 'U'}
+                    {userName.split(' ').map(name => name[0]).join('')}
                   </Text>
                 </View>
               </TouchableOpacity>
