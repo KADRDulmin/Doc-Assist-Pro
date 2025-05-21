@@ -274,18 +274,6 @@ export default function PatientsScreen() {
           </View>
           
           <View style={styles.actionButtonsContainer}>
-            <TouchableRipple
-              style={[styles.actionButton, { backgroundColor: Colors[theme].primary }]}
-              onPress={() => {
-                hideDialog();
-                console.log(`View appointments for patient: ${selectedPatient.id}`);
-              }}
-            >
-              <View style={styles.actionButtonContent}>
-                <FontAwesome5 name="calendar-alt" size={16} color="#FFF" />
-                <ThemedText style={styles.actionButtonText}>View Appointments</ThemedText>
-              </View>
-            </TouchableRipple>
             
             <TouchableRipple
               style={[styles.actionButton, { backgroundColor: Colors[theme].success }]}

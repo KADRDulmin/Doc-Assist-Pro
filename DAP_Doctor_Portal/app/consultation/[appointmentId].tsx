@@ -135,7 +135,6 @@ export default function ConsultationScreen() {
       setLoading(false);
     }
   };
-
   const pickImage = async (
     setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>,
     isForDiagnosis: boolean = false
@@ -147,60 +146,130 @@ export default function ConsultationScreen() {
         return;
       }
 
-      // Request permissions first
+      // Show options to the user
+      Alert.alert(
+        'Select Image',
+        'Choose where you want to get the image from',
+        [          {
+            text: 'Take Photo',
+            onPress: () => {
+              setTimeout(() => {
+                launchCamera(setImageFunction, isForDiagnosis);
+              }, 100);
+            },
+          },
+          {
+            text: 'Choose from Gallery',
+            onPress: () => {
+              setTimeout(() => {
+                launchImageLibrary(setImageFunction, isForDiagnosis);
+              }, 100);
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (err: unknown) {
+      console.error('Error picking image:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to select image';
+      Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const launchCamera = async (
+    setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>,
+    isForDiagnosis: boolean
+  ) => {
+    try {
+      // Request camera permissions
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Please allow access to your camera');
+          return;
+        }
+      }      // Launch camera - no cropping
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // Don't crop the image
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        handleImageSelection(result.assets[0], setImageFunction, isForDiagnosis);
+      }
+    } catch (err: unknown) {
+      console.error('Error taking photo:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to take photo';
+      Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const launchImageLibrary = async (
+    setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>,
+    isForDiagnosis: boolean
+  ) => {
+    try {
+      // Request gallery permissions
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert('Permission Required', 'Please allow access to your media library');
           return;
         }
-      }
-
-      // Launch image picker
+      }      // Launch image picker - no cropping
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false, // Don't crop the image
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedImage = result.assets[0];
-        
-        if (isForDiagnosis) {
-          setUploadingDiagnosisImage(true);
-        } else {
-          setUploadingPrescriptionImage(true);
-        }
-        
-        try {
-          // Upload the image directly - token is guaranteed to be a string here
-          const uploadResponse = isForDiagnosis
-            ? await uploadService.uploadMedicalRecordImage(selectedImage.uri, token)
-            : await uploadService.uploadPrescriptionImage(selectedImage.uri, token);
-          
-          if (!uploadResponse.success || !uploadResponse.data) {
-            throw new Error(uploadResponse.error || 'Failed to upload image');
-          }
-          
-          // Set the image URL returned from the server
-          setImageFunction(uploadResponse.data.fileUrl);
-        } catch (error: unknown) {
-          console.error('Error uploading image:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to upload the image';
-          Alert.alert('Upload Error', errorMessage);
-        } finally {
-          if (isForDiagnosis) {
-            setUploadingDiagnosisImage(false);
-          } else {
-            setUploadingPrescriptionImage(false);
-          }
-        }
+        handleImageSelection(result.assets[0], setImageFunction, isForDiagnosis);
       }
     } catch (err: unknown) {
-      console.error('Error picking image:', err);
+      console.error('Error picking image from gallery:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to select image';
       Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const handleImageSelection = async (
+    selectedImage: ImagePicker.ImagePickerAsset,
+    setImageFunction: React.Dispatch<React.SetStateAction<string | undefined>>,
+    isForDiagnosis: boolean
+  ) => {
+    try {
+      if (isForDiagnosis) {
+        setUploadingDiagnosisImage(true);
+      } else {
+        setUploadingPrescriptionImage(true);
+      }
+      
+      // Upload the image directly - token is guaranteed to be a string here
+      const uploadResponse = isForDiagnosis
+        ? await uploadService.uploadMedicalRecordImage(selectedImage.uri, token)
+        : await uploadService.uploadPrescriptionImage(selectedImage.uri, token);
+      
+      if (!uploadResponse.success || !uploadResponse.data) {
+        throw new Error(uploadResponse.error || 'Failed to upload image');
+      }
+      
+      // Set the image URL returned from the server
+      setImageFunction(uploadResponse.data.fileUrl);
+    } catch (error: unknown) {
+      console.error('Error uploading image:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload the image';
+      Alert.alert('Upload Error', errorMessage);
+    } finally {
+      if (isForDiagnosis) {
+        setUploadingDiagnosisImage(false);
+      } else {
+        setUploadingPrescriptionImage(false);
+      }
     }
   };
 
@@ -446,9 +515,9 @@ export default function ConsultationScreen() {
             </View>
           ) : (
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Ionicons name="cloud-upload" size={24} color="#0466C8" />
+              <Ionicons name="camera" size={24} color="#0466C8" />
               <Text style={styles.uploadText}>
-                {diagnosisImage ? 'Change Image' : 'Upload Image'}
+                {diagnosisImage ? 'Change Image' : 'Take Photo or Choose from Gallery'}
               </Text>
             </View>
           )}
@@ -522,11 +591,10 @@ export default function ConsultationScreen() {
               <ActivityIndicator size="small" color="#0466C8" />
               <Text style={styles.uploadText}>Uploading...</Text>
             </View>
-          ) : (
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Ionicons name="cloud-upload" size={24} color="#0466C8" />
+          ) : (            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Ionicons name="camera" size={24} color="#0466C8" />
               <Text style={styles.uploadText}>
-                {prescriptionImage ? 'Change Image' : 'Upload Image'}
+                {prescriptionImage ? 'Change Image' : 'Take Photo or Choose from Gallery'}
               </Text>
             </View>
           )}

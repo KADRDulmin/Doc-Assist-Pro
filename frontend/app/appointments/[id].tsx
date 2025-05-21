@@ -387,14 +387,11 @@ export default function AppointmentDetailsScreen() {
                   <ThemedText style={styles.detailLabel}>Location</ThemedText>
                   <View style={styles.locationContainer}>
                     <View style={{flex: 1, marginRight: 10}}>
-                      {/* Show clinic name */}
-                      {appointment.location && (
-                        <ThemedText style={styles.detailValue}>{appointment.location}</ThemedText>
-                      )}
+
                       
                       {/* Show doctor address if available */}
                       {doctorAddress && (
-                        <ThemedText style={[styles.detailValueAddress, {marginTop: appointment.location ? 4 : 0}]}>
+                        <ThemedText style={[styles.detailValue, {marginTop: appointment.location ? 4 : 0}]}>
                           {doctorAddress}
                         </ThemedText>
                       )}

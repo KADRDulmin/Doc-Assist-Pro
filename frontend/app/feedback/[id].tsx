@@ -226,6 +226,7 @@ export default function FeedbackScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    top: 50,
     flex: 1,
   },
   scrollContent: {
