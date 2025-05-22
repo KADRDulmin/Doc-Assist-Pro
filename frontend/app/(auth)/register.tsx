@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -35,6 +36,8 @@ export default function PatientRegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,7 +50,7 @@ export default function PatientRegisterScreen() {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [apiUrl, setApiUrl] = useState('');
-  const [currentSection, setCurrentSection] = useState<'basic' | 'medical'>('basic');  const [errors, setErrors] = useState({
+  const [currentSection, setCurrentSection] = useState<'basic' | 'medical'>('basic');const [errors, setErrors] = useState({
     email: '',
     password: '',
     confirmPassword: '',
@@ -343,43 +346,63 @@ export default function PatientRegisterScreen() {
           keyboardType="phone-pad"
           placeholderTextColor={placeholderColor}
         />
-      </View>
-
-      <View style={styles.inputGroup}>
+      </View>      <View style={styles.inputGroup}>
         <ThemedText style={[styles.label, {color: textColor}]}>Password</ThemedText>
-        <TextInput
-          style={[
-            styles.input, 
-            {backgroundColor: inputBackground, borderColor: errors.password ? errorColor : inputBorderColor, color: textColor},
-          ]}
-          placeholder="Create a password (minimum 6 characters)"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (errors.password) setErrors({...errors, password: ''});
-          }}
-          secureTextEntry
-          placeholderTextColor={placeholderColor}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[
+              styles.passwordInput, 
+              {backgroundColor: inputBackground, borderColor: errors.password ? errorColor : inputBorderColor, color: textColor},
+            ]}
+            placeholder="Create a password (minimum 6 characters)"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errors.password) setErrors({...errors, password: ''});
+            }}
+            secureTextEntry={!showPassword}
+            placeholderTextColor={placeholderColor}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Ionicons 
+              name={showPassword ? "eye-off" : "eye"} 
+              size={24} 
+              color={textColor === '#f5f5f5' ? '#78909c' : '#666'} 
+            />
+          </TouchableOpacity>
+        </View>
         {errors.password ? <ThemedText style={styles.errorText}>{errors.password}</ThemedText> : null}
-      </View>
-
-      <View style={styles.inputGroup}>
+      </View>      <View style={styles.inputGroup}>
         <ThemedText style={[styles.label, {color: textColor}]}>Confirm Password</ThemedText>
-        <TextInput
-          style={[
-            styles.input, 
-            {backgroundColor: inputBackground, borderColor: errors.confirmPassword ? errorColor : inputBorderColor, color: textColor},
-          ]}
-          placeholder="Re-enter your password"
-          value={confirmPassword}
-          onChangeText={(text) => {
-            setConfirmPassword(text);
-            if (errors.confirmPassword) setErrors({...errors, confirmPassword: ''});
-          }}
-          secureTextEntry
-          placeholderTextColor={placeholderColor}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[
+              styles.passwordInput, 
+              {backgroundColor: inputBackground, borderColor: errors.confirmPassword ? errorColor : inputBorderColor, color: textColor},
+            ]}
+            placeholder="Re-enter your password"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (errors.confirmPassword) setErrors({...errors, confirmPassword: ''});
+            }}
+            secureTextEntry={!showConfirmPassword}
+            placeholderTextColor={placeholderColor}
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            <Ionicons 
+              name={showConfirmPassword ? "eye-off" : "eye"} 
+              size={24} 
+              color={textColor === '#f5f5f5' ? '#78909c' : '#666'} 
+            />
+          </TouchableOpacity>
+        </View>
         {errors.confirmPassword ? <ThemedText style={styles.errorText}>{errors.confirmPassword}</ThemedText> : null}
       </View>
 
@@ -657,13 +680,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 5,
     marginLeft: 2,
-  },
-  input: {
+  },  input: {
     height: 50,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,
     fontSize: 16,
+  },
+  passwordContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    flex: 1,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 10,
+    height: 50,
+    justifyContent: 'center',
+    zIndex: 1,
   },
   textArea: {
     height: 90,

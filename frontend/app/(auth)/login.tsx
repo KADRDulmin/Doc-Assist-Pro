@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, View, Text } from 'react-native';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -11,6 +12,7 @@ import { API_URL } from '@/src/services/api/base-api.service';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [apiUrl, setApiUrl] = useState('');
   const [showTestCreds, setShowTestCreds] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
@@ -115,16 +117,24 @@ export default function LoginScreen() {
       />
       {errors.email ? <ThemedText style={styles.errorText}>{errors.email}</ThemedText> : null}
 
-      <TextInput
-        style={[styles.input, errors.password ? styles.inputError : null]}
-        placeholder="Password"
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text);
-          if (errors.password) setErrors({...errors, password: ''});
-        }}
-        secureTextEntry
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={[styles.input, errors.password ? styles.inputError : null, { flex: 1 }]}
+          placeholder="Password"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            if (errors.password) setErrors({...errors, password: ''});
+          }}
+          secureTextEntry={!showPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={styles.eyeIcon}
+        >
+          <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
       {errors.password ? <ThemedText style={styles.errorText}>{errors.password}</ThemedText> : null}
 
       <TouchableOpacity
@@ -203,10 +213,22 @@ const styles = StyleSheet.create({
   linkContainer: {
     marginTop: 20,
     alignItems: 'center',
-  },
-  link: {
+  },  link: {
     color: '#0a7ea4',
     fontSize: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 10,
+    height: 50,
+    justifyContent: 'center',
   },
   devBanner: {
     backgroundColor: '#ffe8e0',
@@ -224,5 +246,13 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 12,
     marginTop: 5,
-  }
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  eyeIcon: {
+    padding: 10,
+  },
 });

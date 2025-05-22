@@ -444,16 +444,7 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Test Notification Button */}
-          {notificationsEnabled && (
-            <TouchableOpacity
-              style={[styles.testButton, { backgroundColor: primaryColor }]}
-              onPress={sendTestNotification}
-            >
-              <Ionicons name="notifications" size={20} color="#fff" />
-              <ThemedText style={styles.testButtonText}>Test Notifications</ThemedText>
-            </TouchableOpacity>
-          )}
+
 
           <View style={[styles.divider, { backgroundColor: dividerColor }]} />          <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
