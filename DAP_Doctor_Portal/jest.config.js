@@ -15,8 +15,11 @@ module.exports = {
     '!**/babel.config.js',
     '!**/jest.config.js',
     '!**/metro.config.js'
+  ],  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testMatch: [
+    "**/__tests__/**/*.[jt]s?(x)",
+    "**/?(*.)+(spec|test).[jt]s?(x)"
   ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/android/',

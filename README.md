@@ -597,3 +597,108 @@ npm install
 [Report Bug](https://github.com/KADRDulmin/Doc-Assist-Pro/issues) · [Request Feature](https://github.com/KADRDulmin/Doc-Assist-Pro/discussions)
 
 </div>
+
+## 🔐 Environment Variables Configuration
+
+### Root Project Configuration (.env)
+These variables are used for the Docker environment:
+```env
+POSTGRES_USER=your_postgres_user
+POSTGRES_PASSWORD=your_postgres_password
+PGPORT=5432
+PGDATABASE=doc_assist
+```
+
+### Backend Configuration (backend/.env)
+```env
+# Server configuration
+PORT=3000
+NODE_ENV=development
+
+# PostgreSQL configuration
+PGUSER=your_postgres_user
+PGHOST=localhost        # Use 'db' when using docker-compose
+PGDATABASE=doc_assist
+PGPASSWORD=your_postgres_password
+PGPORT=5432
+
+# JWT configuration
+JWT_SECRET=your_secure_jwt_secret_key
+JWT_EXPIRY=1h
+
+# API configuration
+API_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:19006
+
+# AI Integration
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-1.5-flash-latest
+```
+
+### Patient Frontend Configuration (frontend/.env)
+```env
+# Development configuration
+CI=false
+
+# Network configuration
+EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+REACT_NATIVE_PACKAGER_HOSTNAME=your_local_ip
+
+# API Configuration
+EXPO_PUBLIC_API_URL=http://your_local_ip:3000
+EXPO_PUBLIC_LOCAL_URL=http://your_local_ip:19000
+
+# Google Maps Integration
+EXPO_PUBLIC_ANDROID_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+EXPO_PUBLIC_IOS_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# AI Integration
+EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+EXPO_PUBLIC_GEMINI_MODEL=gemini-1.5-flash-latest
+```
+
+### Doctor Portal Configuration (DAP_Doctor_Portal/.env)
+```env
+# Development configuration
+CI=false
+
+# Network configuration
+EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+REACT_NATIVE_PACKAGER_HOSTNAME=your_local_ip
+
+# API Configuration
+EXPO_PUBLIC_API_URL=http://your_local_ip:3000
+EXPO_PUBLIC_LOCAL_URL=http://your_local_ip:19000
+
+# Google Maps Integration
+EXPO_PUBLIC_ANDROID_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+EXPO_PUBLIC_IOS_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+EXPO_PUBLIC_WEB_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+### Environmental Setup Instructions
+
+1. **Create Environment Files**
+   - Create `.env` files in each directory as shown above
+   - Replace placeholder values with your actual configuration
+
+2. **Required API Keys**
+   - Google Maps API key from [Google Cloud Console](https://console.cloud.google.com)
+   - Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+3. **Network Configuration**
+   - Replace `your_local_ip` with your machine's local IP address
+   - Use `localhost` for local development
+   - Use the Docker service name (e.g., 'db' for database) when using Docker
+
+4. **Security Notes**
+   - Never commit `.env` files to version control
+   - Keep API keys and secrets secure
+   - Use strong passwords for database access
+
+5. **Development vs Production**
+   - Use different `.env` files for development and production
+   - Consider using environment-specific configurations:
+     - `.env.development`
+     - `.env.production`
+     - `.env.local` (for local overrides)
